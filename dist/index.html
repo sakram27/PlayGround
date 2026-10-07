@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FreqTrade Mobile — Bot Crypto ala Freqtrade untuk Android</title>
+  <meta name="description" content="APK Android ala Freqtrade: kontrol bot via REST API + paper-trading offline dengan strategi SMA, RSI, EMA." />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">📈 FreqTrade Mobile</div>
+    <nav>
+      <a href="#fitur">Fitur</a>
+      <a href="#demo">Demo</a>
+      <a href="#apk">APK</a>
+      <a href="#server">Server</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Freqtrade, versi APK Android</h1>
+        <p class="sub">Kontrol bot Freqtrade dari HP + paper-trading offline (uang virtual $1000). Strategi SMA Cross, RSI Mean-Reversion, EMA Trend. Data live dari Binance.</p>
+        <div class="cta">
+          <a class="btn primary" href="#apk">⬇ Download APK</a>
+          <a class="btn" href="#demo">Lihat demo</a>
+        </div>
+        <ul class="badges">
+          <li>✅ Kotlin + Jetpack Compose</li>
+          <li>✅ REST API Freqtrade</li>
+          <li>✅ Backtest di HP</li>
+        </ul>
+      </div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="ph-head">Bot • $1.240,50 <span class="green">+4,2%</span></div>
+          <canvas id="heroChart" width="260" height="140"></canvas>
+          <div class="ph-row"><span>BTC/USDT</span><strong class="green">+2,4%</strong></div>
+          <div class="ph-row"><span>ETH/USDT</span><strong class="red">-1,1%</strong></div>
+          <div class="ph-row"><span>Open trades</span><strong>3</strong></div>
+          <button class="btn primary small" id="heroBuy">Paper BUY BTC</button>
+          <div id="heroMsg" class="muted">Saldo virtual: $1000</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="fitur" class="grid">
+      <div class="card"><h3>🎛 Dashboard Bot</h3><p>Status, profit closed/all, winrate, best pair. Start / Stop / Pause langsung dari HP.</p></div>
+      <div class="card"><h3>📋 Trades</h3><p>Open trades + closed terakhir. Force-exit per trade, force-enter pair baru.</p></div>
+      <div class="card"><h3>📊 Market Live</h3><p>Harga Binance publik tanpa API key. Candlestick 15m / 1h / 4h / 1d, cari pair instan.</p></div>
+      <div class="card"><h3>🤖 Paper Bot (offline)</h3><p>Simulasi di HP: stake USDT, sinyal otomatis, backtest + max drawdown.</p></div>
+      <div class="card"><h3>🔌 Konek Server</h3><p>Login JWT ke <code>http://IP:8080/api/v1/</code>. Config tersimpan aman di DataStore.</p></div>
+      <div class="card"><h3>🛡 Aman</h3><p>Jangan expose API ke internet. Pakai VPN/Tailscale + password kuat + firewall.</p></div>
+    </section>
+
+    <section id="demo" class="card wide">
+      <h2>Demo strategi (jalan di browser)</h2>
+      <p class="muted">Pilih strategi, klik “Jalankan Backtest”. Sama persis dengan mesin di APK (Kotlin).</p>
+      <div class="demo-controls">
+        <select id="strat">
+          <option value="sma">SMA Cross (9/21)</option>
+          <option value="rsi">RSI Mean-Reversion (30/70)</option>
+          <option value="ema">EMA Trend (20)</option>
+        </select>
+        <button class="btn primary" id="runBt">Jalankan Backtest</button>
+      </div>
+      <canvas id="demoChart" width="900" height="220"></canvas>
+      <div id="btResult" class="result">Belum dijalankan.</div>
+    </section>
+
+    <section id="apk" class="card wide">
+      <h2>Download / Build APK</h2>
+      <ol>
+        <li>Source native ada di <code>freqtrade-android/</code> (Kotlin + Compose, minSdk 26).</li>
+        <li>Build lokal: <code>gradle-8.7 + Android SDK 34 → ./gradlew assembleDebug</code></li>
+        <li>Hasil: <code>app/build/outputs/apk/debug/app-debug.apk</code> → install di HP (aktifkan “Unknown sources”).</li>
+      </ol>
+      <p class="muted">Arsitektur yang benar: bot tetap jalan di VPS/PC 24/7, APK jadi remote + paper-trading. Bot on-device tidak disarankan (baterai + selalu online).</p>
+      <a class="btn primary" href="https://github.com/freqtrade/freqtrade" target="_blank" rel="noopener">Lihat Freqtrade asli di GitHub</a>
+    </section>
+
+    <section id="server" class="card wide">
+      <h2>Konek ke server Freqtrade</h2>
+      <pre>{
+  "api_server": {
+    "enabled": true,
+    "listen_ip_address": "0.0.0.0",
+    "listen_port": 8080,
+    "username": "freqtrader",
+    "password": "GANTI-DENGAN-PASSWORD-KUAT",
+    "jwt_secret_key": "isi-random-panjang",
+    "CORS_origins": []
+  }
+}</pre>
+      <p class="muted">Di APK buka menu Server → isi Base URL <code>http://IP-VPS:8080</code> + username/password → Simpan &amp; Connect.</p>
+    </section>
+  </main>
+
+  <footer>FreqTrade Mobile • UI demo statis untuk preview • Bot asli: freqtrade/freqtrade (GPL)</footer>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+:root{--bg:#0b0e14;--card:#151b26;--txt:#e8ecf3;--mut:#9aa4b2;--grn:#26a69a;--red:#ef5350;--acc:#2962ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.nav{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:#0b0e14ee;border-bottom:1px solid #222}
+.brand{font-weight:800}.nav a{color:var(--txt);text-decoration:none;margin-left:14px}.nav a:hover{color:#82aaff}
+main{max-width:1020px;margin:0 auto;padding:24px 16px 60px}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center;margin:12px 0 28px}
+h1{font-size:clamp(28px,5vw,46px);margin:.2em 0}.sub{color:var(--mut);font-size:17px}
+.cta{display:flex;gap:12px;margin:16px 0}.btn{display:inline-block;padding:10px 18px;border-radius:10px;border:1px solid #334;background:#1a2233;color:var(--txt);text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}.btn.small{padding:8px 12px;width:100%;margin-top:10px}
+.badges{list-style:none;padding:0;display:flex;gap:10px;flex-wrap:wrap;color:var(--mut)}
+.phone{background:#000;border:1px solid #333;border-radius:28px;padding:14px;max-width:300px}
+.phone-screen{background:#0f141d;border-radius:16px;padding:14px}
+.ph-head{font-weight:700;margin-bottom:8px}.ph-row{display:flex;justify-content:space-between;margin-top:8px}
+.green{color:var(--grn)}.red{color:var(--red)}.muted{color:var(--mut);font-size:13px;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:20px 0}
+.card{background:var(--card);border:1px solid #232c3f;border-radius:14px;padding:18px}
+.card.wide{margin:18px 0}pre{background:#0a0d13;padding:14px;border-radius:10px;overflow:auto}
+.demo-controls{display:flex;gap:10px;margin:12px 0}select,.demo-controls button{padding:10px;border-radius:8px}
+select{background:#0f141d;color:var(--txt);border:1px solid #334}
+canvas{width:100%;background:#0a0d13;border-radius:10px}
+.result{margin-top:10px;font-weight:600}
+footer{text-align:center;color:var(--mut);padding:24px}
+@media(max-width:760px){.hero{grid-template-columns:1fr}.phone{max-width:100%}}
