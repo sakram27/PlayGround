@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreqDroid — Freqtrade versi APK Android</title>
+<meta name="description" content="FreqDroid: aplikasi Android ala-Freqtrade. Paper-trading demo + remote control bot freqtrade.">
+<style>
+:root{--bg:#0b0e11;--card:#12161c;--green:#0ecb81;--red:#f6465d;--yellow:#f0b90b;--muted:#8a94a6;--text:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
+.top{display:flex;align-items:center;gap:10px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--yellow),#ff7a18);display:grid;place-items:center;font-weight:900;color:#111}
+.badge{font-size:12px;color:#111;background:var(--yellow);border-radius:999px;padding:3px 10px;font-weight:700}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;margin-top:22px;align-items:center}
+@media(max-width:860px){.hero{grid-template-columns:1fr}}
+h1{font-size:40px;line-height:1.05;margin:12px 0}h1 span{color:var(--yellow)}
+.sub{color:var(--muted);font-size:16px;line-height:1.6}
+.btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:800;cursor:pointer;font-size:15px;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--green);color:#04120c}.btn.ghost{background:#1c232e;color:#fff;border:1px solid #2b3544}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid #1e2632;border-radius:14px;padding:12px}
+.stat small{color:var(--muted)}.stat b{font-size:18px;display:block;margin-top:4px}
+.phone{background:#000;border:1px solid #262f3d;border-radius:32px;padding:14px;max-width:340px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.screen{background:#0b0e11;border-radius:22px;overflow:hidden}
+.screenHead{padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.chips{display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap}.chip{font-size:12px;background:#1c232e;border-radius:999px;padding:5px 10px;color:#cbd5e1}.chip.on{background:var(--yellow);color:#111;font-weight:800}
+canvas#chart{width:100%;height:220px;display:block;background:#0b0e11}
+.trades{padding:12px 14px}.trade{background:var(--card);border:1px solid #1e2632;border-radius:12px;padding:10px;margin-bottom:8px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid #1e2632;border-radius:16px;padding:16px}
+.card h3{margin:0 0 8px}.card p{color:var(--muted);font-size:14px;line-height:1.6;margin:0}
+code{background:#1c232e;padding:2px 6px;border-radius:6px;font-size:13px}
+pre{background:#07090c;border:1px solid #1e2632;border-radius:12px;padding:14px;overflow:auto;color:#cbd5e1;font-size:13px}
+footer{color:var(--muted);font-size:12px;margin-top:28px;text-align:center}
+.sig{font-weight:900;padding:4px 10px;border-radius:8px}.sig.buy{background:rgba(14,203,129,.15);color:var(--green)}.sig.hold{background:rgba(240,185,11,.15);color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">F</div>
+    <div><b>FreqDroid</b> <span class="badge">APK v1.0.0</span></div>
+  </div>
+  <div class="hero">
+    <div>
+      <h1>Freqtrade, <span>versi APK Android.</span></h1>
+      <p class="sub">Bot trading crypto open-source (Python) dalam genggaman. Paper-trading demo langsung di HP + remote control ke bot freqtrade di VPS via REST API. Dry-run dulu, tanpa uang asli.</p>
+      <div class="btns">
+        <a class="btn primary" href="#download">⬇ Unduh APK (±17 MB)</a>
+        <a class="btn ghost" href="https://github.com/freqtrade/freqtrade" target="_blank" rel="noopener">Lihat Freqtrade asli</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Profit %</small><b id="s-profit" style="color:var(--green)">+0.00%</b></div>
+        <div class="stat"><small>Sinyal</small><b><span class="sig hold" id="s-signal">HOLD</span></b></div>
+        <div class="stat"><small>Trades (backtest)</small><b id="s-trades">0</b></div>
+        <div class="stat"><small>Winrate</small><b id="s-win" style="color:var(--yellow)">0%</b></div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="screen">
+        <div class="screenHead"><b>FreqDroid</b><span class="sig buy">● DEMO</span></div>
+        <div class="chips"><span class="chip on">BTC/USDT</span><span class="chip">ETH/USDT</span><span class="chip">SOL/USDT</span><span class="chip">5m</span></div>
+        <canvas id="chart" width="640" height="440"></canvas>
+        <div class="trades">
+          <div class="trade"><b>BTC/USDT · LONG</b><br><span style="color:var(--muted)">Entry 67,240 → 68,910</span><br><b style="color:var(--green)">+2.48% · Stake $100</b></div>
+          <div class="trade"><b>ETH/USDT · LONG</b><br><span style="color:var(--muted)">Entry 3,410 → 3,512</span><br><b style="color:var(--green)">+2.99% · Stake $100</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>📊 Market &amp; Chart</h3><p>Harga live via Binance publik, 6 pair, timeframe 5m–1d. Candle chart + sinyal BUY / SELL / HOLD dari strategi EmaRsiCross (EMA-9/21 + RSI-14).</p></div>
+    <div class="card"><h3>🧪 Backtest di HP</h3><p>Uji strategi tanpa server: total profit, winrate, max drawdown, dan riwayat 10 trade terakhir. Port Kotlin dari SampleStrategy freqtrade.</p></div>
+    <div class="card"><h3>🤖 Kontrol Bot VPS</h3><p>Hubungkan ke <code>api_server</code> freqtrade: <code>status, profit, balance, performance, start/stop, forceexit</code>. Kosongkan URL untuk mode demo.</p></div>
+  </div>
+
+  <div class="card" id="download" style="margin-top:14px">
+    <h3>📲 Cara dapat APK</h3>
+    <p><b>Opsi 1 — GitHub Actions:</b> buka tab <b>Actions → Build FreqDroid APK</b> → unduh artifact <code>FreqDroid-debug-apk</code> → kirim ke HP → izinkan “Install unknown apps”.</p>
+    <p><b>Opsi 2 — Build sendiri:</b></p>
+    <pre>./gradlew :app:assembleDebug
+# hasil: app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk</pre>
+    <p>Syarat: JDK 17 + Android SDK (compileSdk 34, minSdk 26 = Android 8+). Paket: <code>com.freqdroid.app.debug</code>.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>🖥️ Hubungkan ke bot asli (opsional)</h3>
+    <pre>"api_server": {"enabled": true, "listen_ip_address": "0.0.0.0", "port": 8080}</pre>
+    <p>Restart <code>freqtrade trade --config config.json</code>, lalu di aplikasi buka tab <b>Server</b> dan isi URL + username + password → <b>Simpan &amp; Hubungkan</b>.</p>
+  </div>
+
+  <footer>FreqDroid • companion paper-trading, bukan freqtrade penuh (tanpa FreqAI/Hyperopt) • Edukasi, bukan nasihat finansial. Mulai selalu dengan Dry-run.</footer>
+</div>
+<script>
+// Mini candle chart demo (pure Canvas, no deps) + fake live stats
+(function(){
+  var c=document.getElementById('chart'),x=c.getContext('2d');
+  var candles=[],p=67240;
+  for(var i=0;i<48;i++){var o=p;var h=o+Math.random()*380;var l=o-Math.random()*380;var cl=l+Math.random()*(h-l);p=cl;candles.push({o:o,h:h,l:l,c:cl});}
+  function draw(){
+    x.clearRect(0,0,c.width,c.height);
+    var min=Math.min.apply(null,candles.map(function(k){return k.l})),max=Math.max.apply(null,candles.map(function(k){return k.h}));
+    function y(v){return c.height-((v-min)/(max-min)*c.height)}
+    var w=c.width/candles.length;
+    candles.forEach(function(k,i){
+      var up=k.c>=k.o,col=up?'#0ecb81':'#f6465d',cx=w*i+w/2;
+      x.strokeStyle=col;x.lineWidth=3;x.beginPath();x.moveTo(cx,y(k.h));x.lineTo(cx,y(k.l));x.stroke();
+      x.lineWidth=9;x.beginPath();x.moveTo(cx,y(Math.max(k.o,k.c)));x.lineTo(cx,y(Math.min(k.o,k.c)));x.stroke();
+    });
+  }
+  draw();
+  var profit=2.48,trades=14,win=57.1;
+  setInterval(function(){
+    var last=candles[candles.length-1],o=last.c,h=o+Math.random()*300,l=o-Math.random()*300,cl=l+Math.random()*(h-l);
+    candles.push({o:o,h:h,l:l,c:cl});candles.shift();draw();
+    profit+= (Math.random()-0.42)*0.3; trades+= Math.random()>0.9?1:0;
+    document.getElementById('s-profit').textContent=(profit>=0?'+':'')+profit.toFixed(2)+'%';
+    document.getElementById('s-profit').style.color=profit>=0?'var(--green)':'var(--red)';
+    document.getElementById('s-trades').textContent=trades;
+    document.getElementById('s-win').textContent=win.toFixed(1)+'%';
+    var s=document.getElementById('s-signal');
+    var r=Math.random();
+    s.textContent=r>0.6?'BUY':(r<0.25?'SELL':'HOLD');
+    s.className='sig '+(s.textContent==='BUY'?'buy':'hold');
+  },1500);
+})();
+</script>
+</body>
+</html>
