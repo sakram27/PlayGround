@@ -1,0 +1,22 @@
+
+screenshots/
+
+*.log
+
+*.pid
+
+.agents/
+
+.agentsweb/
+
+.omgithub-runtime/
+
+.opencode-ssh/
+
+.opencode-web/
+
+node_modules/
+
+# freqtrade-android
+freqtrade-android/app/build/
+freqtrade-android/.gradle/
