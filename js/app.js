@@ -4,7 +4,7 @@
  */
 'use strict';
 import { runBacktest, strategyList, filterList, applyFilters, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
-import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV } from './data.js';
+import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV, binanceActiveHost } from './data.js';
 import { pairIcon } from './icons.js';
 import { pairIcon } from './icons.js';
 import { renderMain, renderEquity } from './charts.js';
@@ -727,7 +727,7 @@ function init() {
     $('connStatus').textContent = 'Mengetes…';
     tb.innerHTML = '';
     const tests = [
-      ['Binance', async () => { const j = await topPairs('binance', 1); if (!j.length) throw new Error('daftar kosong'); return j[0]; }],
+      ['Binance', async () => { const j = await topPairs('binance', 1); if (!j.length) throw new Error('daftar kosong'); const h = binanceActiveHost() || ''; return j[0] + (h.includes('vision') ? ' via Vision' : ' via .com'); }],
       ['Bybit', async () => { const j = await topPairs('bybit', 1); if (!j.length) throw new Error('daftar kosong'); return j[0]; }],
       ['Yahoo Forex', async () => { const c = await getCandles({ provider: 'yahoo', symbol: 'EUR/USD', timeframe: '1h', limit: 60 }); return c.length + 'c EUR/USD'; }],
       ['Demo', async () => { const c = await getCandles({ provider: 'demo', symbol: 'BTCUSDT', timeframe: '15m', limit: 60 }); return c.length + 'c lokal'; }],
@@ -747,6 +747,7 @@ function init() {
   // laporan fix
   try {
     $('fixReport').innerHTML = [
+      ['v3.28 — Market tetap kosong (AKAR + FIX)', 'Hasil curl: <b>api.binance.com → HTTP 451</b> (blokir wilayah) dan <b>Bybit → diblokir CloudFront per negara</b>. Fix: Binance kini lewat <b>failover host otomatis .com → data-api.binance.vision (CORS *, tanpa geo-block) → .us</b>, host yang jalan diingat sesi ini. Teruji live: top pairs + klines via Vision. Tes Koneksi kini menampilkan host aktif. Jika Bybit tetap GAGAL = wajar (geo-block/CORS) → pakai Binance/Yahoo/Demo.'],
       ['v3.27 — Market tak muncul (FIX)', 'Daftar pair kini dirender <b>langsung</b> (tak menunggu harga), harga diisi <b>progresif per-batch</b> dengan progres n/N. Bila daftar pun gagal → box pemulihan 1-ketuk (<b>Demo / Yahoo / Coba lagi</b>). Tab Market juga <b>auto-load</b> saat pertama dibuka. Catatan: Binance/Bybit sering <b>diblokir jaringan/ISP di ID</b> — gunakan <b>Tes Koneksi</b> di Settings untuk memastikan.'],
       ['v3.27 — Bot + Dry Run = 1 engine', 'Start di Dashboard <b>sama persis</b> dengan Start di Dry Run: 1 set pair, 1 status, 1 badge, 1 interval (90 dtk), sinyal + posisi paper dari konfigurasi Backtest yang sama.'],
       ['v3.27 — Bersih-bersih UI', 'Header judul + sub “Sama seperti kartu…” dihapus sesuai permintaan. Versi tampil di footer & laporan saja.'],

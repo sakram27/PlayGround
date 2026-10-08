@@ -16,6 +16,30 @@ export const PROVIDERS = [
 
 const BYBIT_TF = { '1m': '1', '3m': '3', '5m': '5', '15m': '15', '30m': '30', '1h': '60', '2h': '120', '4h': '240', '6h': '360', '12h': '720', '1d': 'D', '1w': 'W' };
 
+/* FIX v3.28: api.binance.com me-return HTTP 451 (blokir wilayah, mis. ID) + tanpa itu
+ * WebView butuh CORS. data-api.binance.vision = data pasar publik Binance yang
+ * bebas geo-block + CORS `*`. Urutan coba: .com → vision → .us; host yg jalan diingat sesi ini. */
+const BINANCE_HOSTS = ['https://api.binance.com', 'https://data-api.binance.vision', 'https://api.binance.us'];
+let binanceHost = null;
+async function binanceFetch(path) {
+  const hosts = [binanceHost, ...BINANCE_HOSTS.filter((h) => h !== binanceHost)].filter(Boolean);
+  let lastErr = null;
+  for (const h of hosts) {
+    try {
+      const data = await fetchJSON(h + path);
+      binanceHost = h;
+      return { host: h, data };
+    } catch (e) { lastErr = e; }
+  }
+  const m = /HTTP (\d+)/.exec(lastErr?.message || '');
+  if (m?.[1] === '451') throw new Error('Binance diblokir di wilayah/jaringan Anda (HTTP 451) dan semua mirror gagal. Pakai Yahoo Forex atau Demo.');
+  throw new Error('Binance gagal di semua host: ' + (lastErr?.message || 'tidak diketahui') + '. Pakai Yahoo Forex atau Demo.');
+}
+function binanceLabel() {
+  return binanceHost?.includes('vision') ? 'Binance Vision' : 'Binance';
+}
+export function binanceActiveHost() { return binanceHost; }
+
 /* Universe Yahoo — 9 bawaan APK + tambahan mata uang (termasuk IDR) + spot metal */
 export const YAHOO_UNIVERSE = {
   'EUR/USD': 'EURUSD=X', 'GBP/USD': 'GBPUSD=X', 'USD/JPY': 'USDJPY=X', 'AUD/USD': 'AUDUSD=X',
@@ -125,14 +149,17 @@ export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', tim
     candles = genDemoCandles(symbol.length * 777 + timeframe.length * 131, limit, guessPrice(symbol), parseTimeframe(timeframe));
   } else if (provider === 'binance') {
     if (!sym) throw new Error('Pilih pair dulu dari listview.');
-    const j = await fetchJSON('https://api.binance.com/api/v3/klines?symbol=' + encodeURIComponent(sym) + '&interval=' + encodeURIComponent(timeframe) + '&limit=' + limit);
+    const { data: j } = await binanceFetch('/api/v3/klines?symbol=' + encodeURIComponent(sym) + '&interval=' + encodeURIComponent(timeframe) + '&limit=' + limit);
     if (!Array.isArray(j) || !j.length) throw new Error('Binance mengembalikan data kosong untuk ' + sym + ' ' + timeframe + '. Cek penulisan simbol.');
     candles = j.map((k) => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }));
   } else if (provider === 'bybit') {
     if (!sym) throw new Error('Pilih pair dulu dari listview.');
     const tf = BYBIT_TF[timeframe.toLowerCase()];
     if (!tf) throw new Error('Bybit tidak mendukung timeframe ' + timeframe + '. Gunakan 1m/5m/15m/1h/4h/1d/1w.');
-    const j = await fetchJSON('https://api.bybit.com/v5/market/kline?category=spot&symbol=' + encodeURIComponent(sym) + '&interval=' + encodeURIComponent(tf) + '&limit=' + limit);
+    let j;
+    try {
+      j = await fetchJSON('https://api.bybit.com/v5/market/kline?category=spot&symbol=' + encodeURIComponent(sym) + '&interval=' + encodeURIComponent(tf) + '&limit=' + limit);
+    } catch (e) { throw new Error('Bybit tak terjangkau (umum: diblokir wilayah/jaringan, atau browser ditolak). Pakai Binance, Yahoo, atau Demo. [' + (e.message || 'network') + ']'); }
     const list = j?.result?.list;
     if (!Array.isArray(list) || !list.length) throw new Error('Bybit mengembalikan data kosong untuk ' + sym + '. Pastikan simbol spot valid.');
     candles = list.map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] })).reverse();
@@ -182,7 +209,7 @@ export async function topPairs(provider = 'binance', limit = 12) {
       const list = j?.result?.list || [];
       return list.filter((x) => x.symbol.endsWith('USDT')).sort((a, b) => (+b.turnover24h || 0) - (+a.turnover24h || 0)).slice(0, limit).map((x) => x.symbol);
     }
-    const j = await fetchJSON('https://api.binance.com/api/v3/ticker/24hr');
+    const { data: j } = await binanceFetch('/api/v3/ticker/24hr');
     return j.filter((x) => x.symbol.endsWith('USDT')).sort((a, b) => (+b.quoteVolume || 0) - (+a.quoteVolume || 0)).slice(0, limit).map((x) => x.symbol);
   } catch { return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']; }
 }
