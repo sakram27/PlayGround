@@ -39,7 +39,9 @@ export function yahooSymbol(labelOrCode) {
   return null;
 }
 const YAHOO_INTERVAL = { '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m', '1h': '60m', '4h': '60m', '1d': '1d', '1w': '1wk' };
-const YAHOO_RANGE = { '1m': '5d', '5m': '1mo', '15m': '3mo', '30m': '3mo', '1h': '6mo', '4h': '1y', '1d': '2y', '1w': '5y' };
+/* FIX v3.26: range intraday Yahoo dibatasi (15m/30m > ~60 hari → HTTP 422). Pakai range aman. */
+const YAHOO_RANGE = { '1m': '5d', '5m': '1mo', '15m': '1mo', '30m': '1mo', '1h': '6mo', '4h': '1y', '1d': '2y', '1w': '5y' };
+const YAHOO_HOSTS = ['https://query1.finance.yahoo.com', 'https://query2.finance.yahoo.com'];
 
 function resample(candles, tfMin) {
   // gabung N candle 1h -> 1 candle 4h
@@ -69,22 +71,34 @@ async function yahooCandles(symbol, timeframe, limit) {
   if (!ysym) throw new Error('Yahoo tidak mengenal pair "' + symbol + '". Pilih dari daftar Forex (mis. EUR/USD, USD/IDR, XAU/USD).');
   const tf = timeframe.toLowerCase();
   const interval = YAHOO_INTERVAL[tf] || '15m';
-  const range = YAHOO_RANGE[tf] || '3mo';
-  const j = await fetchJSON('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ysym) + '?interval=' + interval + '&range=' + range + '&includePrePost=false');
-  const res = j?.chart?.result?.[0];
-  const ts = res?.timestamp || [];
-  const q = res?.indicators?.quote?.[0] || {};
-  if (!ts.length) throw new Error('Yahoo mengembalikan data kosong untuk ' + symbol + ' (' + ysym + '). Coba timeframe lain.');
-  let out = [];
-  for (let i = 0; i < ts.length; i++) {
-    const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
-    if (![o, h, l, c].every(Number.isFinite)) continue;
-    out.push({ t: ts[i] * 1000, o, h, l, c, v: Number.isFinite(q.volume?.[i]) ? q.volume[i] : 0 });
+  const range = YAHOO_RANGE[tf] || '1mo';
+  let lastErr = null;
+  // coba query1 lalu query2 (failover), dengan 1x retry — Yahoo sering 429/5xx sesaat
+  for (const host of YAHOO_HOSTS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const j = await fetchJSON(host + '/v8/finance/chart/' + encodeURIComponent(ysym) + '?interval=' + interval + '&range=' + range + '&includePrePost=false');
+        const res = j?.chart?.result?.[0];
+        const ts = res?.timestamp || [];
+        const q = res?.indicators?.quote?.[0] || {};
+        if (!ts.length) throw new Error('data kosong');
+        let out = [];
+        for (let i = 0; i < ts.length; i++) {
+          const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i];
+          if (![o, h, l, c].every(Number.isFinite)) continue;
+          out.push({ t: ts[i] * 1000, o, h, l, c, v: Number.isFinite(q.volume?.[i]) ? q.volume[i] : 0 });
+        }
+        if (tf === '4h') out = resample(out, 240);
+        out = out.slice(-Math.max(limit, 60));
+        if (out.length < 60) throw new Error('hanya ' + out.length + ' candle (butuh ≥60). Coba timeframe lebih kecil.');
+        return out;
+      } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 600)); }
+    }
   }
-  if (tf === '4h') out = resample(out, 240);
-  out = out.slice(-Math.max(limit, 60));
-  if (out.length < 60) throw new Error('Yahoo hanya memberi ' + out.length + ' candle untuk ' + symbol + ' ' + timeframe + ' (butuh ≥60). Coba timeframe lebih kecil.');
-  return out;
+  const code = /HTTP (\d+)/.exec(lastErr?.message || '')?.[1];
+  if (code === '422') throw new Error('Yahoo menolak kombinasi ' + symbol + ' ' + timeframe + '. Coba timeframe 1h/1d.');
+  if (code === '429') throw new Error('Yahoo rate-limit sesaat. Tunggu ±1 menit lalu coba lagi.');
+  throw new Error('Yahoo gagal untuk ' + symbol + ' (' + ysym + '): ' + (lastErr?.message || 'tidak diketahui') + '. Coba lagi atau pakai Demo.');
 }
 
 export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', timeframe = '15m', limit = 500 } = {}) {
