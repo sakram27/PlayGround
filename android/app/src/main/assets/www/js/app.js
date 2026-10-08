@@ -22,9 +22,9 @@ const state = {
   signals: store.get('aether_signals', []),
   hist: store.get('aether_hist', []),
   candles: [], params: null, result: null, csv: null, cancelled: false,
-  mktRows: [], botTimer: null, timerInt: null,
-  dryPairs: new Set(store.get('aether_drypairs', ['BTCUSDT', 'ETHUSDT'])),
-  dry: { running: false, positions: [], closed: store.get('aether_dryclosed', []), equity: store.get('aether_dryequity', null), timer: null },
+  mktRows: [], mktLoaded: false, timerInt: null,
+  engPairs: new Set(store.get('aether_engpairs', store.get('aether_drypairs', ['BTCUSDT', 'ETHUSDT']))),
+  eng: { running: false, positions: [], closed: store.get('aether_dryclosed', []), equity: store.get('aether_dryequity', null), timer: null },
 };
 const STRS = (() => { try { return strategyList(); } catch { return []; } })();
 const FLTS = (() => { try { return filterList(); } catch { return []; } })();
@@ -98,29 +98,64 @@ async function marketPairs() {
 async function loadMarket() {
   const tb = $('tblMkt').querySelector('tbody');
   try {
-    $('mktStatus').textContent = 'Memuat…';
     const tf = $('mktTf').value;
     tb.innerHTML = '<tr><td colspan="5"><div class="skel"></div><div class="skel" style="margin-top:6px"></div><div class="skel" style="margin-top:6px"></div></td></tr>';
-    const { prov, pairs } = await marketPairs();
-    state.mktRows = [];
-    tb.innerHTML = '';
-    for (const sym of pairs) {
-      try {
-        const candles = await getCandles({ provider: prov, symbol: sym, timeframe: tf, limit: 200 });
-        const last = candles[candles.length - 1];
-        const ref = candles[Math.max(0, candles.length - 25)];
-        const chg = ((last.c - ref.c) / ref.c) * 100;
-        let sig = 'NETRAL';
-        try {
-          const norm = normalizeCandles(candles);
-          const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: $('strategy').value || 'ema_trend', strategyParams: {} });
-          if (dec.passed) sig = dec.direction;
-        } catch { /* tetap NETRAL */ }
-        state.mktRows.push({ sym, price: last.c, chg, sig, prov });
-      } catch (err) { state.mktRows.push({ sym, err: String(err.message || err).slice(0, 90) }); }
+    let prov, pairs;
+    try {
+      ({ prov, pairs } = await marketPairs());
+    } catch (err) {
+      // Daftar pair pun gagal (jaringan diblokir?) → tampilkan box pemulihan, bukan tabel kosong
+      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:18px">'
+        + '<p class="sub">Gagal mengambil daftar pair: ' + esc(err.message) + '</p>'
+        + '<div class="row" style="justify-content:center">'
+        + '<button class="btn primary sm" data-mktfix="demo">Pakai Demo (offline)</button> '
+        + '<button class="btn ghost sm" data-mktfix="yahoo">Coba Yahoo Forex</button> '
+        + '<button class="btn ghost sm" data-mktfix="retry">Coba lagi</button>'
+        + '</div></td></tr>';
+      $('mktStatus').textContent = 'Gagal. Pilih salah satu opsi di atas.';
+      return;
     }
+    // 1) render daftar LANGSUNG (pair selalu muncul walau harga belum ada)
+    state.mktRows = pairs.map((sym) => ({ sym, prov, loading: true }));
     paintMarket();
-    $('mktStatus').textContent = 'Selesai (' + pairs.length + ' pair). Klik ★ pakai di Backtest, klik baris = detail.';
+    // 2) isi harga + sinyal progresif, batch paralel 3 (cepat + tahan 1-2 gagal)
+    let done = 0;
+    $('mktStatus').textContent = 'Memuat harga 0/' + pairs.length + '…';
+    for (let k = 0; k < pairs.length; k += 3) {
+      const batch = pairs.slice(k, k + 3);
+      await Promise.all(batch.map(async (sym) => {
+        try {
+          const candles = await getCandles({ provider: prov, symbol: sym, timeframe: tf, limit: 200 });
+          const last = candles[candles.length - 1];
+          const ref = candles[Math.max(0, candles.length - 25)];
+          let sig = 'NETRAL';
+          try {
+            const norm = normalizeCandles(candles);
+            const cache = buildCache(norm);
+            const dec = decideAt(norm, norm.length - 1, cache, { strategy: $('strategy').value || 'ema_trend', strategyParams: {} });
+            if (dec.passed) {
+              try {
+                const flt = readFilters();
+                if (flt.length && !applyFilters(norm, norm.length - 1, cache, dec.direction, flt, {}).passed) sig = 'FILTER×';
+                else sig = dec.direction;
+              } catch { sig = dec.direction; }
+            }
+          } catch { /* tetap NETRAL */ }
+          Object.assign(state.mktRows.find((r) => r.sym === sym) || {}, { price: last.c, chg: ((last.c - ref.c) / ref.c) * 100, sig, loading: false });
+        } catch (err) {
+          Object.assign(state.mktRows.find((r) => r.sym === sym) || {}, { err: String(err.message || err).slice(0, 110), loading: false });
+        } finally {
+          done++;
+          $('mktStatus').textContent = 'Memuat harga ' + done + '/' + pairs.length + '…';
+          paintMarket();
+        }
+      }));
+      if (state.mktRows.every((r) => !r.loading)) break;
+    }
+    const ok = state.mktRows.filter((r) => !r.err).length;
+    $('mktStatus').textContent = ok
+      ? 'Selesai (' + ok + '/' + pairs.length + ' pair). Klik ★ pakai di Backtest, klik baris = detail.'
+      : 'Semua pair gagal (' + prov + '). Kemungkinan jaringan memblokir provider ini — coba Demo atau Yahoo.';
   } catch (err) { $('mktStatus').textContent = 'Error: ' + err.message; }
 }
 function paintMarket() {
@@ -128,6 +163,7 @@ function paintMarket() {
   const tb = $('tblMkt').querySelector('tbody');
   tb.innerHTML = state.mktRows.filter((r) => !q || r.sym.includes(q)).map((r) =>
     r.err ? '<tr><td><span class="paircell">' + pairIcon(r.sym) + esc(r.sym) + '</span></td><td colspan="3" style="color:#ff9a9a">' + esc(r.err) + '</td><td></td></tr>'
+      : r.loading ? '<tr><td><span class="paircell">' + pairIcon(r.sym) + esc(r.sym) + '</span></td><td colspan="3" style="color:var(--dim)">memuat…</td><td></td></tr>'
       : '<tr data-sym="' + esc(r.sym) + '"><td><span class="paircell">' + pairIcon(r.sym) + esc(r.sym) + '</span></td><td>' + fmt(r.price, r.price > 1000 ? 2 : 4) + '</td><td>' + fmt(r.chg) + '%</td><td>' + esc(r.sig) + '</td><td><button class="btn ghost sm" data-pick="' + esc(r.sym) + '" data-prov="' + esc(r.prov || '') + '">★</button></td></tr>').join('')
     || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Tidak ada hasil.</td></tr>';
 }
@@ -293,43 +329,6 @@ function renderDashboard() {
   } catch (e) { console.warn('dash:', e); }
 }
 
-// ---------- BOT (MonitoringService ringan) ----------
-async function botCycle() {
-  try {
-    const prov = store.get('aether_set', {}).provider || $('provider').value;
-    const tf = store.get('aether_set', {}).tf || $('timeframe').value;
-    const strat = $('strategy').value || 'ema_trend';
-    const pairs = (await topPairs(prov, 5)).slice(0, 5);
-    for (const sym of pairs) {
-      try {
-        const candles = await getCandles({ provider: prov, symbol: sym, timeframe: tf, limit: 200 });
-        const norm = normalizeCandles(candles);
-        const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: strat, strategyParams: {} });
-        if (dec.passed) {
-          try {
-            const flt = readFilters();
-            if (flt.length) {
-              const fr = applyFilters(norm, norm.length - 1, buildCache(norm), dec.direction, flt, {});
-              if (!fr.passed) continue;
-            }
-          } catch { /* filter gagal baca = lewati filter */ }
-          const last = norm[norm.length - 1];
-          const dup = state.signals.some((x) => x.pair === sym && x.tf === tf && Math.abs(x.t - last.t) < 60_000);
-          if (!dup) {
-            const sl = dec.direction === 'LONG' ? last.c * 0.985 : last.c * 1.015;
-            const tp = dec.direction === 'LONG' ? last.c * 1.03 : last.c * 0.97;
-            pushSignal({ pair: sym, tf, dir: dec.direction, price: last.c, sl, tp, t: last.t, src: 'bot' });
-            if (store.get('aether_set', {}).notif !== '0' && 'Notification' in window && Notification.permission === 'granted') {
-              try { new Notification(dec.direction + ' ' + sym, { body: 'Entry ' + last.c.toFixed(2) }); } catch { /* abaikan */ }
-            }
-          }
-        }
-      } catch { /* lanjut pair berikut */ }
-    }
-    $('botStatus').textContent = 'Bot jalan · scan ' + new Date().toLocaleTimeString('id-ID') + ' · ' + state.signals.length + ' sinyal.';
-  } catch (e) { $('botStatus').textContent = 'Bot error: ' + e.message; }
-}
-
 // ---------- DETAIL modal ----------
 function openDetail(title, html) {
   $('detailTitle').childNodes[0].textContent = title + ' ';
@@ -343,7 +342,7 @@ function init() {
   try { renderStrategies(); $('stratSearch').oninput = renderStrategies; } catch { /* abaikan */ }
   try { renderComboChecks(); $('strategy').onchange = renderComboChecks; } catch { /* abaikan */ }
   try { renderFilterChecks(); } catch { /* abaikan */ }
-  try { renderDashboard(); renderSignals(); renderHist(); renderDry(); } catch { /* abaikan */ }
+  try { renderDashboard(); renderSignals(); renderHist(); renderEng(); } catch { /* abaikan */ }
   try {
     const st = store.get('aether_set', {});
     if (st.provider) { $('provider').value = st.provider; $('mktProvider').value = st.provider; $('setProvider').value = st.provider; }
@@ -393,6 +392,22 @@ function init() {
     if ($('mktCat').value === 'forex') $('mktProvider').value = 'yahoo';
     loadMarket();
   });
+  // pemulihan saat provider diblokir + auto-load saat tab Market pertama dibuka
+  document.addEventListener('click', (e) => {
+    const f = e.target.closest ? e.target.closest('[data-mktfix]') : null;
+    if (!f) return;
+    const v = f.dataset.mktfix;
+    if (v === 'demo') { $('mktProvider').value = 'demo'; $('mktCat').value = 'top'; }
+    if (v === 'yahoo') { $('mktProvider').value = 'yahoo'; $('mktCat').value = 'forex'; }
+    loadMarket();
+  });
+  try {
+    const origShow = window.__aetherShow;
+    window.__aetherShow = (n) => {
+      origShow(n);
+      if (n === 'market' && !state.mktLoaded) { state.mktLoaded = true; loadMarket(); }
+    };
+  } catch { /* abaikan */ }
   $('tblMkt').addEventListener('click', (e) => {
     const tr = e.target.closest('tr[data-sym]');
     if (!tr || e.target.closest('[data-pick]')) return;
@@ -525,22 +540,45 @@ function init() {
   $('btnClearSignals').addEventListener('click', () => { state.signals = []; store.set('aether_signals', []); renderSignals(); renderDashboard(); });
   $('btnClearHist').addEventListener('click', () => { state.hist = []; store.set('aether_hist', []); renderHist(); renderDashboard(); });
 
-  // bot
-  $('btnStartBot').addEventListener('click', async () => {
+  // bot engine terpadu (Start Bot Dashboard == Start Dry Run)
+  async function startEngine() {
+    if (!state.engPairs.size) {
+      $('dryStatus').textContent = 'Pilih pair dulu (☑ Pair).';
+      try { $('botStatus').textContent = 'Pilih pair dulu (☑ Pair).'; } catch {}
+      return;
+    }
+    try { engCfg(); } catch (err) {
+      $('dryStatus').textContent = 'Config error: ' + err.message;
+      try { $('botStatus').textContent = 'Config error: ' + err.message; } catch {}
+      return;
+    }
     try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch { /* abaikan */ }
-    $('btnStartBot').classList.add('hidden'); $('btnStopBot').classList.remove('hidden');
-    $('botBadge').textContent = 'BOT RUN';
-    await botCycle();
-    state.botTimer = setInterval(botCycle, 120000);
-  });
-  $('btnStopBot').addEventListener('click', () => {
-    clearInterval(state.botTimer);
-    $('btnStartBot').classList.remove('hidden'); $('btnStopBot').classList.add('hidden');
-    $('botBadge').textContent = 'BOT STOP'; $('botStatus').textContent = 'Bot berhenti.';
-  });
+    state.eng.running = true;
+    syncEngButtons();
+    await engTick(true);
+    clearInterval(state.eng.timer);
+    state.eng.timer = setInterval(() => engTick(false), 90000);
+  }
+  function stopEngine() {
+    state.eng.running = false;
+    clearInterval(state.eng.timer);
+    syncEngButtons();
+    renderEng();
+  }
+  function syncEngButtons() {
+    const r = state.eng.running;
+    try {
+      $('btnStartBot').classList.toggle('hidden', r); $('btnStopBot').classList.toggle('hidden', !r);
+      $('dryStart').classList.toggle('hidden', r); $('dryStop').classList.toggle('hidden', !r);
+      $('botBadge').textContent = r ? 'RUN' : 'STOP';
+      $('dryBadge').textContent = r ? 'RUN' : 'STOP';
+    } catch { /* abaikan */ }
+  }
+  $('btnStartBot').addEventListener('click', startEngine);
+  $('btnStopBot').addEventListener('click', stopEngine);
 
   // ---------- DRY RUN (paper-trading ala freqtrade) ----------
-  function dryCfg() {
+  function engCfg() {
     const p = readParams(); // strategi + combo + filter + risiko sama dengan Backtest
     return p;
   }
@@ -553,10 +591,11 @@ function init() {
     if (dir === 'LONG') return { sl: entry * (1 - p.slPercent), tp: entry * (1 + p.tpPercent) };
     return { sl: entry * (1 + p.slPercent), tp: entry * (1 - p.tpPercent) };
   }
-  function renderDry() {
+  function renderEng() {
     try {
-      $('dryCount').textContent = state.dryPairs.size;
-      const d = state.dry;
+      $('dryCount').textContent = state.engPairs.size;
+      try { $('engCount').textContent = state.engPairs.size; } catch {}
+      const d = state.eng;
       $('tblDryOpen').querySelector('tbody').innerHTML = d.positions.map((o) =>
         '<tr><td>' + esc(o.pair) + '</td><td>' + o.dir + '</td><td>' + fmt(o.entry, 5) + '</td><td>' + fmt(o.mark ?? o.entry, 5) + '</td><td>' + fmt$((o.upl ?? 0)) + '</td><td>' + fmt(o.sl, 5) + '</td><td>' + fmt(o.tp, 5) + '</td></tr>').join('')
         || '<tr><td colspan="7" style="text-align:center;color:var(--dim)">Kosong.</td></tr>';
@@ -565,19 +604,21 @@ function init() {
         '<tr><td>' + new Date(t.exitT).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + esc(t.pair) + '</td><td>' + t.dir + '</td><td>' + fmt$(t.pnl) + '</td><td><span class="pill ' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '">' + t.result + '</span></td></tr>').join('')
         || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada.</td></tr>';
       const net = d.closed.reduce((s, t) => s + (t.pnl || 0), 0);
-      $('dryStatus').textContent = d.running
-        ? 'Dry run jalan · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + ' · scan ' + new Date().toLocaleTimeString('id-ID')
-        : 'Dry run berhenti · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + '.';
+      const txt = d.running
+        ? 'Jalan · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + ' · scan ' + new Date().toLocaleTimeString('id-ID')
+        : 'Berhenti · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + '.';
+      $('dryStatus').textContent = txt;
+      try { $('botStatus').textContent = txt; } catch {}
     } catch (e) { console.warn('dry render:', e); }
   }
-  async function dryTick(manual) {
-    const d = state.dry;
+  async function engTick(manual) {
+    const d = state.eng;
     if (!d.running && !manual) return;
     let p;
-    try { p = dryCfg(); }
+    try { p = engCfg(); }
     catch (err) { $('dryStatus').textContent = 'Dry run error: ' + err.message; return; }
     if (d.equity == null) d.equity = p.initialCapital;
-    const pairs = [...state.dryPairs];
+    const pairs = [...state.engPairs];
     if (!pairs.length) { $('dryStatus').textContent = 'Pilih pair dry-run dulu.'; return; }
     const prov = $('provider').value;
     for (const sym of pairs) {
@@ -635,53 +676,38 @@ function init() {
     }
     store.set('aether_dryclosed', d.closed);
     store.set('aether_dryequity', d.equity);
-    renderDry();
+    renderEng();
   }
-  async function loadDryList() {
-    const box = $('dryChecks');
+  async function loadEngList(boxId, searchId) {
+    const box = $(boxId || 'dryChecks');
     box.innerHTML = '<p class="sub">Memuat…</p>';
     try {
       const prov = $('provider').value;
       const pairs = prov === 'yahoo' ? Object.keys(YAHOO_UNIVERSE) : await topPairs(prov, 12);
       const render = (f) => {
         box.innerHTML = pairs.filter((s) => !f || s.includes(f)).map((s) =>
-          '<label><input type="checkbox" value="' + esc(s) + '" ' + (state.dryPairs.has(s) ? 'checked' : '') + '> <span class="paircell">' + pairIcon(s) + esc(s) + '</span></label>').join('');
+          '<label><input type="checkbox" value="' + esc(s) + '" ' + (state.engPairs.has(s) ? 'checked' : '') + '> <span class="paircell">' + pairIcon(s) + esc(s) + '</span></label>').join('');
       };
       render('');
-      $('drySearch').oninput = (e) => render(e.target.value.toUpperCase());
+      $(searchId || 'drySearch').oninput = (e) => render(e.target.value.toUpperCase());
       box.onchange = () => {
-        state.dryPairs = new Set([...box.querySelectorAll('input:checked')].map((c) => c.value));
-        store.set('aether_drypairs', [...state.dryPairs]);
-        renderDry();
+        state.engPairs = new Set([...box.querySelectorAll('input:checked')].map((c) => c.value));
+        store.set('aether_engpairs', [...state.engPairs]);
+        renderEng();
       };
     } catch (err) { box.innerHTML = '<p class="sub">Gagal: ' + esc(err.message) + '</p>'; }
   }
 
-  // dry run
-  $('dryPairsBtn').addEventListener('click', () => { $('dryPickBox').classList.toggle('hidden'); if (!$('dryPickBox').classList.contains('hidden')) loadDryList(); });
-  $('dryReload').addEventListener('click', loadDryList);
-  $('dryStart').addEventListener('click', async () => {
-    if (!state.dryPairs.size) { $('dryStatus').textContent = 'Pilih pair dry-run dulu (☑ Pilih pair).'; return; }
-    try { dryCfg(); } catch (err) { $('dryStatus').textContent = 'Config error: ' + err.message; return; }
-    state.dry.running = true;
-    $('dryStart').classList.add('hidden'); $('dryStop').classList.remove('hidden');
-    $('dryBadge').textContent = 'RUN';
-    show('dryrun');
-    await dryTick(true);
-    state.dry.timer = setInterval(() => dryTick(false), 90000);
-  });
-  const dryStopFn = () => {
-    state.dry.running = false;
-    clearInterval(state.dry.timer);
-    $('dryStart').classList.remove('hidden'); $('dryStop').classList.add('hidden');
-    $('dryBadge').textContent = 'STOP';
-    renderDry();
-  };
-  $('dryStop').addEventListener('click', dryStopFn);
+  // engine pair pickers (dashboard + dryrun = set yang sama)
+  $('dryPairsBtn').addEventListener('click', () => { $('dryPickBox').classList.toggle('hidden'); if (!$('dryPickBox').classList.contains('hidden')) loadEngList('dryChecks', 'drySearch'); });
+  $('dryReload').addEventListener('click', () => loadEngList('dryChecks', 'drySearch'));
+  $('engPairsBtn').addEventListener('click', () => { $('engPickBox').classList.toggle('hidden'); if (!$('engPickBox').classList.contains('hidden')) loadEngList('engChecks', 'engSearch'); });
+  $('engReload').addEventListener('click', () => loadEngList('engChecks', 'engSearch'));
+  $('dryStart').addEventListener('click', startEngine);
   $('dryClear').addEventListener('click', () => {
-    state.dry.positions = []; state.dry.closed = []; state.dry.equity = null;
+    state.eng.positions = []; state.eng.closed = []; state.eng.equity = null;
     store.set('aether_dryclosed', []); store.set('aether_dryequity', null);
-    renderDry(); renderDashboard();
+    renderEng(); renderDashboard();
   });
 
   // settings
@@ -696,10 +722,34 @@ function init() {
     a.href = URL.createObjectURL(blob); a.download = 'aether-export.json'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });
+  $('btnTestConn').addEventListener('click', async () => {
+    const tb = $('tblConn').querySelector('tbody');
+    $('connStatus').textContent = 'Mengetes…';
+    tb.innerHTML = '';
+    const tests = [
+      ['Binance', async () => { const j = await topPairs('binance', 1); if (!j.length) throw new Error('daftar kosong'); return j[0]; }],
+      ['Bybit', async () => { const j = await topPairs('bybit', 1); if (!j.length) throw new Error('daftar kosong'); return j[0]; }],
+      ['Yahoo Forex', async () => { const c = await getCandles({ provider: 'yahoo', symbol: 'EUR/USD', timeframe: '1h', limit: 60 }); return c.length + 'c EUR/USD'; }],
+      ['Demo', async () => { const c = await getCandles({ provider: 'demo', symbol: 'BTCUSDT', timeframe: '15m', limit: 60 }); return c.length + 'c lokal'; }],
+    ];
+    for (const [name, fn] of tests) {
+      const t0 = performance.now();
+      try {
+        const info = await fn();
+        tb.innerHTML += '<tr><td>' + name + '</td><td><span class="pill win">OK</span></td><td>' + esc(info) + ' · ' + Math.round(performance.now() - t0) + 'ms</td></tr>';
+      } catch (err) {
+        tb.innerHTML += '<tr><td>' + name + '</td><td><span class="pill loss">GAGAL</span></td><td>' + esc(String(err.message || err).slice(0, 120)) + '</td></tr>';
+      }
+    }
+    $('connStatus').textContent = 'Selesai. Yang GAGAL berarti diblokir jaringan/perangkat — pakai yang OK.';
+  });
 
   // laporan fix
   try {
     $('fixReport').innerHTML = [
+      ['v3.27 — Market tak muncul (FIX)', 'Daftar pair kini dirender <b>langsung</b> (tak menunggu harga), harga diisi <b>progresif per-batch</b> dengan progres n/N. Bila daftar pun gagal → box pemulihan 1-ketuk (<b>Demo / Yahoo / Coba lagi</b>). Tab Market juga <b>auto-load</b> saat pertama dibuka. Catatan: Binance/Bybit sering <b>diblokir jaringan/ISP di ID</b> — gunakan <b>Tes Koneksi</b> di Settings untuk memastikan.'],
+      ['v3.27 — Bot + Dry Run = 1 engine', 'Start di Dashboard <b>sama persis</b> dengan Start di Dry Run: 1 set pair, 1 status, 1 badge, 1 interval (90 dtk), sinyal + posisi paper dari konfigurasi Backtest yang sama.'],
+      ['v3.27 — Bersih-bersih UI', 'Header judul + sub “Sama seperti kartu…” dihapus sesuai permintaan. Versi tampil di footer & laporan saja.'],
       ['v3.26 — Yahoo diperbaiki (TERUJI live)', 'Akar: range 3 bulan untuk 15m ditolak Yahoo (<b>HTTP 422</b>) — padahal 15m adalah default app. Fix: range aman per-TF + <b>failover query1→query2 + retry</b> + pesan error spesifik (422/429). Teruji: EUR/USD, USD/IDR, XAU/USD di 15m/1h/1d.'],
       ['v3.26 — Logo & icon pair', '<b>Logo app baru</b> (sinyal-pulse gradient, SVG + icon launcher Android + favicon). Setiap pair kini berlogo: <b>crypto</b> (logo asli via CDN + fallback offline), <b>mata uang</b> (bendera + fallback kode), <b>XAU/XAG</b> (lambang Au/Ag). Tampil di Market, pair picker, multi-select, Sinyal, Riwayat & Dry Run.'],
       ['v3.26 — Redesign modern & simple', 'Sistem desain baru: permukaan solid tenang, radius konsisten, tombol tegas, KPI ringkas, tabel header-lengket, bottom-nav pill melayang, sheet modal bergagang, skeleton loading, ikon berlingkaran. Fungsi & alur 100% sama.'],

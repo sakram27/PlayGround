@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#070b12">
-<title>AetherSignalBot v3.26 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
+<title>AetherSignalBot v3.27 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
 <meta name="description" content="AetherSignalBot: signal bot crypto terinspirasi freqtrade. Struktur sama dengan APK asli: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Strategy Lab.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -12,28 +12,26 @@
 </head>
 <body>
 <div class="app">
-  <header class="top">
-    <div class="brand">
-      <div class="logo"><img src="icon.svg" alt="AetherSignalBot"></div>
-      <h1>AetherSignalBot <small>v3.26 · struktur &amp; fungsi sama dengan APK 3.22 · signal bot freqtrade-inspired</small></h1>
-    </div>
-  </header>
-
   <!-- ============ DASHBOARD ============ -->
   <section id="tab-dashboard" data-page="dashboard">
     <div class="card">
-      <h2>Dashboard <span class="pill" id="botBadge">BOT STOP</span></h2>
-      <p class="sub">Monitoring ringan meniru <b>MonitoringService</b> APK asli: scan top pair tiap interval, tulis sinyal ke daftar Sinyal + riwayat lokal. Bukan auto-trading.</p>
+      <h2>Bot Engine <span class="pill" id="botBadge">STOP</span></h2>
+      <p class="sub">Satu engine untuk <b>Start Bot + Dry Run</b>: scan pair pilihan tiap interval, tulis sinyal + kelola posisi paper otomatis (SL/TP, fee+slippage). Tanpa uang asli.</p>
       <div class="row">
-        <button class="btn primary" id="btnStartBot">▶ Start Bot</button>
-        <button class="btn danger hidden" id="btnStopBot">■ Stop Bot</button>
-        <span class="status" id="botStatus">Bot berhenti.</span>
+        <button class="btn ghost sm" id="engPairsBtn">☑ Pair (<span id="engCount">0</span>)</button>
+        <button class="btn primary" id="btnStartBot">▶ Start</button>
+        <button class="btn danger hidden" id="btnStopBot">■ Stop</button>
+        <span class="status" id="botStatus">Berhenti.</span>
+      </div>
+      <div class="card hidden" id="engPickBox" style="margin:10px 0 0;background:var(--surface-2)">
+        <b style="font-size:12px">Pair engine (dipakai Bot + Dry Run)</b>
+        <div class="row" style="margin-top:6px"><input id="engSearch" placeholder="Filter…" style="max-width:200px"><button class="btn ghost sm" id="engReload">⟳ Muat daftar</button></div>
+        <div class="checks" id="engChecks" style="margin-top:8px"></div>
       </div>
       <div class="kpis" style="margin-top:10px" id="dashKpis"></div>
     </div>
     <div class="card">
       <h2>Sinyal Terakhir</h2>
-      <p class="sub">Sama seperti kartu <b>Last Signal</b> di APK. Klik untuk detail + chart.</p>
       <div id="lastSignal"><p class="sub">Belum ada sinyal — Start Bot atau jalankan backtest.</p></div>
       <div class="row">
         <button class="btn ghost sm" data-goto="sinyal">📋 Buka daftar Sinyal</button>
@@ -219,12 +217,12 @@
   <section id="tab-dryrun" data-page="dryrun" class="hidden">
     <div class="card">
       <h2>Dry Run <span class="pill" id="dryBadge">STOP</span></h2>
-      <p class="sub">Simulasi paper-trading ala freqtrade <b>dry-run</b>: pakai konfigurasi Backtest (strategi + combo + <b>filter</b>) di <b>multi-pair pilihan manual</b>, posisi dibuka/ditutup otomatis mengikuti candle terbaru. Tanpa uang asli.</p>
+      <p class="sub">Tampilan posisi paper dari <b>Bot Engine yang sama</b> (Start di sini = Start di Dashboard). Konfigurasi ikut Backtest: strategi + combo + filter + risiko.</p>
       <div class="row">
-        <button class="btn ghost sm" id="dryPairsBtn">☑ Pilih pair (<span id="dryCount">0</span>)</button>
-        <button class="btn primary sm" id="dryStart">▶ Mulai Dry Run</button>
+        <button class="btn ghost sm" id="dryPairsBtn">☑ Pair (<span id="dryCount">0</span>)</button>
+        <button class="btn primary sm" id="dryStart">▶ Start</button>
         <button class="btn danger sm hidden" id="dryStop">■ Stop</button>
-        <span class="status" id="dryStatus">Pilih pair dulu.</span>
+        <span class="status" id="dryStatus">Berhenti.</span>
       </div>
       <div class="card hidden" id="dryPickBox" style="margin:10px 0 0;background:var(--panel2)">
         <b style="font-size:12px">Pair dry-run (manual)</b>
@@ -287,6 +285,15 @@
       </div>
     </div>
     <div class="card">
+      <h2>Tes Koneksi Provider</h2>
+      <p class="sub">Cek satu per satu: Binance, Bybit, Yahoo Forex, Demo. Jika Binance/Bybit gagal (umum: diblokir jaringan/ISP di ID), pakai <b>Yahoo</b> atau <b>Demo</b>.</p>
+      <div class="row">
+        <button class="btn ghost sm" id="btnTestConn">📡 Tes koneksi</button>
+        <span class="status" id="connStatus"></span>
+      </div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblConn"><thead><tr><th>Provider</th><th>Hasil</th><th>Detail</th></tr></thead><tbody><tr><td colspan="3" style="text-align:center;color:var(--dim)">Belum dites.</td></tr></tbody></table></div>
+    </div>
+    <div class="card">
       <h2>Bantuan &amp; laporan fix</h2>
       <div id="fixReport"></div>
       <details><summary>Metodologi backtest</summary>
@@ -329,7 +336,7 @@
     <div id="detailBody"></div>
   </div></div>
 
-  <footer>AetherSignalBot v3.26 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
+  <footer>AetherSignalBot v3.27 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
 </div>
 
 <!-- Fallback pra-module: tab HARUS bisa dibuka walau modul gagal (FIX: tab strategi/market mati di APK) -->

@@ -10,8 +10,8 @@ android {
         applicationId = "com.aether.signal"
         minSdk = 26
         targetSdk = 34
-        versionCode = 53
-        versionName = "3.26"
+        versionCode = 54
+        versionName = "3.27"
     }
 
     buildTypes {
