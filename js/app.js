@@ -36,6 +36,7 @@ function fmt$(n) { if (!Number.isFinite(n)) return '—'; return (n < 0 ? '-' : 
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function saveEnabled() { store.set('aether_enabled', [...state.enabled]); }
 function pushSignal(s) {
+  if (state.signals.some((x) => x.pair === s.pair && x.tf === s.tf && x.t === s.t && x.dir === s.dir)) return;
   state.signals.unshift({ ...s, id: Date.now() + '_' + Math.floor(Math.random() * 1e6) });
   state.signals = state.signals.slice(0, 200);
   store.set('aether_signals', state.signals);
@@ -218,6 +219,7 @@ function readParams() {
     leverage: +$('leverage').value, feePercent: (+$('fee').value) / 100, slippagePercent: (+$('slippage').value) / 100,
     slPercent: (+$('sl').value) / 100, tpPercent: (+$('tp').value) / 100,
     maxHolding: +$('maxholding').value, strategy: $('strategy').value, strategyParams: {}, combo,
+    atrSlMult: 1.5, atrTpMult: 3.0,
     filters: readFilters(),
     startDate: fromMs || 0, endDate: toMs || 0, useAtr: $('useatr').value === '1',
   };
@@ -290,8 +292,15 @@ function paintResult(res, source) {
   $('tblTrades').querySelector('tbody').innerHTML = res.trades.slice(-200).map((t, i) =>
     '<tr><td>' + (i + 1) + '</td><td>' + new Date(t.exitTime).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + t.direction + '</td><td>' + fmt(t.entry, 4) + '</td><td>' + fmt(t.exit, 4) + '</td><td>' + fmt$(t.pnl) + '</td><td>' + fmt(t.rMultiple) + '</td><td><span class="pill ' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '">' + t.result + '</span></td></tr>').join('')
     || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Tidak ada trade.</td></tr>';
-  // simpan ke riwayat lokal + auto-signal dari trade terakhir
-  state.hist = [...res.trades.map((t) => ({ ...t, id: t.exitTime + '_' + Math.random().toString(36).slice(2, 8) })), ...state.hist].slice(0, 500);
+  // simpan ke riwayat lokal (dedup by kunci alami) + auto-signal dari trade terakhir
+  const seen = new Set(state.hist.map((t) => t.asset + '|' + t.entryTime + '|' + t.exitTime + '|' + t.direction));
+  const fresh = res.trades.filter((t) => {
+    const k = t.asset + '|' + t.entryTime + '|' + t.exitTime + '|' + t.direction;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).map((t) => ({ ...t, id: t.exitTime + '_' + Math.random().toString(36).slice(2, 8) }));
+  state.hist = [...fresh, ...state.hist].slice(0, 500);
   store.set('aether_hist', state.hist);
   renderHist();
   const lt = res.trades[res.trades.length - 1];
@@ -665,6 +674,10 @@ function init() {
     const pairs = [...state.engPairs];
     if (!pairs.length) { $('dryStatus').textContent = 'Pilih pair dry-run dulu.'; return; }
     const prov = $('provider').value;
+    // FIX v3.32: ctx filter berbasis waktu per pair agar cooldown/dup konsisten dengan backtest
+    state.engFctx = state.engFctx || {};
+    let tfMs = 900000;
+    try { tfMs = parseTimeframe(p.timeframe) * 60000; } catch { /* default 15m */ }
     for (const sym of pairs) {
       try {
         const raw = await getCandles({ provider: prov, symbol: sym, timeframe: p.timeframe, limit: 200 });
@@ -692,6 +705,7 @@ function init() {
             d.positions = d.positions.filter((o) => o !== open);
             d.closed.unshift({ pair: sym, dir: open.dir, entry: open.entry, exit, pnl, result: win ? 'WIN' : 'LOSS', entryT: open.entryT, exitT: b.t });
             d.closed = d.closed.slice(0, 300);
+            state.engFctx[sym] = { ...(state.engFctx[sym] || {}), lastExitT: b.t, tfMs };
             pushSignal({ pair: sym, tf: p.timeframe, dir: open.dir, price: exit, sl: open.sl, tp: open.tp, t: b.t, src: 'dryrun-' + (win ? 'TP' : 'SL') });
             break;
           }
@@ -699,8 +713,10 @@ function init() {
           const i = candles.length - 1;
           const dec = decideAt(candles, i, cache, p);
           if (!dec.passed) continue;
+          const fx = state.engFctx[sym] || {};
+          state.engFctx[sym] = { ...fx, lastSigT: last.t, lastSigDir: dec.direction, tfMs };
           if ((p.filters || []).length) {
-            const fr = applyFilters(candles, i, cache, dec.direction, p.filters, {});
+            const fr = applyFilters(candles, i, cache, dec.direction, p.filters, { ...fx, tfMs });
             if (!fr.passed) continue;
           }
           let entry = last.c;
@@ -788,6 +804,7 @@ function init() {
   // laporan fix
   try {
     $('fixReport').innerHTML = [
+      ['v3.32 — Audit engine total (1719 cek)', 'Harness <b>tests/audit_engine.mjs</b>: 25 strategi × 3 seed + combo OR/AND/MAJORITY + 15 filter satuan & gabungan + flat/spike/mini/no-volume + determinisme + leverage ekstrem — invarian: final=modal+net, streak=total, winRate, maxDD 0–100%, metrik finite, equityCurve konsisten, level SL/TP searah, exit≥entry. <b>0 gagal.</b> Temuan & fix: (1) <b>cache localStorage tak pernah hit</b> (cek Array salah) — diperbaiki; (2) <b>filter cooldown/dup mati di live engine</b> — kini ctx berbasis waktu per pair; (3) <b>mode ATR tak pernah entry di dry-run</b> (mult ATR tak diteruskan) — diperbaiki; (4) sinyal & riwayat duplikat saat run ulang — dedup kunci alami. E2E browser: backtest 200c selesai + 8 KPI render, 0 error.'],
       ['v3.28 — Market tetap kosong (AKAR + FIX)', 'Hasil curl: <b>api.binance.com → HTTP 451</b> (blokir wilayah) dan <b>Bybit → diblokir CloudFront per negara</b>. Fix: Binance kini lewat <b>failover host otomatis .com → data-api.binance.vision (CORS *, tanpa geo-block) → .us</b>, host yang jalan diingat sesi ini. Teruji live: top pairs + klines via Vision. Tes Koneksi kini menampilkan host aktif. Jika Bybit tetap GAGAL = wajar (geo-block/CORS) → pakai Binance/Yahoo/Demo.'],
       ['v3.27 — Market tak muncul (FIX)', 'Daftar pair kini dirender <b>langsung</b> (tak menunggu harga), harga diisi <b>progresif per-batch</b> dengan progres n/N. Bila daftar pun gagal → box pemulihan 1-ketuk (<b>Demo / Yahoo / Coba lagi</b>). Tab Market juga <b>auto-load</b> saat pertama dibuka. Catatan: Binance/Bybit sering <b>diblokir jaringan/ISP di ID</b> — gunakan <b>Tes Koneksi</b> di Settings untuk memastikan.'],
       ['v3.27 — Bot + Dry Run = 1 engine', 'Start di Dashboard <b>sama persis</b> dengan Start di Dry Run: 1 set pair, 1 status, 1 badge, 1 interval (90 dtk), sinyal + posisi paper dari konfigurasi Backtest yang sama.'],

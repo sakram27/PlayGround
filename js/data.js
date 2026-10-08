@@ -135,9 +135,13 @@ export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', tim
     const ls = localStorage.getItem('aether_cache_' + key);
     if (ls) {
       const parsed = JSON.parse(ls);
-      if (Array.isArray(parsed) && parsed.length >= 60 && (Date.now() - parsed._at < 5 * 60 * 1000)) {
-        cache.set(key, parsed.candles);
-        return parsed.candles;
+      // FIX v3.32: bentuk tulis { _at, candles } — sebelumnya cek Array.isArray(parsed)
+      // sehingga cache TIDAK PERNAH hit dan selalu fetch ulang.
+      const cc = Array.isArray(parsed) ? parsed : parsed?.candles;
+      const at = Array.isArray(parsed) ? 0 : (parsed?._at || 0);
+      if (Array.isArray(cc) && cc.length >= 60 && (Date.now() - at < 5 * 60 * 1000)) {
+        cache.set(key, cc);
+        return cc;
       }
     }
   } catch { /* abaikan */ }

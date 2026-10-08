@@ -610,11 +610,21 @@ export const FILTERS = {
       return v <= (P.maxPct ?? 5) ? { ok: true } : { ok: false, why: 'pasar terlalu liar' }; } },
   cooldown: { name: 'Cooldown', desc: 'Jeda minimal antar trade (candle).', defaults: { bars: 3 },
     fn(c, i, X, dir, P, ctx) { void c; void X; void dir; const b = P.bars ?? 3;
-      return (i - (ctx?.lastExit ?? -1e9)) >= b ? { ok: true } : { ok: false, why: 'cooldown' }; } },
+      // FIX v3.32: dukung ctx berbasis waktu (live engine) selain indeks (backtest)
+      if (ctx && Number.isFinite(ctx.lastExit)) return (i - ctx.lastExit) >= b ? { ok: true } : { ok: false, why: 'cooldown' };
+      if (ctx?.lastExitT && ctx?.tfMs) return (c[i].t - ctx.lastExitT) >= b * ctx.tfMs ? { ok: true } : { ok: false, why: 'cooldown' };
+      return { ok: true }; } },
   dup: { name: 'Duplicate Protection', desc: 'Blokir sinyal duplikat searah yang berdekatan.', defaults: { bars: 5 },
     fn(c, i, X, dir, P, ctx) { void c; void X;
-      if (!ctx?.lastSig || ctx.lastSig.dir !== dir) return { ok: true };
-      return (i - ctx.lastSig.idx) >= (P.bars ?? 5) ? { ok: true } : { ok: false, why: 'duplikat diblok' }; } },
+      if (ctx?.lastSig && ctx.lastSig.dir) {
+        if (ctx.lastSig.dir !== dir) return { ok: true };
+        return (i - ctx.lastSig.idx) >= (P.bars ?? 5) ? { ok: true } : { ok: false, why: 'duplikat diblok' };
+      }
+      if (ctx?.lastSigT && ctx?.tfMs && ctx.lastSigDir === dir) {
+        return (c[i].t - ctx.lastSigT) >= (P.bars ?? 5) * ctx.tfMs
+          ? { ok: true } : { ok: false, why: 'duplikat diblok' };
+      }
+      return { ok: true }; } },
 };
 export function filterList() {
   return Object.entries(FILTERS).map(([id, f]) => ({ id, name: f.name, desc: f.desc, defaults: f.defaults }));
