@@ -3,8 +3,8 @@
  * Tahan-banting: tiap halaman dibungkus try/catch + tab fallback inline, jadi 1 error tak mematikan tab lain.
  */
 'use strict';
-import { runBacktest, strategyList, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
-import { getCandles, topPairs, parseCSV } from './data.js';
+import { runBacktest, strategyList, filterList, applyFilters, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
+import { getCandles, topPairs, xaiPairs, YAHOO_UNIVERSE, parseCSV } from './data.js';
 import { renderMain, renderEquity } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
@@ -21,8 +21,12 @@ const state = {
   hist: store.get('aether_hist', []),
   candles: [], params: null, result: null, csv: null, cancelled: false,
   mktRows: [], botTimer: null, timerInt: null,
+  dryPairs: new Set(store.get('aether_drypairs', ['BTCUSDT', 'ETHUSDT'])),
+  dry: { running: false, positions: [], closed: store.get('aether_dryclosed', []), equity: store.get('aether_dryequity', null), timer: null },
 };
 const STRS = (() => { try { return strategyList(); } catch { return []; } })();
+const FLTS = (() => { try { return filterList(); } catch { return []; } })();
+const SESSIONS = { all: [[0, 24]], asia: [[0, 8]], london: [[7, 16]], ny: [[13, 21]], asia_london: [[0, 16]], london_ny: [[7, 21]] };
 
 // ---------- util ----------
 function setStatus(msg, err) { const el = $('status'); if (el) { el.textContent = msg; el.classList.toggle('err', !!err); } }
@@ -61,13 +65,44 @@ function renderComboChecks() {
   } catch (e) { console.warn('combo:', e); }
 }
 
-// ---------- MARKET HUB (listview) ----------
+// ---------- FILTER (15 filter bawaan APK) ----------
+function renderFilterChecks() {
+  try {
+    $('filterChecks').innerHTML = FLTS.map((f) =>
+      '<label title="' + esc(f.desc) + '"><input type="checkbox" value="' + f.id + '"> ' + esc(f.name) + '</label>').join('');
+  } catch (e) { console.warn('filter:', e); }
+}
+function readFilters() {
+  const checked = new Set([...document.querySelectorAll('#filterChecks input:checked')].map((c) => c.value));
+  if (!checked.size) return [];
+  const num = (id, d) => { const v = parseFloat(String($(id).value).replace(',', '.')); return Number.isFinite(v) ? v : d; };
+  const P = {
+    volume: { mult: num('fVol', 1) }, atr_vol: { minPct: num('fAtrMin', 0.3) },
+    adx: { min: num('fAdx', 20) }, rsi: { longMax: num('fRsiHi', 72), shortMin: num('fRsiLo', 28) },
+    sr: { bufferPct: num('fSr', 0.3) }, session: { sessions: SESSIONS[$('fSession').value] || [[0, 24]] },
+    min_vol: { minPct: num('fAtrMin', 0.3) }, max_vol: { maxPct: num('fAtrMax', 5) },
+    cooldown: { bars: Math.round(num('fCool', 3)) },
+  };
+  return [...checked].map((name) => ({ name, enabled: true, params: P[name] || {} }));
+}
+
+// ---------- MARKET HUB (listview: Crypto / XAI / Forex) ----------
+async function marketPairs() {
+  const cat = $('mktCat').value;
+  let prov = $('mktProvider').value;
+  if (cat === 'forex') { prov = 'yahoo'; $('mktProvider').value = 'yahoo'; return { prov, pairs: Object.keys(YAHOO_UNIVERSE) }; }
+  if (cat === 'xai') {
+    if (prov !== 'binance' && prov !== 'bybit') prov = 'binance';
+    return { prov, pairs: await xaiPairs(prov) };
+  }
+  return { prov, pairs: await topPairs(prov, 10) };
+}
 async function loadMarket() {
   const tb = $('tblMkt').querySelector('tbody');
   try {
     $('mktStatus').textContent = 'Memuat…';
-    const prov = $('mktProvider').value, tf = $('mktTf').value;
-    const pairs = await topPairs(prov, 10);
+    const tf = $('mktTf').value;
+    const { prov, pairs } = await marketPairs();
     state.mktRows = [];
     tb.innerHTML = '';
     for (const sym of pairs) {
@@ -82,7 +117,7 @@ async function loadMarket() {
           const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: $('strategy').value || 'ema_trend', strategyParams: {} });
           if (dec.passed) sig = dec.direction;
         } catch { /* tetap NETRAL */ }
-        state.mktRows.push({ sym, price: last.c, chg, sig });
+        state.mktRows.push({ sym, price: last.c, chg, sig, prov });
       } catch (err) { state.mktRows.push({ sym, err: String(err.message || err).slice(0, 90) }); }
     }
     paintMarket();
@@ -94,33 +129,44 @@ function paintMarket() {
   const tb = $('tblMkt').querySelector('tbody');
   tb.innerHTML = state.mktRows.filter((r) => !q || r.sym.includes(q)).map((r) =>
     r.err ? '<tr><td>' + esc(r.sym) + '</td><td colspan="3" style="color:#ff9a9a">' + esc(r.err) + '</td><td></td></tr>'
-      : '<tr data-sym="' + esc(r.sym) + '"><td>' + esc(r.sym) + '</td><td>' + fmt(r.price, r.price > 1000 ? 2 : 4) + '</td><td>' + fmt(r.chg) + '%</td><td>' + esc(r.sig) + '</td><td><button class="btn ghost sm" data-pick="' + esc(r.sym) + '">★</button></td></tr>').join('')
+      : '<tr data-sym="' + esc(r.sym) + '"><td>' + esc(r.sym) + '</td><td>' + fmt(r.price, r.price > 1000 ? 2 : 4) + '</td><td>' + fmt(r.chg) + '%</td><td>' + esc(r.sig) + '</td><td><button class="btn ghost sm" data-pick="' + esc(r.sym) + '" data-prov="' + esc(r.prov || '') + '">★</button></td></tr>').join('')
     || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Tidak ada hasil.</td></tr>';
 }
 
-// ---------- PAIR PICKER (listview, anti input manual) ----------
+// ---------- PAIR PICKER (listview berkategori, anti input manual) ----------
+async function pickerPairs() {
+  const cat = ($('pairCat') && $('pairCat').value) || 'top';
+  let prov = $('provider').value;
+  if (cat === 'forex') return { prov: 'yahoo', pairs: Object.keys(YAHOO_UNIVERSE), autoProvider: 'yahoo' };
+  if (cat === 'xai') {
+    if (prov !== 'binance' && prov !== 'bybit') prov = 'binance';
+    return { prov, pairs: await xaiPairs(prov), autoProvider: null };
+  }
+  return { prov, pairs: await topPairs(prov, 12), autoProvider: null };
+}
 async function openPairPicker() {
   $('pairModal').classList.remove('hidden');
   const list = $('pairList');
-  list.innerHTML = '<p class="sub">Memuat top pair…</p>';
+  list.innerHTML = '<p class="sub">Memuat…</p>';
   try {
-    const prov = $('provider').value;
-    const pairs = await topPairs(prov, 12);
+    const { pairs, autoProvider } = await pickerPairs();
     const render = (f) => {
       list.innerHTML = pairs.filter((s) => !f || s.includes(f)).map((s) =>
-        '<button class="pairitem" data-sym="' + s + '"><b>' + s + '</b><small>' + (s === state.pair ? '✓ aktif' : 'pakai') + '</small></button>').join('')
+        '<button class="pairitem" data-sym="' + esc(s) + '" data-prov="' + (autoProvider || '') + '"><b>' + esc(s) + '</b><small>' + (s === state.pair ? '✓ aktif' : 'pakai') + '</small></button>').join('')
         || '<p class="sub">Tidak ketemu.</p>';
     };
     render('');
     $('pairSearch').oninput = (e) => render(e.target.value.toUpperCase());
   } catch (err) {
-    const demo = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+    const demo = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'XAIUSDT'];
     list.innerHTML = '<p class="sub">Provider gagal (' + esc(err.message) + ') — daftar offline:</p>' + demo.map((s) =>
       '<button class="pairitem" data-sym="' + s + '"><b>' + s + '</b><small>offline</small></button>').join('');
   }
 }
-function setPair(sym) {
-  state.pair = String(sym).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'BTCUSDT';
+function setPair(sym, autoProvider) {
+  const raw = String(sym || '').trim();
+  state.pair = raw.includes('/') || raw.includes(' ') ? raw.toUpperCase() : raw.toUpperCase().replace(/[^A-Z0-9]/g, '') || 'BTCUSDT';
+  if (autoProvider) { try { $('provider').value = autoProvider; } catch { /* abaikan */ } }
   store.set('aether_pair', state.pair);
   $('pairLabel').textContent = state.pair;
   $('pairModal').classList.add('hidden');
@@ -141,6 +187,7 @@ function readParams() {
     leverage: +$('leverage').value, feePercent: (+$('fee').value) / 100, slippagePercent: (+$('slippage').value) / 100,
     slPercent: (+$('sl').value) / 100, tpPercent: (+$('tp').value) / 100,
     maxHolding: +$('maxholding').value, strategy: $('strategy').value, strategyParams: {}, combo,
+    filters: readFilters(),
     startDate: fromMs || 0, endDate: toMs || 0, useAtr: $('useatr').value === '1',
   };
 }
@@ -204,7 +251,7 @@ function paintResult(res, source) {
     ['Max DD', fmt(res.maxDrawdownPercent) + '%', res.maxDrawdownPercent <= 15], ['Final', fmt$(res.finalCapital), res.finalCapital >= res.initialCapital],
   ];
   $('kpis').innerHTML = K.map(([k, v, p]) => '<div class="kpi"><small>' + k + '</small><b class="' + (p == null ? '' : p ? 'pos' : 'neg') + '">' + v + '</b></div>').join('');
-  const r1 = [['Wins / Losses / Exp', res.wins + ' / ' + res.losses + ' / ' + res.expired], ['Gross Profit', fmt$(res.grossProfit)], ['Gross Loss', fmt$(res.grossLoss)], ['Avg Win', fmt$(res.averageWin)], ['Avg Loss', fmt$(res.averageLoss)], ['Streak W/L', res.longestWinStreak + ' / ' + res.longestLossStreak], ['Avg holding', fmt(res.avgHolding, 1) + 'c'], ['Exposure', fmt(res.exposure, 1) + '%']];
+  const r1 = [['Wins / Losses / Exp', res.wins + ' / ' + res.losses + ' / ' + res.expired], ['Tersaring filter', res.filtered ?? 0], ['Gross Profit', fmt$(res.grossProfit)], ['Gross Loss', fmt$(res.grossLoss)], ['Avg Win', fmt$(res.averageWin)], ['Avg Loss', fmt$(res.averageLoss)], ['Streak W/L', res.longestWinStreak + ' / ' + res.longestLossStreak], ['Avg holding', fmt(res.avgHolding, 1) + 'c'], ['Exposure', fmt(res.exposure, 1) + '%']];
   const r2 = [['Sharpe', fmt(res.sharpe)], ['Sortino', fmt(res.sortino)], ['Calmar', res.calmar >= 999 ? '∞' : fmt(res.calmar)], ['CAGR', fmt(res.cagr) + '%'], ['Avg RR', fmt(res.averageRR)], ['MaxDD $', fmt$(res.maxDrawdown)], ['Modal', fmt$(res.initialCapital)], ['Strategi', esc(res.strategy)]];
   $('tblPair').querySelector('tbody').innerHTML = r1.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
   $('tblAdv').querySelector('tbody').innerHTML = r2.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
@@ -263,6 +310,13 @@ async function botCycle() {
         const norm = normalizeCandles(candles);
         const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: strat, strategyParams: {} });
         if (dec.passed) {
+          try {
+            const flt = readFilters();
+            if (flt.length) {
+              const fr = applyFilters(norm, norm.length - 1, buildCache(norm), dec.direction, flt, {});
+              if (!fr.passed) continue;
+            }
+          } catch { /* filter gagal baca = lewati filter */ }
           const last = norm[norm.length - 1];
           const dup = state.signals.some((x) => x.pair === sym && x.tf === tf && Math.abs(x.t - last.t) < 60_000);
           if (!dup) {
@@ -292,7 +346,8 @@ function init() {
   try { $('pairLabel').textContent = state.pair; } catch { /* abaikan */ }
   try { renderStrategies(); $('stratSearch').oninput = renderStrategies; } catch { /* abaikan */ }
   try { renderComboChecks(); $('strategy').onchange = renderComboChecks; } catch { /* abaikan */ }
-  try { renderDashboard(); renderSignals(); renderHist(); } catch { /* abaikan */ }
+  try { renderFilterChecks(); } catch { /* abaikan */ }
+  try { renderDashboard(); renderSignals(); renderHist(); renderDry(); } catch { /* abaikan */ }
   try {
     const st = store.get('aether_set', {});
     if (st.provider) { $('provider').value = st.provider; $('mktProvider').value = st.provider; $('setProvider').value = st.provider; }
@@ -305,9 +360,9 @@ function init() {
       const u = e.target.closest('[data-use]');
       if (u) { $('strategy').value = u.dataset.use; renderComboChecks(); show('backtest'); return; }
       const pk = e.target.closest('[data-pick]');
-      if (pk) { setPair(pk.dataset.pick); show('backtest'); return; }
+      if (pk) { setPair(pk.dataset.pick, pk.dataset.prov || null); show('backtest'); return; }
       const pi = e.target.closest('.pairitem');
-      if (pi) { setPair(pi.dataset.sym); return; }
+      if (pi) { setPair(pi.dataset.sym, pi.dataset.prov || null); return; }
       const sg = e.target.closest('[data-sig]');
       if (sg) {
         const s = state.signals.find((x) => x.id === sg.dataset.sig);
@@ -338,6 +393,10 @@ function init() {
   // market
   $('btnMarket').addEventListener('click', loadMarket);
   $('mktSearch').addEventListener('input', paintMarket);
+  $('mktCat').addEventListener('change', () => {
+    if ($('mktCat').value === 'forex') $('mktProvider').value = 'yahoo';
+    loadMarket();
+  });
   $('tblMkt').addEventListener('click', (e) => {
     const tr = e.target.closest('tr[data-sym]');
     if (!tr || e.target.closest('[data-pick]')) return;
@@ -349,6 +408,7 @@ function init() {
   $('btnPickPair').addEventListener('click', openPairPicker);
   $('pairClose').addEventListener('click', () => $('pairModal').classList.add('hidden'));
   $('pairRefresh').addEventListener('click', openPairPicker);
+  try { $('pairCat').addEventListener('change', openPairPicker); } catch { /* abaikan */ }
   $('pairManualBtn').addEventListener('click', () => { if ($('pairManual').value.trim()) setPair($('pairManual').value); });
   $('detailClose').addEventListener('click', () => $('detailModal').classList.add('hidden'));
 
@@ -386,29 +446,59 @@ function init() {
     } finally { $('run').disabled = false; $('cancel').disabled = true; }
   });
   $('cancel').addEventListener('click', () => { state.cancelled = true; });
+  // ---------- MULTI-PAIR ----------
+  async function runRanking(pairs) {
+    const p = readParams();
+    const rows = [];
+    for (const sym of pairs.slice(0, 10)) {
+      if (state.cancelled) break;
+      setStatus('Backtest ' + sym + '…', false);
+      try {
+        const candles = state.csv?.length ? state.csv : await getCandles({ provider: $('provider').value, symbol: sym, timeframe: p.timeframe, limit: +$('limit').value });
+        const res = runBacktest(candles, { ...p, asset: sym });
+        if (!res.error && sym === p.asset) { state.candles = candles; state.params = { ...p, asset: sym }; paintChart(res); paintResult(res, $('provider').value); }
+        rows.push({ sym, res });
+      } catch (err) { rows.push({ sym, err: err.message }); }
+    }
+    rows.sort((a, b) => (b.res?.netProfit ?? -1e18) - (a.res?.netProfit ?? -1e18));
+    $('multiOut').innerHTML = '<h3 style="font-size:13px">Ranking multi-pair (' + rows.length + ' pair, filter aktif: ' + (p.filters?.length || 0) + ')</h3><div class="scrollx"><table class="tbl"><thead><tr><th>Pair</th><th>Net</th><th>Win%</th><th>PF</th><th>DD%</th><th>Tr</th><th>Filter×</th></tr></thead><tbody>' +
+      rows.map(({ sym, res, err }) => err ? '<tr><td>' + esc(sym) + '</td><td colspan="6" style="color:#ff9a9a">' + esc(err) + '</td></tr>' : res.error ? '<tr><td>' + esc(sym) + '</td><td colspan="6">' + esc(res.error) + '</td></tr>' : '<tr><td>' + esc(sym) + '</td><td>' + fmt$(res.netProfit) + '</td><td>' + fmt(res.winRate, 1) + '%</td><td>' + (res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor)) + '</td><td>' + fmt(res.maxDrawdownPercent) + '%</td><td>' + res.totalTrades + '</td><td>' + (res.filtered ?? 0) + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+  async function loadMultiList() {
+    const box = $('multiChecks');
+    box.innerHTML = '<p class="sub">Memuat…</p>';
+    try {
+      const prov = $('provider').value;
+      const pairs = prov === 'yahoo' ? Object.keys(YAHOO_UNIVERSE) : await topPairs(prov, 12);
+      const render = (f) => {
+        box.innerHTML = pairs.filter((s) => !f || s.includes(f)).map((s) =>
+          '<label><input type="checkbox" value="' + esc(s) + '" ' + (s === state.pair ? 'checked' : '') + '> ' + esc(s) + '</label>').join('');
+      };
+      render('');
+      $('multiSearch').oninput = (e) => render(e.target.value.toUpperCase());
+    } catch (err) { box.innerHTML = '<p class="sub">Gagal: ' + esc(err.message) + '</p>'; }
+  }
+
   $('runAll').addEventListener('click', async () => {
-    state.cancelled = false; $('runAll').disabled = true; $('cancel').disabled = false;
+    state.cancelled = false; $('runAll').disabled = true; $('cancel').disabled = false; $('multiOut').innerHTML = '';
     try {
       const p = readParams();
       const pairs = (await topPairs($('provider').value, 5)).filter((s) => s !== p.asset);
       pairs.unshift(p.asset);
-      const rows = [];
-      for (const sym of pairs.slice(0, 5)) {
-        if (state.cancelled) break;
-        setStatus('Backtest ' + sym + '…', false);
-        try {
-          const candles = state.csv?.length ? state.csv : await getCandles({ provider: $('provider').value, symbol: sym, timeframe: p.timeframe, limit: +$('limit').value });
-          const res = runBacktest(candles, { ...p, asset: sym });
-          if (!res.error && sym === p.asset) { state.candles = candles; state.params = { ...p, asset: sym }; paintChart(res); paintResult(res, $('provider').value); }
-          rows.push({ sym, res });
-        } catch (err) { rows.push({ sym, err: err.message }); }
-      }
-      rows.sort((a, b) => (b.res?.netProfit ?? -1e18) - (a.res?.netProfit ?? -1e18));
-      $('multiOut').innerHTML = '<h3 style="font-size:13px">Ranking multi-pair</h3><div class="scrollx"><table class="tbl"><thead><tr><th>Pair</th><th>Net</th><th>Win%</th><th>PF</th><th>DD%</th><th>Tr</th></tr></thead><tbody>' +
-        rows.map(({ sym, res, err }) => err ? '<tr><td>' + esc(sym) + '</td><td colspan="5" style="color:#ff9a9a">' + esc(err) + '</td></tr>' : res.error ? '<tr><td>' + esc(sym) + '</td><td colspan="5">' + esc(res.error) + '</td></tr>' : '<tr><td>' + esc(sym) + '</td><td>' + fmt$(res.netProfit) + '</td><td>' + fmt(res.winRate, 1) + '%</td><td>' + (res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor)) + '</td><td>' + fmt(res.maxDrawdownPercent) + '%</td><td>' + res.totalTrades + '</td></tr>').join('') + '</tbody></table></div>';
-      setStatus('Multi-pair selesai.', false);
+      await runRanking(pairs.slice(0, 5));
+      setStatus('Multi-pair otomatis selesai.', false);
     } catch (err) { setStatus('Error: ' + err.message, true); }
     finally { $('runAll').disabled = false; $('cancel').disabled = true; }
+  });
+  $('btnMulti').addEventListener('click', () => { $('multiBox').classList.toggle('hidden'); if (!$('multiBox').classList.contains('hidden')) loadMultiList(); });
+  $('multiReload').addEventListener('click', loadMultiList);
+  $('multiRun').addEventListener('click', async () => {
+    const sel = [...document.querySelectorAll('#multiChecks input:checked')].map((c) => c.value);
+    if (!sel.length) { setStatus('Centang minimal 1 pair dulu.', true); return; }
+    state.cancelled = false; $('multiRun').disabled = true; $('cancel').disabled = false; $('multiOut').innerHTML = '';
+    try { await runRanking(sel); setStatus('Multi-pair manual selesai (' + sel.length + ' pair).', false); }
+    catch (err) { setStatus('Error: ' + err.message, true); }
+    finally { $('multiRun').disabled = false; $('cancel').disabled = true; }
   });
 
   // lab
@@ -453,6 +543,151 @@ function init() {
     $('botBadge').textContent = 'BOT STOP'; $('botStatus').textContent = 'Bot berhenti.';
   });
 
+  // ---------- DRY RUN (paper-trading ala freqtrade) ----------
+  function dryCfg() {
+    const p = readParams(); // strategi + combo + filter + risiko sama dengan Backtest
+    return p;
+  }
+  function paperLevels(entry, dir, cache, idx, p) {
+    if (p.useAtr && cache.atr14[idx] != null && cache.atr14[idx] > 0) {
+      const a = cache.atr14[idx];
+      if (dir === 'LONG') return { sl: entry - a * p.atrSlMult, tp: entry + a * p.atrTpMult };
+      return { sl: entry + a * p.atrTpMult, tp: entry - a * p.atrTpMult };
+    }
+    if (dir === 'LONG') return { sl: entry * (1 - p.slPercent), tp: entry * (1 + p.tpPercent) };
+    return { sl: entry * (1 + p.slPercent), tp: entry * (1 - p.tpPercent) };
+  }
+  function renderDry() {
+    try {
+      $('dryCount').textContent = state.dryPairs.size;
+      const d = state.dry;
+      $('tblDryOpen').querySelector('tbody').innerHTML = d.positions.map((o) =>
+        '<tr><td>' + esc(o.pair) + '</td><td>' + o.dir + '</td><td>' + fmt(o.entry, 5) + '</td><td>' + fmt(o.mark ?? o.entry, 5) + '</td><td>' + fmt$((o.upl ?? 0)) + '</td><td>' + fmt(o.sl, 5) + '</td><td>' + fmt(o.tp, 5) + '</td></tr>').join('')
+        || '<tr><td colspan="7" style="text-align:center;color:var(--dim)">Kosong.</td></tr>';
+      $('dryClosedCount').textContent = d.closed.length;
+      $('tblDryClosed').querySelector('tbody').innerHTML = d.closed.slice(0, 120).map((t) =>
+        '<tr><td>' + new Date(t.exitT).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + esc(t.pair) + '</td><td>' + t.dir + '</td><td>' + fmt$(t.pnl) + '</td><td><span class="pill ' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '">' + t.result + '</span></td></tr>').join('')
+        || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum ada.</td></tr>';
+      const net = d.closed.reduce((s, t) => s + (t.pnl || 0), 0);
+      $('dryStatus').textContent = d.running
+        ? 'Dry run jalan · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + ' · scan ' + new Date().toLocaleTimeString('id-ID')
+        : 'Dry run berhenti · equity $' + fmt((d.equity ?? 0)) + ' · net ' + fmt$(net) + '.';
+    } catch (e) { console.warn('dry render:', e); }
+  }
+  async function dryTick(manual) {
+    const d = state.dry;
+    if (!d.running && !manual) return;
+    let p;
+    try { p = dryCfg(); }
+    catch (err) { $('dryStatus').textContent = 'Dry run error: ' + err.message; return; }
+    if (d.equity == null) d.equity = p.initialCapital;
+    const pairs = [...state.dryPairs];
+    if (!pairs.length) { $('dryStatus').textContent = 'Pilih pair dry-run dulu.'; return; }
+    const prov = $('provider').value;
+    for (const sym of pairs) {
+      try {
+        const raw = await getCandles({ provider: prov, symbol: sym, timeframe: p.timeframe, limit: 200 });
+        const candles = normalizeCandles(raw);
+        const cache = buildCache(candles);
+        const last = candles[candles.length - 1];
+        const open = d.positions.find((o) => o.pair === sym);
+        if (open) {
+          open.mark = last.c;
+          open.upl = (open.dir === 'LONG' ? last.c - open.entry : open.entry - last.c) * open.qty;
+          // cek SL/TP pada candle baru sejak entry (konservatif: SL dulu)
+          const fresh = candles.filter((c) => c.t > open.entryT);
+          for (const b of fresh) {
+            const slHit = open.dir === 'LONG' ? b.l <= open.sl : b.h >= open.sl;
+            const tpHit = open.dir === 'LONG' ? b.h >= open.tp : b.l <= open.tp;
+            if (!slHit && !tpHit) continue;
+            const win = tpHit && !slHit;
+            const exit = win
+              ? (open.dir === 'LONG' ? open.tp * (1 - p.slippagePercent) : open.tp * (1 + p.slippagePercent))
+              : (open.dir === 'LONG' ? open.sl * (1 - p.slippagePercent) : open.sl * (1 + p.slippagePercent));
+            const gross = (open.dir === 'LONG' ? exit - open.entry : open.entry - exit) * open.qty;
+            const fees = (open.entry * open.qty + exit * open.qty) * p.feePercent;
+            const pnl = gross - fees;
+            d.equity += pnl;
+            d.positions = d.positions.filter((o) => o !== open);
+            d.closed.unshift({ pair: sym, dir: open.dir, entry: open.entry, exit, pnl, result: win ? 'WIN' : 'LOSS', entryT: open.entryT, exitT: b.t });
+            d.closed = d.closed.slice(0, 300);
+            pushSignal({ pair: sym, tf: p.timeframe, dir: open.dir, price: exit, sl: open.sl, tp: open.tp, t: b.t, src: 'dryrun-' + (win ? 'TP' : 'SL') });
+            break;
+          }
+        } else {
+          const i = candles.length - 1;
+          const dec = decideAt(candles, i, cache, p);
+          if (!dec.passed) continue;
+          if ((p.filters || []).length) {
+            const fr = applyFilters(candles, i, cache, dec.direction, p.filters, {});
+            if (!fr.passed) continue;
+          }
+          let entry = last.c;
+          entry = dec.direction === 'LONG' ? entry * (1 + p.slippagePercent) : entry * (1 - p.slippagePercent);
+          const lv = paperLevels(entry, dec.direction, cache, i, p);
+          if (!Number.isFinite(lv.sl) || !Number.isFinite(lv.tp) || lv.sl <= 0 || lv.tp <= 0) continue;
+          const riskDist = Math.abs(entry - lv.sl);
+          if (!(riskDist > 0)) continue;
+          let qty = (d.equity * p.riskPerTrade) / riskDist;
+          const maxNot = d.equity * p.leverage;
+          if (qty * entry > maxNot) qty = maxNot / entry;
+          if (!(qty > 0)) continue;
+          d.positions.push({ pair: sym, dir: dec.direction, entry, entryT: last.t, sl: lv.sl, tp: lv.tp, qty, mark: last.c, upl: 0 });
+          pushSignal({ pair: sym, tf: p.timeframe, dir: dec.direction, price: entry, sl: lv.sl, tp: lv.tp, t: last.t, src: 'dryrun-entry' });
+        }
+      } catch { /* lanjut pair berikut */ }
+    }
+    store.set('aether_dryclosed', d.closed);
+    store.set('aether_dryequity', d.equity);
+    renderDry();
+  }
+  async function loadDryList() {
+    const box = $('dryChecks');
+    box.innerHTML = '<p class="sub">Memuat…</p>';
+    try {
+      const prov = $('provider').value;
+      const pairs = prov === 'yahoo' ? Object.keys(YAHOO_UNIVERSE) : await topPairs(prov, 12);
+      const render = (f) => {
+        box.innerHTML = pairs.filter((s) => !f || s.includes(f)).map((s) =>
+          '<label><input type="checkbox" value="' + esc(s) + '" ' + (state.dryPairs.has(s) ? 'checked' : '') + '> ' + esc(s) + '</label>').join('');
+      };
+      render('');
+      $('drySearch').oninput = (e) => render(e.target.value.toUpperCase());
+      box.onchange = () => {
+        state.dryPairs = new Set([...box.querySelectorAll('input:checked')].map((c) => c.value));
+        store.set('aether_drypairs', [...state.dryPairs]);
+        renderDry();
+      };
+    } catch (err) { box.innerHTML = '<p class="sub">Gagal: ' + esc(err.message) + '</p>'; }
+  }
+
+  // dry run
+  $('dryPairsBtn').addEventListener('click', () => { $('dryPickBox').classList.toggle('hidden'); if (!$('dryPickBox').classList.contains('hidden')) loadDryList(); });
+  $('dryReload').addEventListener('click', loadDryList);
+  $('dryStart').addEventListener('click', async () => {
+    if (!state.dryPairs.size) { $('dryStatus').textContent = 'Pilih pair dry-run dulu (☑ Pilih pair).'; return; }
+    try { dryCfg(); } catch (err) { $('dryStatus').textContent = 'Config error: ' + err.message; return; }
+    state.dry.running = true;
+    $('dryStart').classList.add('hidden'); $('dryStop').classList.remove('hidden');
+    $('dryBadge').textContent = 'RUN';
+    show('dryrun');
+    await dryTick(true);
+    state.dry.timer = setInterval(() => dryTick(false), 90000);
+  });
+  const dryStopFn = () => {
+    state.dry.running = false;
+    clearInterval(state.dry.timer);
+    $('dryStart').classList.remove('hidden'); $('dryStop').classList.add('hidden');
+    $('dryBadge').textContent = 'STOP';
+    renderDry();
+  };
+  $('dryStop').addEventListener('click', dryStopFn);
+  $('dryClear').addEventListener('click', () => {
+    state.dry.positions = []; state.dry.closed = []; state.dry.equity = null;
+    store.set('aether_dryclosed', []); store.set('aether_dryequity', null);
+    renderDry(); renderDashboard();
+  });
+
   // settings
   $('btnSaveSet').addEventListener('click', () => {
     store.set('aether_set', { provider: $('setProvider').value, tf: $('setTf').value, notif: $('setNotif').value });
@@ -469,12 +704,12 @@ function init() {
   // laporan fix
   try {
     $('fixReport').innerHTML = [
-      ['Inspeksi APK 3.22 (full)', 'Bottom nav asli = <b>Dashboard, Strategies, Market Hub, Backtest, Settings</b> + SignalList/Detail, StrategyLab/Builder/Detail, MarketDetail, History, Diagnostics, MonitoringService — semua dipetakan ulang ke web tanpa mengubah fungsi.'],
-      ['Tab Strategi & Market mati (FIX utama)', 'Akar: <b>ES-module via file:// diblokir WebView</b> (tanpa <i>allowUniversalAccessFromFileURLs</i>) → app.js gagal total. Fix: flag WebView + <b>fallback tab inline non-module</b> + dropdown strategi di-hardcode di HTML + tiap halaman try/catch.'],
-      ['Pair manual → listview', 'Backtest & Market Hub kini pakai <b>pair picker listview</b> (top-by-volume + search + refresh + fallback offline). Input manual disembunyikan di &lt;details&gt;.'],
-      ['Opsi strategi ke-2 / combo hilang', 'Dikembalikan: <b>Strategi 1 dropdown + Strategi 2+ checkboxes + Mode OR/AND/MAJORITY</b> (setara ExperimentConfig), validasi min 2 strategi, auto-OR bila ada centang.'],
-      ['Engine (tetap freqtrade-grade)', 'close[i]→open[i+1], SL-dulu se-candle, fee 2 sisi + slippage, sizing risiko-tetap + clamp leverage 1–100, dedup timestamp, hormat tanggal, min 60, expiry→EXPIRED, metrik Sharpe/Sortino/Calmar/CAGR/exposure.'],
-      ['Chart (arah tetap)', 'Kunci sumbu Y anti-gepeng, 1 label dinamis hijau/merah, error provider jujur, overlay toggle, countdown ikut timeframe.'],
+      ['v3.25 — Multi-pair manual', 'Backtest: tombol <b>☑ Multi-pair manual</b> → centang pair (maks 10) → ranking Net/Win/PF/DD + kolom Filter×. Daftar mengikuti provider aktif (termasuk Yahoo forex).'],
+      ['v3.25 — Dry Run', 'Halaman <b>Dry Run</b> (paper-trading ala freqtrade): pakai konfigurasi Backtest + filter di <b>multi-pair pilihan manual</b>, posisi paper dibuka/ditutup otomatis (SL-dulu, fee+slippage), mark-to-market tiap 90 detik, equity & hasil tersimpan lokal. Tanpa uang asli.'],
+      ['v3.25 — 15 Filter APK', 'FilterEngine dipetakan 1:1 dari APK: <b>Trend, EMA55, HTF Trend, Volume, ATR Volatility, ADX, RSI, Market Structure, S/R, Liquidity Sweep, Trading Session (UTC), Min/Max Volatility, Cooldown, Duplicate Protection</b> — berlaku di Backtest, multi-pair, Dry Run & Bot. Kolom “Tersaring filter” di hasil.'],
+      ['v3.25 — Provider Yahoo + XAI', 'Provider <b>Yahoo (Forex & Metal)</b> meniru YahooMarketProvider APK: EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, USD/CHF, NZD/USD, <b>USD/IDR</b>, USD/SGD, USD/MYR, USD/INR, USD/CNY, USD/KRW, EUR/GBP, EUR/JPY, GBP/JPY, USD/TRY, USD/ZAR, EUR/IDR, XAU/USD, XAG/USD, spot metal, BTC/ETH-USD. Kategori <b>Pair XAI</b> live dari Binance/Bybit (XAIUSDT). Pair picker & Market Hub berkategori.'],
+      ['v3.24 — Tab Strategi & Market mati', 'Akar: ES-module via file:// diblokir WebView → app.js gagal total. Fix: flag WebView + fallback tab inline + dropdown hardcode + try/catch per halaman.'],
+      ['Engine & chart', 'close[i]→open[i+1], SL-dulu se-candle, fee 2 sisi + slippage, sizing risiko-tetap + clamp leverage, dedup timestamp, min 60, expiry→EXPIRED, Sharpe/Sortino/Calmar/CAGR/exposure; chart kunci-Y + label dinamis.'],
     ].map(([t, d]) => '<details open><summary>' + t + '</summary><p class="sub">' + d + '</p></details>').join('');
   } catch { /* abaikan */ }
 }

@@ -55,6 +55,15 @@ export function sanitizeParams(raw) {
   if (p.startDate && p.endDate && p.endDate <= p.startDate) throw new Error('Tanggal akhir harus sesudah tanggal awal.');
   p.strategy = String(p.strategy || 'ema_trend');
   if (!STRATEGIES[p.strategy]) throw new Error('Strategi tidak dikenal: ' + p.strategy);
+  // Filter ala APK (FilterConfig: name + enabled + params). Default: semua mati.
+  const rawF = Array.isArray(raw?.filters) ? raw.filters : (Array.isArray(p.filters) ? p.filters : []);
+  p.filters = [];
+  for (const f of rawF) {
+    if (!f || !FILTERS[f.name]) continue;
+    const def = FILTERS[f.name].defaults;
+    const merged = { ...def, ...((f.params && typeof f.params === 'object') ? f.params : {}) };
+    p.filters.push({ name: f.name, enabled: f.enabled !== false, params: merged });
+  }
   return p;
 }
 
@@ -277,7 +286,7 @@ export function buildCache(candles) {
   return {
     closes,
     e20: ema(closes, 20), e50: ema(closes, 50), e200: ema(closes, 200),
-    e9: ema(closes, 9), e21: ema(closes, 21),
+    e55: ema(closes, 55), e9: ema(closes, 9), e21: ema(closes, 21),
     s20: sma(closes, 20), s50: sma(closes, 50), sVol20: sma(vols.map((v) => v || 0), 20),
     rsi14: rsi(closes, 14), atr14: atr(candles, 14), adx14: adx(candles, 14),
     macd: m, bb, stoch: st, st: stt, vw: vwap(candles),
@@ -530,6 +539,101 @@ export function decideAt(candles, idx, cache, params) {
 }
 function avg(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; }
 
+/* ---------- 15 filter ala APK v3.22 (FilterEngine.KNOWN_FILTERS) ---------- */
+function swing(candles, idx, lookback) {
+  let hh = -Infinity, ll = Infinity;
+  for (let j = Math.max(0, idx - lookback); j < idx; j++) { hh = Math.max(hh, candles[j].h); ll = Math.min(ll, candles[j].l); }
+  return { hh, ll };
+}
+function atrPct(cache, idx, candles) {
+  const a = cache.atr14[idx];
+  if (a == null || !(a > 0) || !(candles[idx].c > 0)) return null;
+  return (a / candles[idx].c) * 100;
+}
+export const FILTERS = {
+  trend: { name: 'Trend Filter', desc: 'Harga harus di sisi EMA50 yang searah.', defaults: {},
+    fn(c, i, X, dir) { if (X.e50[i] == null) return { ok: false, why: 'EMA50 belum siap' };
+      if (dir === 'LONG') return c[i].c > X.e50[i] ? { ok: true } : { ok: false, why: 'close di bawah EMA50' };
+      return c[i].c < X.e50[i] ? { ok: true } : { ok: false, why: 'close di atas EMA50' }; } },
+  ema: { name: 'EMA Filter', desc: 'Harga harus selaras EMA55 (filter APK asli).', defaults: {},
+    fn(c, i, X, dir) { if (X.e55[i] == null) return { ok: false, why: 'EMA55 belum siap' };
+      if (dir === 'LONG') return c[i].c > X.e55[i] ? { ok: true } : { ok: false, why: 'tidak selaras EMA55' };
+      return c[i].c < X.e55[i] ? { ok: true } : { ok: false, why: 'tidak selaras EMA55' }; } },
+  htf: { name: 'HTF Trend', desc: 'Tren besar via EMA200 harus searah.', defaults: {},
+    fn(c, i, X, dir) { if (X.e200[i] == null) return { ok: false, why: 'EMA200 belum siap' };
+      if (dir === 'LONG') return c[i].c > X.e200[i] ? { ok: true } : { ok: false, why: 'di bawah EMA200 (HTF bear)' };
+      return c[i].c < X.e200[i] ? { ok: true } : { ok: false, why: 'di atas EMA200 (HTF bull)' }; } },
+  volume: { name: 'Volume Filter', desc: 'Volume candle harus di atas rata-rata agar entry valid.', defaults: { mult: 1.0 },
+    fn(c, i, X, dir, P) { const avg = X.sVol20[i] || 0;
+      if (!(avg > 0)) return { ok: false, why: 'data volume belum siap' };
+      return c[i].v >= avg * (P.mult ?? 1) ? { ok: true } : { ok: false, why: 'volume lemah' }; } },
+  atr_vol: { name: 'ATR Volatility', desc: 'Volatilitas ATR% minimal agar pergerakan cukup.', defaults: { minPct: 0.2 },
+    fn(c, i, X, dir, P) { const v = atrPct(X, i, c); if (v == null) return { ok: false, why: 'ATR belum siap' };
+      return v >= (P.minPct ?? 0.2) ? { ok: true } : { ok: false, why: 'ATR terlalu rendah: ' + v.toFixed(2) + '%' }; } },
+  adx: { name: 'ADX Filter', desc: 'Blokir tren lemah (ADX di bawah ambang).', defaults: { min: 20 },
+    fn(c, i, X, dir, P) { const a = X.adx14[i]; if (a == null) return { ok: false, why: 'ADX belum siap' };
+      return a >= (P.min ?? 20) ? { ok: true } : { ok: false, why: 'ADX lemah (' + a.toFixed(1) + ')' }; } },
+  rsi: { name: 'RSI Filter', desc: 'Blokir LONG jenuh-beli & SHORT jenuh-jual.', defaults: { longMax: 72, shortMin: 28 },
+    fn(c, i, X, dir, P) { const r = X.rsi14[i]; if (r == null) return { ok: false, why: 'RSI belum siap' };
+      if (dir === 'LONG') return r <= (P.longMax ?? 72) ? { ok: true } : { ok: false, why: 'RSI jenuh ' + r.toFixed(0) };
+      return r >= (P.shortMin ?? 28) ? { ok: true } : { ok: false, why: 'RSI jenuh ' + r.toFixed(0) }; } },
+  ms: { name: 'Market Structure Filter', desc: 'Struktur HH/HL untuk LONG, LH/LL untuk SHORT.', defaults: { lookback: 6 },
+    fn(c, i, X, dir, P) { void X; void P; if (i < 6) return { ok: false, why: 'data struktur kurang' };
+      const bull = c[i - 2].h < c[i].h || c[i - 2].l < c[i].l;
+      const bear = c[i - 2].h > c[i].h || c[i - 2].l > c[i].l;
+      if (dir === 'LONG') return bull ? { ok: true } : { ok: false, why: 'struktur tak bullish' };
+      return bear ? { ok: true } : { ok: false, why: 'struktur tak bearish' }; } },
+  sr: { name: 'S/R Filter', desc: 'Blokir entry yang terlalu dekat ke level lawan.', defaults: { bufferPct: 0.3, lookback: 20 },
+    fn(c, i, X, dir, P) { void X; const { hh, ll } = swing(c, i, P.lookback ?? 20);
+      if (!Number.isFinite(hh) || !Number.isFinite(ll)) return { ok: false, why: 'S/R belum siap' };
+      const buf = (P.bufferPct ?? 0.3) / 100;
+      if (dir === 'LONG') return ((hh - c[i].c) / c[i].c) >= buf ? { ok: true } : { ok: false, why: 'terlalu dekat resistance' };
+      return ((c[i].c - ll) / c[i].c) >= buf ? { ok: true } : { ok: false, why: 'terlalu dekat support' }; } },
+  liq: { name: 'Liquidity Sweep Filter', desc: 'Harus ada sweep likuiditas searah sebelum entry.', defaults: { lookback: 20 },
+    fn(c, i, X, dir, P) { void X; const { hh, ll } = swing(c, i, P.lookback ?? 20);
+      let swept = false;
+      for (let j = Math.max(1, i - (P.lookback ?? 20)); j < i; j++) {
+        if (dir === 'LONG' && c[j].l < ll && c[j].c > ll) { swept = true; break; }
+        if (dir === 'SHORT' && c[j].h > hh && c[j].c < hh) { swept = true; break; }
+      }
+      return swept ? { ok: true } : { ok: false, why: 'tanpa sweep searah' }; } },
+  session: { name: 'Trading Session', desc: 'Hanya entry di jam sesi aktif (UTC).', defaults: { sessions: [[0, 24]] },
+    fn(c, i, X, dir, P) { void X; void dir; const h = new Date(c[i].t).getUTCHours();
+      const ss = Array.isArray(P.sessions) ? P.sessions : [[0, 24]];
+      const ok = ss.some(([a, b]) => h >= a && h < b);
+      return ok ? { ok: true } : { ok: false, why: 'di luar sesi' }; } },
+  min_vol: { name: 'Min Volatility', desc: 'Minimal volatilitas ATR% agar pasar tidak terlalu sepi.', defaults: { minPct: 0.3 },
+    fn(c, i, X, dir, P) { const v = atrPct(X, i, c); if (v == null) return { ok: false, why: 'ATR belum siap' };
+      return v >= (P.minPct ?? 0.3) ? { ok: true } : { ok: false, why: 'pasar terlalu sepi' }; } },
+  max_vol: { name: 'Max Volatility', desc: 'Blokir pasar terlalu liar (ATR% di atas ambang).', defaults: { maxPct: 5.0 },
+    fn(c, i, X, dir, P) { const v = atrPct(X, i, c); if (v == null) return { ok: false, why: 'ATR belum siap' };
+      return v <= (P.maxPct ?? 5) ? { ok: true } : { ok: false, why: 'pasar terlalu liar' }; } },
+  cooldown: { name: 'Cooldown', desc: 'Jeda minimal antar trade (candle).', defaults: { bars: 3 },
+    fn(c, i, X, dir, P, ctx) { void c; void X; void dir; const b = P.bars ?? 3;
+      return (i - (ctx?.lastExit ?? -1e9)) >= b ? { ok: true } : { ok: false, why: 'cooldown' }; } },
+  dup: { name: 'Duplicate Protection', desc: 'Blokir sinyal duplikat searah yang berdekatan.', defaults: { bars: 5 },
+    fn(c, i, X, dir, P, ctx) { void c; void X;
+      if (!ctx?.lastSig || ctx.lastSig.dir !== dir) return { ok: true };
+      return (i - ctx.lastSig.idx) >= (P.bars ?? 5) ? { ok: true } : { ok: false, why: 'duplikat diblok' }; } },
+};
+export function filterList() {
+  return Object.entries(FILTERS).map(([id, f]) => ({ id, name: f.name, desc: f.desc, defaults: f.defaults }));
+}
+/* ctx: {lastExit, lastSig:{dir,idx}} — dikelola caller agar cooldown/dup akurat */
+export function applyFilters(candles, idx, cache, direction, activeFilters, ctx) {
+  const failed = [];
+  for (const f of activeFilters || []) {
+    if (!f || f.enabled === false) continue;
+    const def = FILTERS[f.name];
+    if (!def) continue;
+    let r;
+    try { r = def.fn(candles, idx, cache, direction, f.params || def.defaults, ctx || {}); }
+    catch { r = { ok: false, why: 'error' }; }
+    if (!r || r.ok !== true) failed.push(def.name + (r?.why ? ' (' + r.why + ')' : ''));
+  }
+  return { passed: failed.length === 0, failed };
+}
+
 /* ---------- risk: SL/TP + sizing ---------- */
 export function calcRiskLevels(entry, direction, cache, idx, params) {
   let sl, tp;
@@ -565,9 +669,18 @@ export function runBacktest(rawCandles, rawParams) {
   equityCurve.push({ t: candles[0].t, equity });
 
   const startIdx = Math.max(WARMUP, 2);
+  const activeFilters = (params.filters || []).filter((f) => f && f.enabled !== false);
+  const fctx = { lastExit: -1e9, lastSig: null };
+  let filtered = 0;
   for (let i = startIdx; i < candles.length - 1; i++) {
     const dec = decideAt(candles, i, cache, params);
     if (!dec.passed) continue;
+    // Filter ala APK (FilterEngine.evaluate): sinyal yang gagal filter dilewati & dihitung
+    if (activeFilters.length) {
+      const fr = applyFilters(candles, i, cache, dec.direction, activeFilters, fctx);
+      fctx.lastSig = { dir: dec.direction, idx: i };
+      if (!fr.passed) { filtered++; continue; }
+    }
     // Eksekusi di OPEN candle berikutnya (tanpa lookahead) + slippage merugikan
     const next = candles[i + 1];
     let entry = next.o;
@@ -630,9 +743,10 @@ export function runBacktest(rawCandles, rawParams) {
       rMultiple: rMult, result, holding: exitIdx - (i + 1) + 1,
     });
     i = exitIdx; // tidak overlap: 1 posisi per waktu (seperti freqtrade default)
+    fctx.lastExit = exitIdx;
   }
 
-  return buildResult(params, candles, trades, equityCurve, maxDD);
+  return buildResult(params, candles, trades, equityCurve, maxDD, filtered);
 }
 
 function errorResult(params, message) {
@@ -642,13 +756,13 @@ function errorResult(params, message) {
     grossProfit: 0, grossLoss: 0, netProfit: 0, netProfitPercent: 0,
     profitFactor: 0, expectancy: 0, averageWin: 0, averageLoss: 0, averageR: 0, averageRR: 0,
     maxDrawdown: 0, maxDrawdownPercent: 0, sharpe: 0, sortino: 0, calmar: 0, cagr: 0, exposure: 0,
-    avgHolding: 0, longestWinStreak: 0, longestLossStreak: 0,
+    avgHolding: 0, longestWinStreak: 0, longestLossStreak: 0, filtered: 0,
     initialCapital: params.initialCapital, finalCapital: params.initialCapital,
     trades: [], equityCurve: [],
   };
 }
 
-function buildResult(params, candles, trades, equityCurve, maxDD) {
+function buildResult(params, candles, trades, equityCurve, maxDD, filtered = 0) {
   const wins = trades.filter((t) => t.result === 'WIN');
   const losses = trades.filter((t) => t.result === 'LOSS');
   const expired = trades.filter((t) => t.result === 'EXPIRED');
@@ -701,7 +815,7 @@ function buildResult(params, candles, trades, equityCurve, maxDD) {
     calmar: Number.isFinite(calmar) ? calmar : (calmar === Infinity ? 999 : 0),
     cagr: finite(cagr), exposure: finite(exposure),
     avgHolding: total ? totalHolding / total : 0,
-    longestWinStreak: lw, longestLossStreak: ll,
+    longestWinStreak: lw, longestLossStreak: ll, filtered,
     trades, equityCurve,
   };
 }

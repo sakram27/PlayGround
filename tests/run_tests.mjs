@@ -1,6 +1,7 @@
 /* Unit tests engine — dijalankan via: node --experimental-vm-modules tests/run_tests.mjs */
 import assert from 'node:assert/strict';
-import { parseTimeframe, normalizeCandles, runBacktest, genDemoCandles, ema, rsi, strategyList, sanitizeParams } from '../js/core.js';
+import { parseTimeframe, normalizeCandles, runBacktest, genDemoCandles, ema, rsi, strategyList, filterList, applyFilters, buildCache, sanitizeParams } from '../js/core.js';
+import { yahooSymbol, YAHOO_UNIVERSE } from '../js/data.js';
 
 let pass = 0;
 const ok = (name, fn) => { fn(); pass++; console.log('ok - ' + name); };
@@ -98,6 +99,40 @@ ok('equity konsisten', () => {
   assert.ok(Math.abs(r.finalCapital - (2000 + r.netProfit)) < 1e-6);
   const lastEq = r.equityCurve[r.equityCurve.length - 1].equity;
   assert.ok(Math.abs(lastEq - r.finalCapital) < 1e-6);
+});
+
+// 15. 15 filter terdaftar + filter tak dikenal diabaikan
+ok('15 filter', () => {
+  assert.ok(filterList().length === 15);
+  const p = sanitizeParams({ strategy: 'rsi', filters: [{ name: 'volume', enabled: true, params: { mult: 2 } }, { name: 'tak_ada' }] });
+  assert.equal(p.filters.length, 1);
+});
+// 16. filter memblokir & menghitung filtered
+ok('filter memblokir', () => {
+  const c = genDemoCandles(23, 350);
+  const base = runBacktest(c, { strategy: 'ema_trend' });
+  const f = runBacktest(c, { strategy: 'ema_trend', filters: [{ name: 'adx', enabled: true, params: { min: 60 } }] });
+  assert.ok(f.filtered > 0);
+  assert.ok(f.totalTrades <= base.totalTrades);
+});
+// 17. session/cooldown/dup berperilaku benar
+ok('session cooldown dup', () => {
+  const c = genDemoCandles(25, 300);
+  const n = normalizeCandles(c), X = buildCache(n);
+  const sess = applyFilters(n, 100, X, 'LONG', [{ name: 'session', enabled: true, params: { sessions: [[0, 24]] } }], {});
+  assert.ok(sess.passed);
+  const cool = applyFilters(n, 100, X, 'LONG', [{ name: 'cooldown', enabled: true, params: { bars: 9999 } }], { lastExit: 99 });
+  assert.ok(!cool.passed);
+  const dup = applyFilters(n, 100, X, 'LONG', [{ name: 'dup', enabled: true, params: { bars: 50 } }], { lastSig: { dir: 'LONG', idx: 98 } });
+  assert.ok(!dup.passed);
+});
+// 18. yahoo mapping forex (termasuk IDR) + XAU/XAG
+ok('yahoo mapping', () => {
+  assert.equal(yahooSymbol('EUR/USD'), 'EURUSD=X');
+  assert.equal(yahooSymbol('USD/IDR'), 'IDR=X');
+  assert.equal(yahooSymbol('XAU/USD'), 'GC=F');
+  assert.ok(Object.keys(YAHOO_UNIVERSE).length >= 20);
+  assert.ok(!yahooSymbol('SYMBOL-ANEH'));
 });
 
 console.log('\nALL ' + pass + ' TESTS PASSED');
