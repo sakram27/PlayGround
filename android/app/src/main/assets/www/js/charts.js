@@ -12,11 +12,11 @@ let equityChart = null, equitySeries = null, ddSeries = null;
 let currentCandles = [];
 
 const THEME = {
-  layout: { background: { type: 'solid', color: '#070b11' }, fontSize: 10, fontFamily: 'monospace', textColor: '#9aa7b4' },
-  grid: { vertLines: { color: '#16202b' }, horzLines: { color: '#16202b' } },
-  rightPriceScale: { borderColor: '#243449', autoScale: true, scaleMargins: { top: 0.06, bottom: 0.2 } },
-  timeScale: { borderColor: '#243449', timeVisible: true, secondsVisible: false, rightOffset: 6, barSpacing: 7 },
-  crosshair: { mode: 0, vertLine: { color: '#3a4a5f', labelBackgroundColor: '#243449' }, horzLine: { color: '#3a4a5f', labelBackgroundColor: '#243449' } },
+  layout: { background: { type: 'solid', color: '#04060b' }, fontSize: 10, fontFamily: 'monospace', textColor: '#9aa7b4' },
+  grid: { vertLines: { color: '#141a28' }, horzLines: { color: '#141a28' } },
+  rightPriceScale: { borderColor: '#2a2413', autoScale: true, scaleMargins: { top: 0.06, bottom: 0.2 } },
+  timeScale: { borderColor: '#2a2413', timeVisible: true, secondsVisible: false, rightOffset: 6, barSpacing: 7 },
+  crosshair: { mode: 0, vertLine: { color: '#3a4a5f', labelBackgroundColor: '#2a2413' }, horzLine: { color: '#3a4a5f', labelBackgroundColor: '#2a2413' } },
   handleScale: { axisPressedMouseMove: { time: true, price: false }, mouseWheel: true, pinch: true },
   handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
 };
@@ -90,11 +90,11 @@ export function renderEquity(el, equityCurve) {
   if (!equityCurve || !equityCurve.length) { el.innerHTML = '<div class="chart-empty">Belum ada equity curve — jalankan backtest.</div>'; equityChart = null; return; }
   el.innerHTML = '';
   equityChart = LightweightCharts.createChart(el, {
-    layout: { background: { type: 'solid', color: '#0b1119' }, textColor: '#9aa7b4', fontSize: 10, fontFamily: 'monospace' },
+    layout: { background: { type: 'solid', color: '#04060b' }, textColor: '#9aa7b4', fontSize: 10, fontFamily: 'monospace' },
     grid: { vertLines: { color: '#141d29' }, horzLines: { color: '#141d29' } },
-    rightPriceScale: { borderColor: '#243449' }, timeScale: { borderColor: '#243449', timeVisible: true },
+    rightPriceScale: { borderColor: '#243449' }, timeScale: { borderColor: '#2a2413', timeVisible: true },
   });
-  equitySeries = equityChart.addAreaSeries({ lineColor: '#00E5FF', topColor: 'rgba(0,229,255,0.28)', bottomColor: 'rgba(0,229,255,0.02)', lineWidth: 2, priceLineVisible: false, lastValueVisible: true });
+  equitySeries = equityChart.addAreaSeries({ lineColor: '#e8c15c', topColor: 'rgba(232,193,92,0.30)', bottomColor: 'rgba(232,193,92,0.02)', lineWidth: 2, priceLineVisible: false, lastValueVisible: true });
   equitySeries.setData(equityCurve.map((p) => ({ time: Math.floor(p.t / 1000), value: p.equity })));
   // drawdown shading: area di bawah peak
   let peak = -Infinity;
