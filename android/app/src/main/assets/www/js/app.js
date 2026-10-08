@@ -1,10 +1,10 @@
-/* AetherSignalBot v3.24 controller.
+/* AetherSignalBot v3.26 controller.
  * Struktur & fungsi = APK 3.22: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Lab.
  * Tahan-banting: tiap halaman dibungkus try/catch + tab fallback inline, jadi 1 error tak mematikan tab lain.
  */
 'use strict';
 import { runBacktest, strategyList, filterList, applyFilters, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
-import { getCandles, topPairs, xaiPairs, YAHOO_UNIVERSE, parseCSV } from './data.js';
+import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV } from './data.js';
 import { renderMain, renderEquity } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
@@ -86,15 +86,11 @@ function readFilters() {
   return [...checked].map((name) => ({ name, enabled: true, params: P[name] || {} }));
 }
 
-// ---------- MARKET HUB (listview: Crypto / XAI / Forex) ----------
+// ---------- MARKET HUB (listview: Crypto / Forex+XAU) ----------
 async function marketPairs() {
   const cat = $('mktCat').value;
   let prov = $('mktProvider').value;
   if (cat === 'forex') { prov = 'yahoo'; $('mktProvider').value = 'yahoo'; return { prov, pairs: Object.keys(YAHOO_UNIVERSE) }; }
-  if (cat === 'xai') {
-    if (prov !== 'binance' && prov !== 'bybit') prov = 'binance';
-    return { prov, pairs: await xaiPairs(prov) };
-  }
   return { prov, pairs: await topPairs(prov, 10) };
 }
 async function loadMarket() {
@@ -138,10 +134,6 @@ async function pickerPairs() {
   const cat = ($('pairCat') && $('pairCat').value) || 'top';
   let prov = $('provider').value;
   if (cat === 'forex') return { prov: 'yahoo', pairs: Object.keys(YAHOO_UNIVERSE), autoProvider: 'yahoo' };
-  if (cat === 'xai') {
-    if (prov !== 'binance' && prov !== 'bybit') prov = 'binance';
-    return { prov, pairs: await xaiPairs(prov), autoProvider: null };
-  }
   return { prov, pairs: await topPairs(prov, 12), autoProvider: null };
 }
 async function openPairPicker() {
@@ -158,7 +150,7 @@ async function openPairPicker() {
     render('');
     $('pairSearch').oninput = (e) => render(e.target.value.toUpperCase());
   } catch (err) {
-    const demo = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'XAIUSDT'];
+    const demo = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
     list.innerHTML = '<p class="sub">Provider gagal (' + esc(err.message) + ') — daftar offline:</p>' + demo.map((s) =>
       '<button class="pairitem" data-sym="' + s + '"><b>' + s + '</b><small>offline</small></button>').join('');
   }
@@ -707,7 +699,7 @@ function init() {
       ['v3.25 — Multi-pair manual', 'Backtest: tombol <b>☑ Multi-pair manual</b> → centang pair (maks 10) → ranking Net/Win/PF/DD + kolom Filter×. Daftar mengikuti provider aktif (termasuk Yahoo forex).'],
       ['v3.25 — Dry Run', 'Halaman <b>Dry Run</b> (paper-trading ala freqtrade): pakai konfigurasi Backtest + filter di <b>multi-pair pilihan manual</b>, posisi paper dibuka/ditutup otomatis (SL-dulu, fee+slippage), mark-to-market tiap 90 detik, equity & hasil tersimpan lokal. Tanpa uang asli.'],
       ['v3.25 — 15 Filter APK', 'FilterEngine dipetakan 1:1 dari APK: <b>Trend, EMA55, HTF Trend, Volume, ATR Volatility, ADX, RSI, Market Structure, S/R, Liquidity Sweep, Trading Session (UTC), Min/Max Volatility, Cooldown, Duplicate Protection</b> — berlaku di Backtest, multi-pair, Dry Run & Bot. Kolom “Tersaring filter” di hasil.'],
-      ['v3.25 — Provider Yahoo + XAI', 'Provider <b>Yahoo (Forex & Metal)</b> meniru YahooMarketProvider APK: EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, USD/CHF, NZD/USD, <b>USD/IDR</b>, USD/SGD, USD/MYR, USD/INR, USD/CNY, USD/KRW, EUR/GBP, EUR/JPY, GBP/JPY, USD/TRY, USD/ZAR, EUR/IDR, XAU/USD, XAG/USD, spot metal, BTC/ETH-USD. Kategori <b>Pair XAI</b> live dari Binance/Bybit (XAIUSDT). Pair picker & Market Hub berkategori.'],
+      ['v3.25 — Provider Yahoo (Forex, Metal & XAU)', 'Provider <b>Yahoo (Forex, Metal & XAU)</b> meniru YahooMarketProvider APK: EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, USD/CHF, NZD/USD, <b>USD/IDR</b>, USD/SGD, USD/MYR, USD/INR, USD/CNY, USD/KRW, EUR/GBP, EUR/JPY, GBP/JPY, USD/TRY, USD/ZAR, EUR/IDR, XAU/USD, XAG/USD, spot metal, BTC/ETH-USD. Pair picker & Market Hub berkategori: Crypto Top / Mata Uang, Metal & XAU.'],
       ['v3.24 — Tab Strategi & Market mati', 'Akar: ES-module via file:// diblokir WebView → app.js gagal total. Fix: flag WebView + fallback tab inline + dropdown hardcode + try/catch per halaman.'],
       ['Engine & chart', 'close[i]→open[i+1], SL-dulu se-candle, fee 2 sisi + slippage, sizing risiko-tetap + clamp leverage, dedup timestamp, min 60, expiry→EXPIRED, Sharpe/Sortino/Calmar/CAGR/exposure; chart kunci-Y + label dinamis.'],
     ].map(([t, d]) => '<details open><summary>' + t + '</summary><p class="sub">' + d + '</p></details>').join('');

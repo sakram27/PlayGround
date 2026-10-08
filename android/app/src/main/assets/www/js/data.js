@@ -1,6 +1,5 @@
-/* Data layer: Binance + Bybit + Yahoo (forex/mata uang & metal) + Demo + CSV.
+/* Data layer: Binance + Bybit + Yahoo (forex/mata uang, metal & XAU) + Demo + CSV.
  * Yahoo meniru YahooMarketProvider APK (universe FOREX + XAU/XAG, query1.finance.yahoo.com).
- * XAI: pair crypto XAI* diambil live dari Binance/Bybit + fallback kurasi.
  */
 'use strict';
 import { parseTimeframe } from './core.js';
@@ -139,7 +138,6 @@ function guessPrice(sym) {
   if (sym.includes('ETH')) return 3500;
   if (sym.includes('SOL')) return 170;
   if (sym.includes('BNB')) return 590;
-  if (sym.includes('XAI')) return 0.35;
   return 100;
 }
 
@@ -162,7 +160,7 @@ export function parseCSV(text) {
 }
 
 export async function topPairs(provider = 'binance', limit = 12) {
-  if (provider === 'demo') return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'XAIUSDT'].slice(0, limit);
+  if (provider === 'demo') return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'].slice(0, limit);
   if (provider === 'yahoo') return Object.keys(YAHOO_UNIVERSE).slice(0, limit);
   try {
     if (provider === 'bybit') {
@@ -172,22 +170,6 @@ export async function topPairs(provider = 'binance', limit = 12) {
     }
     const j = await fetchJSON('https://api.binance.com/api/v3/ticker/24hr');
     return j.filter((x) => x.symbol.endsWith('USDT')).sort((a, b) => (+b.quoteVolume || 0) - (+a.quoteVolume || 0)).slice(0, limit).map((x) => x.symbol);
-  } catch { return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XAIUSDT']; }
+  } catch { return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT']; }
 }
 
-/* Pair XAI: live dari Binance/Bybit, fallback kurasi (XAIUSDT spot ada di keduanya) */
-export async function xaiPairs(provider = 'binance') {
-  const fallback = ['XAIUSDT'];
-  try {
-    if (provider === 'bybit') {
-      const j = await fetchJSON('https://api.bybit.com/v5/market/tickers?category=spot');
-      const list = (j?.result?.list || []).map((x) => x.symbol).filter((s) => s.includes('XAI'));
-      if (list.length) return list.slice(0, 12);
-    } else {
-      const j = await fetchJSON('https://api.binance.com/api/v3/ticker/24hr');
-      const list = j.map((x) => x.symbol).filter((s) => s.includes('XAI'));
-      if (list.length) return list.slice(0, 12);
-    }
-  } catch { /* fallback */ }
-  return fallback;
-}

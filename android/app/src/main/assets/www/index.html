@@ -2,8 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>AetherSignalBot v3.25 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>AetherSignalBot v3.26 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
 <meta name="description" content="AetherSignalBot: signal bot crypto terinspirasi freqtrade. Struktur sama dengan APK asli: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Strategy Lab.">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,7 +13,7 @@
   <header class="top">
     <div class="brand">
       <div class="logo">Æ</div>
-      <h1>AetherSignalBot <small>v3.25 · struktur &amp; fungsi sama dengan APK 3.22 · signal bot freqtrade-inspired</small></h1>
+      <h1>AetherSignalBot <small>v3.26 · struktur &amp; fungsi sama dengan APK 3.22 · signal bot freqtrade-inspired</small></h1>
     </div>
   </header>
 
@@ -62,10 +63,10 @@
   <section id="tab-market" data-page="market" class="hidden">
     <div class="card">
       <h2>Market Hub</h2>
-      <p class="sub">Listview pair — <b>tanpa input manual</b>. Kategori: <b>Crypto</b> (Binance/Bybit), <b>XAI</b>, <b>Forex &amp; Metal</b> (Yahoo: EUR/USD, USD/IDR, XAU/USD…). Klik ★ pakai di Backtest, klik baris = detail.</p>
+      <p class="sub">Listview pair — <b>tanpa input manual</b>. Kategori: <b>Crypto</b> (Binance/Bybit) & <b>Forex, Metal & XAU</b> (Yahoo: EUR/USD, USD/IDR, XAU/USD…). Klik ★ pakai di Backtest, klik baris = detail.</p>
       <div class="row">
         <select id="mktProvider" style="max-width:170px"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="yahoo">Yahoo (Forex)</option><option value="demo">Demo</option></select>
-        <select id="mktCat" style="max-width:150px"><option value="top">Crypto Top</option><option value="xai">Pair XAI</option><option value="forex">Mata Uang & Metal</option></select>
+        <select id="mktCat" style="max-width:150px"><option value="top">Crypto Top</option><option value="forex">Mata Uang, Metal & XAU</option></select>
         <select id="mktTf" style="max-width:110px"><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
         <button class="btn primary sm" id="btnMarket">⟳ Muat</button>
         <span class="status" id="mktStatus"></span>
@@ -306,11 +307,11 @@
     <button class="btn ghost sm" data-goto="riwayat">🕘 Riwayat</button>
   </div>
 
-  <!-- modal: pair picker (listview berkategori: Crypto / XAI / Forex) -->
+  <!-- modal: pair picker (listview berkategori: Crypto / Forex+XAU) -->
   <div class="modal hidden" id="pairModal"><div class="sheet">
     <h3>Pilih Pair <button class="btn ghost sm" id="pairClose" style="float:right">✕</button></h3>
     <div class="row">
-      <select id="pairCat" style="max-width:170px"><option value="top">Crypto Top</option><option value="xai">Pair XAI</option><option value="forex">Mata Uang & Metal</option></select>
+      <select id="pairCat" style="max-width:170px"><option value="top">Crypto Top</option><option value="forex">Mata Uang, Metal & XAU</option></select>
       <input id="pairSearch" placeholder="Filter…" style="max-width:150px">
       <button class="btn ghost sm" id="pairRefresh">⟳</button>
     </div>
@@ -326,7 +327,7 @@
     <div id="detailBody"></div>
   </div></div>
 
-  <footer>AetherSignalBot v3.25 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
+  <footer>AetherSignalBot v3.26 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
 </div>
 
 <!-- Fallback pra-module: tab HARUS bisa dibuka walau modul gagal (FIX: tab strategi/market mati di APK) -->
