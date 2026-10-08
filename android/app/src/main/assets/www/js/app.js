@@ -298,6 +298,52 @@ function paintResult(res, source) {
   if (lt) pushSignal({ pair: res.asset, tf: res.timeframe, dir: lt.direction, price: lt.entry, sl: lt.stopLoss, tp: lt.takeProfit, t: lt.entryTime, src: 'backtest' });
 }
 
+// ---------- COLLAPSIBLE CARDS (tab Backtest — hemat scroll) ----------
+function initCollapsibles() {
+  const saved = store.get('aether_collapsed', {});
+  const cards = [...document.querySelectorAll('#tab-backtest .card')];
+  const apply = (card, hide) => {
+    const head = card._chead, btn = card._ctoggle;
+    if (!head || !btn) return;
+    [...card.children].forEach((el) => {
+      if (el === head || el === btn) return;
+      el.style.display = hide ? 'none' : '';
+    });
+    card.classList.toggle('collapsed', hide);
+    btn.querySelector('.lbl').textContent = hide ? 'Buka' : 'Ciutkan';
+  };
+  cards.forEach((card, idx) => {
+    const head = card.querySelector('h2') || card.querySelector('b');
+    if (!head) return;
+    const key = card.id || ('bt-card-' + idx + '-' + (head.textContent || '').slice(0, 24));
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'card-toggle';
+    btn.innerHTML = '<span class="chev">▾</span><span class="lbl">Ciutkan</span>';
+    if (head.tagName === 'H2') head.appendChild(btn);
+    else { btn.style.marginLeft = '8px'; head.after(btn); }
+    card._chead = head; card._ctoggle = btn; card._ckey = key;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const hide = !card.classList.contains('collapsed');
+      const m = store.get('aether_collapsed', {});
+      m[key] = hide;
+      store.set('aether_collapsed', m);
+      apply(card, hide);
+    });
+    if (saved[key]) apply(card, true);
+  });
+  $('collapseAll').addEventListener('click', () => {
+    const m = {};
+    cards.forEach((c) => { if (c._ctoggle) { m[c._ckey] = true; apply(c, true); } });
+    store.set('aether_collapsed', m);
+  });
+  $('expandAll').addEventListener('click', () => {
+    cards.forEach((c) => { if (c._ctoggle) apply(c, false); });
+    store.set('aether_collapsed', {});
+  });
+}
+
 // ---------- SINYAL & RIWAYAT ----------
 function renderSignals() {
   try {
@@ -341,6 +387,7 @@ function init() {
   try { renderStrategies(); $('stratSearch').oninput = renderStrategies; } catch { /* abaikan */ }
   try { renderComboChecks(); $('strategy').onchange = renderComboChecks; } catch { /* abaikan */ }
   try { renderFilterChecks(); } catch { /* abaikan */ }
+  try { initCollapsibles(); } catch { /* abaikan */ }
   try { renderDashboard(); renderSignals(); renderHist(); renderEng(); } catch { /* abaikan */ }
   try {
     const st = store.get('aether_set', {});

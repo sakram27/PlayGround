@@ -169,6 +169,14 @@ footer{color:var(--dim);font-size:11px;text-align:center;margin-top:20px;line-he
   padding:11px 13px;margin:8px 0;cursor:pointer}
 .sigcard:hover{border-color:rgba(34,211,238,.45)}
 
+/* ---------- collapsible cards (hemat scroll) ---------- */
+.card-toggle{margin-left:auto;flex:none;background:rgba(148,184,226,.09);border:1px solid var(--line);
+  color:var(--mut);border-radius:9px;font-size:11.5px;font-weight:800;padding:4px 10px;cursor:pointer;font-family:var(--font)}
+.card-toggle:hover{color:var(--txt);border-color:rgba(34,211,238,.4)}
+.card-toggle .chev{display:inline-block;transition:transform .15s;margin-right:4px}
+.card.collapsed .card-toggle .chev{transform:rotate(-90deg)}
+h2 .card-toggle{font-size:11px}
+
 /* page enter */
 section[data-page]:not(.hidden){animation:pagein .2s ease}
 @keyframes pagein{from{opacity:0;transform:translateY(6px)}}
