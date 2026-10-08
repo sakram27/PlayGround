@@ -1,286 +1,486 @@
-/* App controller — UI/UX disempurnakan, arah app tetap (signal bot freqtrade-inspired). */
+/* AetherSignalBot v3.24 controller.
+ * Struktur & fungsi = APK 3.22: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Lab.
+ * Tahan-banting: tiap halaman dibungkus try/catch + tab fallback inline, jadi 1 error tak mematikan tab lain.
+ */
 'use strict';
-import { runBacktest, strategyList, parseTimeframe, genDemoCandles } from './core.js';
+import { runBacktest, strategyList, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
 import { getCandles, topPairs, parseCSV } from './data.js';
 import { renderMain, renderEquity } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
-const els = {
-  tabs: [...document.querySelectorAll('#tabs .tab')],
-  provider: $('provider'), symbol: $('symbol'), timeframe: $('timeframe'), limit: $('limit'),
-  strategy: $('strategy'), comboMode: $('comboMode'), capital: $('capital'), risk: $('risk'),
-  leverage: $('leverage'), fee: $('fee'), slippage: $('slippage'), maxholding: $('maxholding'),
-  sl: $('sl'), tp: $('tp'), useatr: $('useatr'), from: $('from'), to: $('to'), csv: $('csv'),
-  run: $('run'), runAll: $('runAll'), cancel: $('cancel'), status: $('status'),
-  chart: $('chart'), chartEmpty: $('chartEmpty'), chartMeta: $('chartMeta'), equity: $('equity'),
-  summaryLine: $('summaryLine'), kpis: $('kpis'), tblPair: $('tblPair'), tblAdv: $('tblAdv'),
-  tblTrades: $('tblTrades'), tradeCount: $('tradeCount'), multiOut: $('multiOut'),
-  countdown: $('countdown'), stratList: $('stratList'), btnOpt: $('btnOpt'), optStatus: $('optStatus'),
-  tblOpt: $('tblOpt'), btnMarket: $('btnMarket'), mktStatus: $('mktStatus'), tblMkt: $('tblMkt'),
-  fixReport: $('fixReport'),
+const show = (name) => { if (window.__aetherShow) window.__aetherShow(name); };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* penuh/privat */ } },
 };
-let lastCandles = [], lastParams = null, lastResult = null, cancelled = false, csvCandles = null;
-let timerInt = null;
 
-// tabs
-els.tabs.forEach((t) => t.addEventListener('click', () => {
-  els.tabs.forEach((x) => x.classList.remove('active'));
-  t.classList.add('active');
-  ['backtest', 'lab', 'market', 'bantuan'].forEach((k) => $('tab-' + k).classList.toggle('hidden', k !== t.dataset.tab));
-}));
+const state = {
+  pair: store.get('aether_pair', 'BTCUSDT'),
+  enabled: new Set(store.get('aether_enabled', ['ema_trend', 'supertrend', 'rsi', 'macd', 'breakout'])),
+  signals: store.get('aether_signals', []),
+  hist: store.get('aether_hist', []),
+  candles: [], params: null, result: null, csv: null, cancelled: false,
+  mktRows: [], botTimer: null, timerInt: null,
+};
+const STRS = (() => { try { return strategyList(); } catch { return []; } })();
 
-// strategi dropdown + katalog
-const STRS = strategyList();
-els.strategy.innerHTML = STRS.map((s) => '<option value="' + s.id + '">' + s.name + '</option>').join('');
-els.strategy.value = 'ema_trend';
-els.stratList.innerHTML = STRS.map((s) => '<details><summary>' + s.name + ' <span style="color:var(--dim);font-weight:400">(' + s.id + ')</span></summary><p class="sub">' + s.desc + '</p><button class="btn ghost sm" data-use="' + s.id + '">Pakai strategi ini</button></details>').join('');
-els.stratList.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-use]');
-  if (!b) return;
-  els.strategy.value = b.dataset.use;
-  els.tabs[0].click();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// overlay toggles
-['ovVol', 'ovE20', 'ovE50', 'ovE200'].forEach((id) => $(id).addEventListener('change', () => { if (lastCandles.length) paintChart(lastResult); }));
-
-// CSV
-els.csv.addEventListener('change', async () => {
-  const f = els.csv.files[0];
-  if (!f) { csvCandles = null; return; }
-  try {
-    csvCandles = parseCSV(await f.text());
-    setStatus('CSV dimuat: ' + csvCandles.length + ' candle valid. Provider diabaikan saat run.', false);
-  } catch (err) { csvCandles = null; setStatus('CSV error: ' + err.message, true); }
-});
-
-function setStatus(msg, isErr) {
-  els.status.textContent = msg;
-  els.status.classList.toggle('err', !!isErr);
-}
+// ---------- util ----------
+function setStatus(msg, err) { const el = $('status'); if (el) { el.textContent = msg; el.classList.toggle('err', !!err); } }
 function fmt(n, d = 2) { if (!Number.isFinite(n)) return '—'; return n.toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d }); }
-function fmt$ (n) { if (!Number.isFinite(n)) return '—'; const s = n < 0 ? '-' : ''; return s + '$' + fmt(Math.abs(n)); }
-
-function readParams() {
-  const fromMs = els.from.value ? new Date(els.from.value + 'T00:00:00Z').getTime() : 0;
-  const toMs = els.to.value ? new Date(els.to.value + 'T23:59:59Z').getTime() : 0;
-  const comboMode = els.comboMode.value;
-  const base = els.strategy.value;
-  // combo default: strategi terpilih + 2 pendamping populer
-  const combo = comboMode ? { mode: comboMode, strategies: [...new Set([base, 'supertrend', 'rsi'])].slice(0, 3) } : null;
-  return {
-    asset: els.symbol.value, timeframe: els.timeframe.value,
-    initialCapital: +els.capital.value, riskPerTrade: (+els.risk.value) / 100,
-    leverage: +els.leverage.value, feePercent: (+els.fee.value) / 100, slippagePercent: (+els.slippage.value) / 100,
-    slPercent: (+els.sl.value) / 100, tpPercent: (+els.tp.value) / 100,
-    maxHolding: +els.maxholding.value, strategy: base, strategyParams: {}, combo,
-    startDate: fromMs || 0, endDate: toMs || 0,
-    useAtr: els.useatr.value === '1',
-  };
+function fmt$(n) { if (!Number.isFinite(n)) return '—'; return (n < 0 ? '-' : '') + '$' + fmt(Math.abs(n)); }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function saveEnabled() { store.set('aether_enabled', [...state.enabled]); }
+function pushSignal(s) {
+  state.signals.unshift({ ...s, id: Date.now() + '_' + Math.floor(Math.random() * 1e6) });
+  state.signals = state.signals.slice(0, 200);
+  store.set('aether_signals', state.signals);
+  renderDashboard(); renderSignals();
 }
 
-async function loadData(params) {
-  if (csvCandles && csvCandles.length >= 60) return { candles: csvCandles, source: 'CSV (' + csvCandles.length + 'c)' };
-  const candles = await getCandles({ provider: els.provider.value, symbol: params.asset, timeframe: params.timeframe, limit: +els.limit.value });
-  return { candles, source: els.provider.value + ' · ' + params.asset + ' ' + params.timeframe };
-}
-
-function paintChart(result) {
-  const overlays = { volume: $('ovVol').checked, ema20: $('ovE20').checked, ema50: $('ovE50').checked, ema200: $('ovE200').checked };
-  let markers = [], priceLines = [];
-  if (result && !result.error) {
-    markers = result.trades.slice(-120).flatMap((t) => ([
-      { t: t.entryTime, pos: t.direction === 'LONG' ? 'belowBar' : 'aboveBar', color: t.direction === 'LONG' ? '#00E676' : '#FF5252', shape: t.direction === 'LONG' ? 'arrowUp' : 'arrowDown', text: t.direction === 'LONG' ? 'L' : 'S' },
-      { t: t.exitTime, pos: t.result === 'WIN' ? 'aboveBar' : 'belowBar', color: t.result === 'WIN' ? '#00E5FF' : '#FFC857', shape: t.result === 'WIN' ? 'circle' : 'circle', text: t.result === 'WIN' ? '✓' : '✕' },
-    ]));
-    const last = result.trades[result.trades.length - 1];
-    if (last) priceLines = [
-      { price: last.stopLoss, color: '#FF5252', title: 'SL' },
-      { price: last.takeProfit, color: '#00E676', title: 'TP' },
-    ];
-  }
-  const last = renderMain(els.chart, els.chartEmpty, { candles: lastCandles, markers, priceLines, overlays, errorText: '' });
-  renderEquity(els.equity, result && !result.error ? result.equityCurve : []);
-  if (lastCandles.length) {
-    const l = lastCandles[lastCandles.length - 1];
-    els.chartMeta.textContent = lastParams.asset + ' · ' + lastParams.timeframe + ' · ' + lastCandles.length + 'c · last ' + fmt(l.c, l.c > 1000 ? 2 : 4);
-  }
-  startCountdown(last);
-}
-
-function startCountdown() {
-  clearInterval(timerInt);
-  els.countdown.classList.add('hidden');
-  if (!lastCandles.length || !lastParams) return;
-  let secs = 0;
-  try { secs = parseTimeframe(lastParams.timeframe) * 60; } catch { return; }
-  if (!(secs > 0)) return;
-  const tick = () => {
-    const lastT = lastCandles[lastCandles.length - 1].t;
-    const left = Math.max(0, lastT + secs * 1000 - Date.now());
-    const mm = String(Math.floor(left / 60000)).padStart(2, '0');
-    const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
-    els.countdown.textContent = '⏱ ' + mm + ':' + ss;
-    els.countdown.classList.remove('hidden');
-  };
-  tick();
-  timerInt = setInterval(tick, 1000);
-}
-
-function paintResult(result, source) {
-  lastResult = result;
-  if (result.error) {
-    els.summaryLine.textContent = 'Error: ' + result.error;
-    els.kpis.innerHTML = ''; els.tblPair.querySelector('tbody').innerHTML = ''; els.tblAdv.querySelector('tbody').innerHTML = '';
-    els.tblTrades.querySelector('tbody').innerHTML = ''; els.tradeCount.textContent = '0';
-    renderEquity(els.equity, []);
-    return;
-  }
-  const w = result.winRate, dd = result.maxDrawdownPercent;
-  els.summaryLine.innerHTML = '<b>' + result.asset + ' ' + result.timeframe + '</b> · ' + result.strategy + ' · ' + source +
-    ' · Net <b style="color:' + (result.netProfit >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmt$(result.netProfit) + ' (' + fmt(result.netProfitPercent) + '%)</b>' +
-    ' · Win ' + fmt(w, 1) + '% · PF ' + (result.profitFactor >= 999 ? '∞' : fmt(result.profitFactor)) + ' · MaxDD ' + fmt(dd) + '%';
-  const K = [
-    ['Net Profit', fmt$(result.netProfit), result.netProfit >= 0], ['Win Rate', fmt(w, 1) + '%', w >= 50],
-    ['Total Trades', result.totalTrades, null], ['Profit Factor', result.profitFactor >= 999 ? '∞' : fmt(result.profitFactor), result.profitFactor >= 1.5],
-    ['Expectancy', fmt$(result.expectancy), result.expectancy >= 0], ['Avg R', fmt(result.averageR) + 'R', result.averageR >= 0],
-    ['Max DD', fmt(dd) + '%', dd <= 15], ['Final Capital', fmt$(result.finalCapital), result.finalCapital >= result.initialCapital],
-  ];
-  els.kpis.innerHTML = K.map(([k, v, pos]) => '<div class="kpi"><small>' + k + '</small><b class="' + (pos == null ? '' : pos ? 'pos' : 'neg') + '">' + v + '</b></div>').join('');
-  const rows1 = [
-    ['Wins / Losses / Expired', result.wins + ' / ' + result.losses + ' / ' + result.expired],
-    ['Gross Profit', fmt$(result.grossProfit)], ['Gross Loss', fmt$(result.grossLoss)],
-    ['Avg Win', fmt$(result.averageWin)], ['Avg Loss', fmt$(result.averageLoss)],
-    ['Win streak / Loss streak', result.longestWinStreak + ' / ' + result.longestLossStreak],
-    ['Avg holding', fmt(result.avgHolding, 1) + ' candle'], ['Exposure', fmt(result.exposure, 1) + '%'],
-  ];
-  const rows2 = [
-    ['Sharpe (per-trade)', fmt(result.sharpe)], ['Sortino', fmt(result.sortino)],
-    ['Calmar', result.calmar >= 999 ? '∞' : fmt(result.calmar)], ['CAGR', fmt(result.cagr) + '%'],
-    ['Avg RR terencana', fmt(result.averageRR)], ['MaxDD nominal', fmt$(result.maxDrawdown)],
-    ['Modal awal', fmt$(result.initialCapital)], ['Strategi', result.strategy],
-  ];
-  els.tblPair.querySelector('tbody').innerHTML = rows1.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
-  els.tblAdv.querySelector('tbody').innerHTML = rows2.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
-  els.tradeCount.textContent = result.trades.length;
-  const tb = result.trades.slice(-200).map((t, i) => '<tr class="' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '"><td>' + (i + 1) + '</td><td>' + new Date(t.exitTime).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + t.direction + '</td><td>' + fmt(t.entry, 4) + '</td><td>' + fmt(t.exit, 4) + '</td><td>' + fmt$(t.pnl) + '</td><td>' + fmt(t.rMultiple) + '</td><td><span class="pill ' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '">' + t.result + '</span></td></tr>').join('');
-  els.tblTrades.querySelector('tbody').innerHTML = tb || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Tidak ada trade (coba strategi/timeframe lain).</td></tr>';
-}
-
-els.run.addEventListener('click', async () => {
-  cancelled = false; els.run.disabled = true; els.cancel.disabled = false;
-  els.multiOut.innerHTML = '';
+// ---------- STRATEGI: list + combo checks (opsi ke-2 dst) ----------
+function renderStrategies() {
   try {
-    const params = readParams();
-    lastParams = params;
-    setStatus('Mengambil data ' + params.asset + ' ' + params.timeframe + '…', false);
-    const { candles, source } = await loadData(params);
-    if (cancelled) { setStatus('Dibatalkan.', false); return; }
-    lastCandles = candles;
-    setStatus('Menjalankan backtest (' + candles.length + 'c)…', false);
-    await new Promise((r) => setTimeout(r, 30)); // biar UI update
-    const t0 = performance.now();
-    const res = runBacktest(candles, params);
-    if (cancelled) { setStatus('Dibatalkan.', false); return; }
-    paintChart(res); paintResult(res, source);
-    if (res.error) setStatus('Error: ' + res.error, true);
-    else setStatus('Selesai dalam ' + Math.round(performance.now() - t0) + 'ms · ' + res.totalTrades + ' trade · Net ' + fmt$(res.netProfit) + '. Sumber: ' + source, false);
-  } catch (err) {
-    // FIX: error provider jujur, bukan NO MARKET DATA palsu
-    els.chartEmpty.style.display = 'flex';
-    els.chartEmpty.textContent = 'Gagal memuat data: ' + err.message + ' — coba provider Demo (offline) atau simbol lain.';
-    setStatus('Error: ' + err.message, true);
-  } finally { els.run.disabled = false; els.cancel.disabled = true; }
-});
-
-els.cancel.addEventListener('click', () => { cancelled = true; setStatus('Membatalkan…', false); });
-
-els.runAll.addEventListener('click', async () => {
-  cancelled = false; els.runAll.disabled = true; els.cancel.disabled = false; els.multiOut.innerHTML = '';
+    const q = ($('stratSearch').value || '').toLowerCase();
+    const box = $('stratList');
+    box.innerHTML = STRS.filter((s) => !q || s.name.toLowerCase().includes(q) || s.id.includes(q)).map((s) =>
+      '<details><summary>' + esc(s.name) + ' <span style="color:var(--dim);font-weight:400">(' + s.id + ')</span></summary>' +
+      '<p class="sub">' + esc(s.desc) + '</p><div class="row"><button class="btn ghost sm" data-use="' + s.id + '">Pakai di Backtest</button>' +
+      '<label style="font-size:12px;color:var(--mut)"><input type="checkbox" data-en="' + s.id + '" ' + (state.enabled.has(s.id) ? 'checked' : '') + '> aktif</label></div></details>').join('')
+      || '<p class="sub">Tidak ketemu.</p>';
+  } catch (e) { console.warn('strategi:', e); }
+}
+function renderComboChecks() {
   try {
-    const params = readParams();
-    const pairs = (await topPairs(els.provider.value, 5)).filter((s) => s !== params.asset);
-    pairs.unshift(params.asset);
-    setStatus('Multi-pair: ' + pairs.join(', '), false);
-    const rows = [];
-    for (const sym of pairs.slice(0, 5)) {
-      if (cancelled) break;
-      setStatus('Backtest ' + sym + '…', false);
-      try {
-        const candles = csvCandles?.length ? csvCandles : await getCandles({ provider: els.provider.value, symbol: sym, timeframe: params.timeframe, limit: +els.limit.value });
-        const res = runBacktest(candles, { ...params, asset: sym });
-        if (!res.error && sym === params.asset) { lastCandles = candles; lastParams = { ...params, asset: sym }; paintChart(res); paintResult(res, els.provider.value); }
-        rows.push({ sym, res });
-      } catch (err) { rows.push({ sym, err: err.message }); }
-    }
-    rows.sort((a, b) => (b.res?.netProfit ?? -1e18) - (a.res?.netProfit ?? -1e18));
-    els.multiOut.innerHTML = '<h3 style="font-size:13px">Ranking multi-pair</h3><div class="scrollx"><table class="tbl"><thead><tr><th>Pair</th><th>Net</th><th>Win%</th><th>PF</th><th>DD%</th><th>Trades</th></tr></thead><tbody>' +
-      rows.map(({ sym, res, err }) => err ? '<tr><td>' + sym + '</td><td colspan="5" style="color:#ff9a9a">' + err + '</td></tr>'
-        : res.error ? '<tr><td>' + sym + '</td><td colspan="5">' + res.error + '</td></tr>'
-        : '<tr><td>' + sym + '</td><td>' + fmt$(res.netProfit) + '</td><td>' + fmt(res.winRate, 1) + '%</td><td>' + (res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor)) + '</td><td>' + fmt(res.maxDrawdownPercent) + '%</td><td>' + res.totalTrades + '</td></tr>').join('') + '</tbody></table></div>';
-    setStatus('Multi-pair selesai (' + rows.length + ' pair).', false);
-  } catch (err) { setStatus('Error multi-pair: ' + err.message, true); }
-  finally { els.runAll.disabled = false; els.cancel.disabled = true; }
-});
+    const box = $('comboChecks');
+    const cur = $('strategy').value;
+    box.innerHTML = STRS.filter((s) => s.id !== cur).map((s) =>
+      '<label><input type="checkbox" value="' + s.id + '" ' + (['supertrend', 'rsi'].includes(s.id) ? 'checked' : '') + '> ' + esc(s.name) + '</label>').join('');
+    box.onchange = () => {
+      if (!$('comboMode').value && box.querySelectorAll('input:checked').length) $('comboMode').value = 'OR';
+    };
+  } catch (e) { console.warn('combo:', e); }
+}
 
-// Lab optimasi
-els.btnOpt.addEventListener('click', async () => {
-  if (!lastCandles.length || !lastParams) { els.optStatus.textContent = 'Jalankan backtest dulu agar ada data acuan.'; return; }
-  els.btnOpt.disabled = true;
-  const grid = [];
-  for (const sl of [1, 1.5, 2.5]) for (const tp of [2, 3, 5]) for (const r of [0.5, 1, 2]) grid.push({ sl, tp, r });
-  const out = [];
-  for (const g of grid) {
-    const res = runBacktest(lastCandles, { ...lastParams, slPercent: g.sl / 100, tpPercent: g.tp / 100, riskPerTrade: g.r / 100 });
-    if (!res.error) {
-      const score = res.netProfit - res.maxDrawdownPercent * (lastParams.initialCapital * 0.002) + Math.min(res.profitFactor, 5) * 10;
-      out.push({ ...g, res, score });
-    }
-  }
-  out.sort((a, b) => b.score - a.score);
-  els.tblOpt.querySelector('tbody').innerHTML = out.map((o, i) => '<tr><td>' + (i + 1) + '</td><td>' + o.sl + '</td><td>' + o.tp + '</td><td>' + o.r + '</td><td>' + fmt$(o.res.netProfit) + '</td><td>' + fmt(o.res.profitFactor) + '</td><td>' + fmt(o.res.maxDrawdownPercent) + '</td><td>' + o.res.totalTrades + '</td><td><button class="btn ghost sm" data-i="' + i + '">Pakai</button></td></tr>').join('');
-  els.tblOpt.querySelector('tbody').onclick = (e) => {
-    const b = e.target.closest('[data-i]'); if (!b) return;
-    const o = out[+b.dataset.i];
-    els.sl.value = o.sl; els.tp.value = o.tp; els.risk.value = o.r;
-    els.tabs[0].click();
-    setStatus('Parameter lab diterapkan: SL ' + o.sl + '% TP ' + o.tp + '% risiko ' + o.r + '%. Klik Jalankan Backtest.', false);
-  };
-  els.optStatus.textContent = 'Selesai: ' + out.length + ' kombinasi dinilai dari ' + lastCandles.length + ' candle.';
-  els.btnOpt.disabled = false;
-});
-
-// Market
-els.btnMarket.addEventListener('click', async () => {
-  els.mktStatus.textContent = 'Memuat…';
+// ---------- MARKET HUB (listview) ----------
+async function loadMarket() {
+  const tb = $('tblMkt').querySelector('tbody');
   try {
-    const pairs = await topPairs(els.provider.value, 8);
-    const tb = els.tblMkt.querySelector('tbody'); tb.innerHTML = '';
+    $('mktStatus').textContent = 'Memuat…';
+    const prov = $('mktProvider').value, tf = $('mktTf').value;
+    const pairs = await topPairs(prov, 10);
+    state.mktRows = [];
+    tb.innerHTML = '';
     for (const sym of pairs) {
       try {
-        const candles = await getCandles({ provider: els.provider.value, symbol: sym, timeframe: els.timeframe.value, limit: 200 });
+        const candles = await getCandles({ provider: prov, symbol: sym, timeframe: tf, limit: 200 });
         const last = candles[candles.length - 1];
-        const chg = ((last.c - candles[candles.length - 25].c) / candles[candles.length - 25].c) * 100;
-        const res = runBacktest(candles, { asset: sym, timeframe: els.timeframe.value, initialCapital: 1000, riskPerTrade: 0.01, leverage: 1, feePercent: 0.0005, slippagePercent: 0.0002, slPercent: 0.015, tpPercent: 0.03, maxHolding: 100, strategy: els.strategy.value });
-        const lastT = res.trades[res.trades.length - 1];
-        const fresh = lastT && (last.t - lastT.exitTime) < 10 * 15 * 60000;
-        const sigTxt = res.error ? '—' : (lastT ? lastT.direction + (fresh ? ' ★' : '') : 'NETRAL');
-        tb.innerHTML += '<tr><td>' + sym + '</td><td>' + fmt(last.c, last.c > 1000 ? 2 : 4) + '</td><td>' + fmt(chg) + '%</td><td>' + sigTxt + '</td></tr>';
-      } catch (err) { tb.innerHTML += '<tr><td>' + sym + '</td><td colspan="3" style="color:#ff9a9a">' + err.message.slice(0, 90) + '</td></tr>'; }
+        const ref = candles[Math.max(0, candles.length - 25)];
+        const chg = ((last.c - ref.c) / ref.c) * 100;
+        let sig = 'NETRAL';
+        try {
+          const norm = normalizeCandles(candles);
+          const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: $('strategy').value || 'ema_trend', strategyParams: {} });
+          if (dec.passed) sig = dec.direction;
+        } catch { /* tetap NETRAL */ }
+        state.mktRows.push({ sym, price: last.c, chg, sig });
+      } catch (err) { state.mktRows.push({ sym, err: String(err.message || err).slice(0, 90) }); }
     }
-    els.mktStatus.textContent = 'Selesai (' + pairs.length + ' pair, ★ = sinyal fresh).';
-  } catch (err) { els.mktStatus.textContent = 'Error: ' + err.message; }
-});
+    paintMarket();
+    $('mktStatus').textContent = 'Selesai (' + pairs.length + ' pair). Klik ★ pakai di Backtest, klik baris = detail.';
+  } catch (err) { $('mktStatus').textContent = 'Error: ' + err.message; }
+}
+function paintMarket() {
+  const q = ($('mktSearch').value || '').toUpperCase();
+  const tb = $('tblMkt').querySelector('tbody');
+  tb.innerHTML = state.mktRows.filter((r) => !q || r.sym.includes(q)).map((r) =>
+    r.err ? '<tr><td>' + esc(r.sym) + '</td><td colspan="3" style="color:#ff9a9a">' + esc(r.err) + '</td><td></td></tr>'
+      : '<tr data-sym="' + esc(r.sym) + '"><td>' + esc(r.sym) + '</td><td>' + fmt(r.price, r.price > 1000 ? 2 : 4) + '</td><td>' + fmt(r.chg) + '%</td><td>' + esc(r.sig) + '</td><td><button class="btn ghost sm" data-pick="' + esc(r.sym) + '">★</button></td></tr>').join('')
+    || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Tidak ada hasil.</td></tr>';
+}
 
-// Laporan fix (di akhir sesuai permintaan user)
-els.fixReport.innerHTML = [
-  ['Engine inti (freqtrade-grade)', 'Eksekusi dipindah ke <b>open[i+1]</b> (sebelumnya sinyal bisa intip candle berjalan = lookahead bias). Validasi OHLC finite + high/low konsisten + <b>dedup timestamp</b> + sort + hormati <b>start/end date</b>. Min 60 candle dengan pesan jelas.'],
-  ['SL/TP konservatif', 'Bila SL &amp; TP tersentuh dalam 1 candle yang sama → <b>SL dulu (rugi)</b>, sesuai perilaku freqtrade worst-case. Sebelumnya urutan tak tentu.'],
-  ['Biaya realistis', '<b>Fee 2 sisi</b> (entry+exit) + slippage 2 sisi merugikan. Sizing <b>risiko-tetap</b> dengan clamp notional equity×leverage; validasi leverage 1–100 &amp; risiko 0.1–10%; cegah NaN/Infinity.'],
-  ['Metrik lengkap', 'Tambah <b>maxDD nominal + %, Sharpe, Sortino, Calmar, CAGR, exposure, expectancy, averageR, avgRR, streaks, avg holding</b>; profitFactor aman bagi-nol (∞→999). Sebelumnya hanya winRate/profit kasar.'],
-  ['Expiry & non-overlap', 'Tambah <b>max holding → EXPIRED</b> (default 100) dan 1 posisi per waktu agar equity compounding benar.'],
-  ['Chart (arah tetap)', 'Kunci <b>sumbu harga Y</b> saat pinch (tidak gepeng), <b>1 label harga dinamis</b> hijau/merah (hapus dobel), error provider <b>jujur</b> (bedakan provider-gagal vs no-data), overlay volume/EMA toggle, countdown mengikuti <b>timeframe data aktual</b>, fitContent aman.'],
-  ['UI/UX + validasi', 'Semua input angka di-parse aman (koma→titik, default bila kosong), timeframe/symbol divalidasi, tombol Batal untuk multi-pair, ranking multi-pair, Strategy Lab grid-search 27 kombinasi, import CSV, cache 5 menit + mode Demo offline. Bahasa Indonesia konsisten.'],
-  ['Error yang di-fix saat verifikasi', 'Lihat <b>tests/run_tests.mjs</b>: 14 assertion lolos (parseTimeframe, dedup, fee-2-sisi, SL-dulu, expiry, Sharpe, dsb). Tidak ada crash input kosong; chart tidak gepeng; tidak ada label ganda.'],
-].map(([t, d]) => '<details open><summary>' + t + '</summary><p class="sub">' + d + '</p></details>').join('');
+// ---------- PAIR PICKER (listview, anti input manual) ----------
+async function openPairPicker() {
+  $('pairModal').classList.remove('hidden');
+  const list = $('pairList');
+  list.innerHTML = '<p class="sub">Memuat top pair…</p>';
+  try {
+    const prov = $('provider').value;
+    const pairs = await topPairs(prov, 12);
+    const render = (f) => {
+      list.innerHTML = pairs.filter((s) => !f || s.includes(f)).map((s) =>
+        '<button class="pairitem" data-sym="' + s + '"><b>' + s + '</b><small>' + (s === state.pair ? '✓ aktif' : 'pakai') + '</small></button>').join('')
+        || '<p class="sub">Tidak ketemu.</p>';
+    };
+    render('');
+    $('pairSearch').oninput = (e) => render(e.target.value.toUpperCase());
+  } catch (err) {
+    const demo = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+    list.innerHTML = '<p class="sub">Provider gagal (' + esc(err.message) + ') — daftar offline:</p>' + demo.map((s) =>
+      '<button class="pairitem" data-sym="' + s + '"><b>' + s + '</b><small>offline</small></button>').join('');
+  }
+}
+function setPair(sym) {
+  state.pair = String(sym).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'BTCUSDT';
+  store.set('aether_pair', state.pair);
+  $('pairLabel').textContent = state.pair;
+  $('pairModal').classList.add('hidden');
+  setStatus('Pair: ' + state.pair + '. Klik Jalankan Backtest.', false);
+}
+
+// ---------- BACKTEST ----------
+function readParams() {
+  const fromMs = $('from').value ? new Date($('from').value + 'T00:00:00Z').getTime() : 0;
+  const toMs = $('to').value ? new Date($('to').value + 'T23:59:59Z').getTime() : 0;
+  const mode = $('comboMode').value;
+  const extra = [...document.querySelectorAll('#comboChecks input:checked')].map((c) => c.value);
+  const combo = mode ? { mode, strategies: [...new Set([$('strategy').value, ...extra])].slice(0, 5) } : null;
+  if (combo && combo.strategies.length < 2) throw new Error('Combo butuh minimal 2 strategi (centang Strategi 2+).');
+  return {
+    asset: state.pair, timeframe: $('timeframe').value,
+    initialCapital: +$('capital').value, riskPerTrade: (+$('risk').value) / 100,
+    leverage: +$('leverage').value, feePercent: (+$('fee').value) / 100, slippagePercent: (+$('slippage').value) / 100,
+    slPercent: (+$('sl').value) / 100, tpPercent: (+$('tp').value) / 100,
+    maxHolding: +$('maxholding').value, strategy: $('strategy').value, strategyParams: {}, combo,
+    startDate: fromMs || 0, endDate: toMs || 0, useAtr: $('useatr').value === '1',
+  };
+}
+async function loadData(params) {
+  if (state.csv?.length >= 60) return { candles: state.csv, source: 'CSV (' + state.csv.length + 'c)' };
+  const candles = await getCandles({ provider: $('provider').value, symbol: params.asset, timeframe: params.timeframe, limit: +$('limit').value });
+  return { candles, source: $('provider').value + ' · ' + params.asset + ' ' + params.timeframe };
+}
+function paintChart(res) {
+  try {
+    const overlays = { volume: $('ovVol').checked, ema20: $('ovE20').checked, ema50: $('ovE50').checked, ema200: $('ovE200').checked };
+    let markers = [], priceLines = [];
+    if (res && !res.error) {
+      markers = res.trades.slice(-120).flatMap((t) => ([
+        { t: t.entryTime, pos: t.direction === 'LONG' ? 'belowBar' : 'aboveBar', color: t.direction === 'LONG' ? '#00E676' : '#FF5252', shape: t.direction === 'LONG' ? 'arrowUp' : 'arrowDown', text: t.direction === 'LONG' ? 'L' : 'S' },
+        { t: t.exitTime, pos: t.result === 'WIN' ? 'aboveBar' : 'belowBar', color: t.result === 'WIN' ? '#00E5FF' : '#FFC857', shape: 'circle', text: t.result === 'WIN' ? '✓' : '✕' },
+      ]));
+      const last = res.trades[res.trades.length - 1];
+      if (last) priceLines = [{ price: last.stopLoss, color: '#FF5252', title: 'SL' }, { price: last.takeProfit, color: '#00E676', title: 'TP' }];
+    }
+    renderMain($('chart'), $('chartEmpty'), { candles: state.candles, markers, priceLines, overlays });
+    renderEquity($('equity'), res && !res.error ? res.equityCurve : []);
+    if (state.candles.length) {
+      const l = state.candles[state.candles.length - 1];
+      $('chartMeta').textContent = state.params.asset + ' · ' + state.params.timeframe + ' · ' + state.candles.length + 'c · last ' + fmt(l.c, l.c > 1000 ? 2 : 4);
+    }
+    startCountdown();
+  } catch (e) { console.warn('chart:', e); }
+}
+function startCountdown() {
+  clearInterval(state.timerInt);
+  $('countdown').classList.add('hidden');
+  if (!state.candles.length || !state.params) return;
+  let secs = 0;
+  try { secs = parseTimeframe(state.params.timeframe) * 60; } catch { return; }
+  if (!(secs > 0)) return;
+  const tick = () => {
+    const left = Math.max(0, state.candles[state.candles.length - 1].t + secs * 1000 - Date.now());
+    $('countdown').textContent = '⏱ ' + String(Math.floor(left / 60000)).padStart(2, '0') + ':' + String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+    $('countdown').classList.remove('hidden');
+  };
+  tick();
+  state.timerInt = setInterval(tick, 1000);
+}
+function paintResult(res, source) {
+  state.result = res;
+  if (res.error) {
+    $('summaryLine').textContent = 'Error: ' + res.error;
+    $('kpis').innerHTML = ''; $('tblPair').querySelector('tbody').innerHTML = ''; $('tblAdv').querySelector('tbody').innerHTML = '';
+    $('tblTrades').querySelector('tbody').innerHTML = ''; $('tradeCount').textContent = '0';
+    renderEquity($('equity'), []);
+    return;
+  }
+  $('summaryLine').innerHTML = '<b>' + esc(res.asset) + ' ' + esc(res.timeframe) + '</b> · ' + esc(res.strategy) + ' · ' + esc(source) +
+    ' · Net <b style="color:' + (res.netProfit >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmt$(res.netProfit) + ' (' + fmt(res.netProfitPercent) + '%)</b>' +
+    ' · Win ' + fmt(res.winRate, 1) + '% · PF ' + (res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor)) + ' · MaxDD ' + fmt(res.maxDrawdownPercent) + '%';
+  const K = [
+    ['Net Profit', fmt$(res.netProfit), res.netProfit >= 0], ['Win Rate', fmt(res.winRate, 1) + '%', res.winRate >= 50],
+    ['Total Trades', res.totalTrades, null], ['Profit Factor', res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor), res.profitFactor >= 1.5],
+    ['Expectancy', fmt$(res.expectancy), res.expectancy >= 0], ['Avg R', fmt(res.averageR) + 'R', res.averageR >= 0],
+    ['Max DD', fmt(res.maxDrawdownPercent) + '%', res.maxDrawdownPercent <= 15], ['Final', fmt$(res.finalCapital), res.finalCapital >= res.initialCapital],
+  ];
+  $('kpis').innerHTML = K.map(([k, v, p]) => '<div class="kpi"><small>' + k + '</small><b class="' + (p == null ? '' : p ? 'pos' : 'neg') + '">' + v + '</b></div>').join('');
+  const r1 = [['Wins / Losses / Exp', res.wins + ' / ' + res.losses + ' / ' + res.expired], ['Gross Profit', fmt$(res.grossProfit)], ['Gross Loss', fmt$(res.grossLoss)], ['Avg Win', fmt$(res.averageWin)], ['Avg Loss', fmt$(res.averageLoss)], ['Streak W/L', res.longestWinStreak + ' / ' + res.longestLossStreak], ['Avg holding', fmt(res.avgHolding, 1) + 'c'], ['Exposure', fmt(res.exposure, 1) + '%']];
+  const r2 = [['Sharpe', fmt(res.sharpe)], ['Sortino', fmt(res.sortino)], ['Calmar', res.calmar >= 999 ? '∞' : fmt(res.calmar)], ['CAGR', fmt(res.cagr) + '%'], ['Avg RR', fmt(res.averageRR)], ['MaxDD $', fmt$(res.maxDrawdown)], ['Modal', fmt$(res.initialCapital)], ['Strategi', esc(res.strategy)]];
+  $('tblPair').querySelector('tbody').innerHTML = r1.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
+  $('tblAdv').querySelector('tbody').innerHTML = r2.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
+  $('tradeCount').textContent = res.trades.length;
+  $('tblTrades').querySelector('tbody').innerHTML = res.trades.slice(-200).map((t, i) =>
+    '<tr><td>' + (i + 1) + '</td><td>' + new Date(t.exitTime).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + t.direction + '</td><td>' + fmt(t.entry, 4) + '</td><td>' + fmt(t.exit, 4) + '</td><td>' + fmt$(t.pnl) + '</td><td>' + fmt(t.rMultiple) + '</td><td><span class="pill ' + (t.result === 'WIN' ? 'win' : t.result === 'LOSS' ? 'loss' : 'exp') + '">' + t.result + '</span></td></tr>').join('')
+    || '<tr><td colspan="8" style="text-align:center;color:var(--dim)">Tidak ada trade.</td></tr>';
+  // simpan ke riwayat lokal + auto-signal dari trade terakhir
+  state.hist = [...res.trades.map((t) => ({ ...t, id: t.exitTime + '_' + Math.random().toString(36).slice(2, 8) })), ...state.hist].slice(0, 500);
+  store.set('aether_hist', state.hist);
+  renderHist();
+  const lt = res.trades[res.trades.length - 1];
+  if (lt) pushSignal({ pair: res.asset, tf: res.timeframe, dir: lt.direction, price: lt.entry, sl: lt.stopLoss, tp: lt.takeProfit, t: lt.entryTime, src: 'backtest' });
+}
+
+// ---------- SINYAL & RIWAYAT ----------
+function renderSignals() {
+  try {
+    const d = $('fltDir').value, tf = $('fltTf').value, q = ($('fltSearch').value || '').toUpperCase();
+    const rows = state.signals.filter((s) => (!d || s.dir === d) && (!tf || s.tf === tf) && (!q || s.pair.includes(q)));
+    $('tblSignals').querySelector('tbody').innerHTML = rows.slice(0, 150).map((s) =>
+      '<tr data-sig="' + s.id + '"><td>' + new Date(s.t).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + esc(s.pair) + '</td><td>' + esc(s.dir) + '</td><td>' + fmt(s.price, 4) + '</td><td>' + fmt(s.sl, 4) + '</td><td>' + fmt(s.tp, 4) + '</td></tr>').join('')
+      || '<tr><td colspan="6" style="text-align:center;color:var(--dim)">Belum ada sinyal.</td></tr>';
+  } catch (e) { console.warn('signals:', e); }
+}
+function renderHist() {
+  try {
+    const wins = state.hist.filter((t) => t.result === 'WIN').length;
+    const net = state.hist.reduce((s, t) => s + (t.pnl || 0), 0);
+    $('histKpis').innerHTML = [['Trades', state.hist.length, null], ['Win', state.hist.length ? fmt((wins / state.hist.length) * 100, 1) + '%' : '—', wins * 2 >= state.hist.length], ['Net', fmt$(net), net >= 0]].map(([k, v, p]) => '<div class="kpi"><small>' + k + '</small><b class="' + (p == null ? '' : p ? 'pos' : 'neg') + '">' + v + '</b></div>').join('');
+    $('tblHist').querySelector('tbody').innerHTML = state.hist.slice(0, 150).map((t) =>
+      '<tr><td>' + new Date(t.exitTime || t.t).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</td><td>' + esc(t.asset || t.pair) + '</td><td>' + esc(t.direction || t.dir) + '</td><td>' + fmt$(t.pnl) + '</td><td>' + esc(t.result || '—') + '</td></tr>').join('')
+      || '<tr><td colspan="5" style="text-align:center;color:var(--dim)">Kosong.</td></tr>';
+  } catch (e) { console.warn('hist:', e); }
+}
+function renderDashboard() {
+  try {
+    const wins = state.hist.filter((t) => t.result === 'WIN').length;
+    const net = state.hist.reduce((s, t) => s + (t.pnl || 0), 0);
+    $('dashKpis').innerHTML = [['Total Signals', state.signals.length, null], ['Total Trades', state.hist.length, null], ['Win Rate', state.hist.length ? fmt((wins / state.hist.length) * 100, 1) + '%' : '—', wins * 2 >= state.hist.length], ['Net PnL', fmt$(net), net >= 0]].map(([k, v, p]) => '<div class="kpi"><small>' + k + '</small><b class="' + (p == null ? '' : p ? 'pos' : 'neg') + '">' + v + '</b></div>').join('');
+    const s = state.signals[0];
+    $('lastSignal').innerHTML = s ? '<div class="sigcard" data-sig="' + s.id + '"><b>' + esc(s.dir) + ' ' + esc(s.pair) + ' ' + esc(s.tf || '') + '</b><br><small style="color:var(--mut)">' + new Date(s.t).toLocaleString('id-ID') + ' · entry ' + fmt(s.price, 4) + ' · SL ' + fmt(s.sl, 4) + ' · TP ' + fmt(s.tp, 4) + '</small></div>' : '<p class="sub">Belum ada sinyal.</p>';
+  } catch (e) { console.warn('dash:', e); }
+}
+
+// ---------- BOT (MonitoringService ringan) ----------
+async function botCycle() {
+  try {
+    const prov = store.get('aether_set', {}).provider || $('provider').value;
+    const tf = store.get('aether_set', {}).tf || $('timeframe').value;
+    const strat = $('strategy').value || 'ema_trend';
+    const pairs = (await topPairs(prov, 5)).slice(0, 5);
+    for (const sym of pairs) {
+      try {
+        const candles = await getCandles({ provider: prov, symbol: sym, timeframe: tf, limit: 200 });
+        const norm = normalizeCandles(candles);
+        const dec = decideAt(norm, norm.length - 1, buildCache(norm), { strategy: strat, strategyParams: {} });
+        if (dec.passed) {
+          const last = norm[norm.length - 1];
+          const dup = state.signals.some((x) => x.pair === sym && x.tf === tf && Math.abs(x.t - last.t) < 60_000);
+          if (!dup) {
+            const sl = dec.direction === 'LONG' ? last.c * 0.985 : last.c * 1.015;
+            const tp = dec.direction === 'LONG' ? last.c * 1.03 : last.c * 0.97;
+            pushSignal({ pair: sym, tf, dir: dec.direction, price: last.c, sl, tp, t: last.t, src: 'bot' });
+            if (store.get('aether_set', {}).notif !== '0' && 'Notification' in window && Notification.permission === 'granted') {
+              try { new Notification(dec.direction + ' ' + sym, { body: 'Entry ' + last.c.toFixed(2) }); } catch { /* abaikan */ }
+            }
+          }
+        }
+      } catch { /* lanjut pair berikut */ }
+    }
+    $('botStatus').textContent = 'Bot jalan · scan ' + new Date().toLocaleTimeString('id-ID') + ' · ' + state.signals.length + ' sinyal.';
+  } catch (e) { $('botStatus').textContent = 'Bot error: ' + e.message; }
+}
+
+// ---------- DETAIL modal ----------
+function openDetail(title, html) {
+  $('detailTitle').childNodes[0].textContent = title + ' ';
+  $('detailBody').innerHTML = html;
+  $('detailModal').classList.remove('hidden');
+}
+
+// ---------- INIT (setiap blok tahan gagal) ----------
+function init() {
+  try { $('pairLabel').textContent = state.pair; } catch { /* abaikan */ }
+  try { renderStrategies(); $('stratSearch').oninput = renderStrategies; } catch { /* abaikan */ }
+  try { renderComboChecks(); $('strategy').onchange = renderComboChecks; } catch { /* abaikan */ }
+  try { renderDashboard(); renderSignals(); renderHist(); } catch { /* abaikan */ }
+  try {
+    const st = store.get('aether_set', {});
+    if (st.provider) { $('provider').value = st.provider; $('mktProvider').value = st.provider; $('setProvider').value = st.provider; }
+    if (st.tf) $('setTf').value = st.tf;
+  } catch { /* abaikan */ }
+
+  // navigasi tambahan
+  document.addEventListener('click', (e) => {
+    try {
+      const u = e.target.closest('[data-use]');
+      if (u) { $('strategy').value = u.dataset.use; renderComboChecks(); show('backtest'); return; }
+      const pk = e.target.closest('[data-pick]');
+      if (pk) { setPair(pk.dataset.pick); show('backtest'); return; }
+      const pi = e.target.closest('.pairitem');
+      if (pi) { setPair(pi.dataset.sym); return; }
+      const sg = e.target.closest('[data-sig]');
+      if (sg) {
+        const s = state.signals.find((x) => x.id === sg.dataset.sig);
+        if (s) openDetail(s.dir + ' ' + s.pair, '<p class="sub">' + new Date(s.t).toLocaleString('id-ID') + ' · ' + esc(s.tf || '') + ' · via ' + esc(s.src || '—') + '</p><div class="scrollx"><table class="tbl"><tbody>' + [['Entry', fmt(s.price, 4)], ['Stop Loss', fmt(s.sl, 4)], ['Take Profit', fmt(s.tp, 4)]].map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('') + '</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn primary sm" id="dUse">Pakai pair di Backtest</button></div>');
+        return;
+      }
+      if (e.target.id === 'dUse' && document.querySelector('#detailBody')) { /* ditangani di bawah */ }
+    } catch { /* abaikan */ }
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'dUse') {
+      const t = $('detailTitle').textContent;
+      const m = /([A-Z0-9]{4,})/.exec(t);
+      if (m) setPair(m[1]);
+      $('detailModal').classList.add('hidden');
+      show('backtest');
+    }
+  });
+
+  // strategi enable toggle (delegasi)
+  $('stratList').addEventListener('change', (e) => {
+    const c = e.target.closest('[data-en]');
+    if (!c) return;
+    if (c.checked) state.enabled.add(c.dataset.en); else state.enabled.delete(c.dataset.en);
+    saveEnabled();
+  });
+
+  // market
+  $('btnMarket').addEventListener('click', loadMarket);
+  $('mktSearch').addEventListener('input', paintMarket);
+  $('tblMkt').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-sym]');
+    if (!tr || e.target.closest('[data-pick]')) return;
+    const r = state.mktRows.find((x) => x.sym === tr.dataset.sym);
+    if (r && !r.err) openDetail(r.sym, '<p class="sub">Harga ' + fmt(r.price, 4) + ' · 24h ' + fmt(r.chg) + '% · sinyal ' + esc(r.sig) + '</p><div class="row"><button class="btn primary sm" data-pick="' + esc(r.sym) + '">★ Pakai di Backtest</button></div>');
+  });
+
+  // pair picker
+  $('btnPickPair').addEventListener('click', openPairPicker);
+  $('pairClose').addEventListener('click', () => $('pairModal').classList.add('hidden'));
+  $('pairRefresh').addEventListener('click', openPairPicker);
+  $('pairManualBtn').addEventListener('click', () => { if ($('pairManual').value.trim()) setPair($('pairManual').value); });
+  $('detailClose').addEventListener('click', () => $('detailModal').classList.add('hidden'));
+
+  // overlay
+  ['ovVol', 'ovE20', 'ovE50', 'ovE200'].forEach((id) => { try { $(id).addEventListener('change', () => { if (state.candles.length && state.result) paintChart(state.result); }); } catch { /* abaikan */ } });
+
+  // csv
+  $('csv').addEventListener('change', async () => {
+    const f = $('csv').files[0];
+    if (!f) { state.csv = null; return; }
+    try { state.csv = parseCSV(await f.text()); setStatus('CSV: ' + state.csv.length + ' candle.', false); }
+    catch (err) { state.csv = null; setStatus('CSV error: ' + err.message, true); }
+  });
+
+  // run
+  $('run').addEventListener('click', async () => {
+    state.cancelled = false; $('run').disabled = true; $('cancel').disabled = false; $('multiOut').innerHTML = '';
+    try {
+      state.params = readParams();
+      setStatus('Mengambil data ' + state.params.asset + '…', false);
+      const { candles, source } = await loadData(state.params);
+      if (state.cancelled) return;
+      state.candles = candles;
+      setStatus('Backtest ' + candles.length + 'c…', false);
+      await new Promise((r) => setTimeout(r, 30));
+      const t0 = performance.now();
+      const res = runBacktest(candles, state.params);
+      if (state.cancelled) return;
+      paintChart(res); paintResult(res, source);
+      setStatus(res.error ? 'Error: ' + res.error : 'Selesai ' + Math.round(performance.now() - t0) + 'ms · ' + res.totalTrades + ' trade · Net ' + fmt$(res.netProfit) + ' · ' + source, !!res.error);
+    } catch (err) {
+      $('chartEmpty').style.display = 'flex';
+      $('chartEmpty').textContent = 'Gagal: ' + err.message + ' — coba Demo (offline).';
+      setStatus('Error: ' + err.message, true);
+    } finally { $('run').disabled = false; $('cancel').disabled = true; }
+  });
+  $('cancel').addEventListener('click', () => { state.cancelled = true; });
+  $('runAll').addEventListener('click', async () => {
+    state.cancelled = false; $('runAll').disabled = true; $('cancel').disabled = false;
+    try {
+      const p = readParams();
+      const pairs = (await topPairs($('provider').value, 5)).filter((s) => s !== p.asset);
+      pairs.unshift(p.asset);
+      const rows = [];
+      for (const sym of pairs.slice(0, 5)) {
+        if (state.cancelled) break;
+        setStatus('Backtest ' + sym + '…', false);
+        try {
+          const candles = state.csv?.length ? state.csv : await getCandles({ provider: $('provider').value, symbol: sym, timeframe: p.timeframe, limit: +$('limit').value });
+          const res = runBacktest(candles, { ...p, asset: sym });
+          if (!res.error && sym === p.asset) { state.candles = candles; state.params = { ...p, asset: sym }; paintChart(res); paintResult(res, $('provider').value); }
+          rows.push({ sym, res });
+        } catch (err) { rows.push({ sym, err: err.message }); }
+      }
+      rows.sort((a, b) => (b.res?.netProfit ?? -1e18) - (a.res?.netProfit ?? -1e18));
+      $('multiOut').innerHTML = '<h3 style="font-size:13px">Ranking multi-pair</h3><div class="scrollx"><table class="tbl"><thead><tr><th>Pair</th><th>Net</th><th>Win%</th><th>PF</th><th>DD%</th><th>Tr</th></tr></thead><tbody>' +
+        rows.map(({ sym, res, err }) => err ? '<tr><td>' + esc(sym) + '</td><td colspan="5" style="color:#ff9a9a">' + esc(err) + '</td></tr>' : res.error ? '<tr><td>' + esc(sym) + '</td><td colspan="5">' + esc(res.error) + '</td></tr>' : '<tr><td>' + esc(sym) + '</td><td>' + fmt$(res.netProfit) + '</td><td>' + fmt(res.winRate, 1) + '%</td><td>' + (res.profitFactor >= 999 ? '∞' : fmt(res.profitFactor)) + '</td><td>' + fmt(res.maxDrawdownPercent) + '%</td><td>' + res.totalTrades + '</td></tr>').join('') + '</tbody></table></div>';
+      setStatus('Multi-pair selesai.', false);
+    } catch (err) { setStatus('Error: ' + err.message, true); }
+    finally { $('runAll').disabled = false; $('cancel').disabled = true; }
+  });
+
+  // lab
+  $('btnOpt').addEventListener('click', async () => {
+    if (!state.candles.length || !state.params) { $('optStatus').textContent = 'Jalankan backtest dulu.'; return; }
+    $('btnOpt').disabled = true;
+    const out = [];
+    for (const sl of [1, 1.5, 2.5]) for (const tp of [2, 3, 5]) for (const r of [0.5, 1, 2]) {
+      const res = runBacktest(state.candles, { ...state.params, slPercent: sl / 100, tpPercent: tp / 100, riskPerTrade: r / 100 });
+      if (!res.error) out.push({ sl, tp, r, res, score: res.netProfit - res.maxDrawdownPercent * (state.params.initialCapital * 0.002) + Math.min(res.profitFactor, 5) * 10 });
+    }
+    out.sort((a, b) => b.score - a.score);
+    $('tblOpt').querySelector('tbody').innerHTML = out.map((o, i) => '<tr><td>' + (i + 1) + '</td><td>' + o.sl + '</td><td>' + o.tp + '</td><td>' + o.r + '</td><td>' + fmt$(o.res.netProfit) + '</td><td>' + fmt(o.res.profitFactor) + '</td><td>' + fmt(o.res.maxDrawdownPercent) + '</td><td>' + o.res.totalTrades + '</td><td><button class="btn ghost sm" data-i="' + i + '">Pakai</button></td></tr>').join('');
+    $('tblOpt').querySelector('tbody').onclick = (e) => {
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      const o = out[+b.dataset.i];
+      $('sl').value = o.sl; $('tp').value = o.tp; $('risk').value = o.r;
+      show('backtest');
+      setStatus('Lab diterapkan: SL ' + o.sl + '% TP ' + o.tp + '% risiko ' + o.r + '%.', false);
+    };
+    $('optStatus').textContent = 'Selesai: ' + out.length + ' kombinasi.';
+    $('btnOpt').disabled = false;
+  });
+
+  // sinyal filter + hapus
+  ['fltDir', 'fltTf'].forEach((id) => { try { $(id).addEventListener('change', renderSignals); } catch { /* abaikan */ } });
+  try { $('fltSearch').addEventListener('input', renderSignals); } catch { /* abaikan */ }
+  $('btnClearSignals').addEventListener('click', () => { state.signals = []; store.set('aether_signals', []); renderSignals(); renderDashboard(); });
+  $('btnClearHist').addEventListener('click', () => { state.hist = []; store.set('aether_hist', []); renderHist(); renderDashboard(); });
+
+  // bot
+  $('btnStartBot').addEventListener('click', async () => {
+    try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch { /* abaikan */ }
+    $('btnStartBot').classList.add('hidden'); $('btnStopBot').classList.remove('hidden');
+    $('botBadge').textContent = 'BOT RUN';
+    await botCycle();
+    state.botTimer = setInterval(botCycle, 120000);
+  });
+  $('btnStopBot').addEventListener('click', () => {
+    clearInterval(state.botTimer);
+    $('btnStartBot').classList.remove('hidden'); $('btnStopBot').classList.add('hidden');
+    $('botBadge').textContent = 'BOT STOP'; $('botStatus').textContent = 'Bot berhenti.';
+  });
+
+  // settings
+  $('btnSaveSet').addEventListener('click', () => {
+    store.set('aether_set', { provider: $('setProvider').value, tf: $('setTf').value, notif: $('setNotif').value });
+    $('provider').value = $('setProvider').value; $('mktProvider').value = $('setProvider').value;
+    $('setStatus').textContent = 'Tersimpan.';
+  });
+  $('btnExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ signals: state.signals, hist: state.hist }, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'aether-export.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
+
+  // laporan fix
+  try {
+    $('fixReport').innerHTML = [
+      ['Inspeksi APK 3.22 (full)', 'Bottom nav asli = <b>Dashboard, Strategies, Market Hub, Backtest, Settings</b> + SignalList/Detail, StrategyLab/Builder/Detail, MarketDetail, History, Diagnostics, MonitoringService — semua dipetakan ulang ke web tanpa mengubah fungsi.'],
+      ['Tab Strategi & Market mati (FIX utama)', 'Akar: <b>ES-module via file:// diblokir WebView</b> (tanpa <i>allowUniversalAccessFromFileURLs</i>) → app.js gagal total. Fix: flag WebView + <b>fallback tab inline non-module</b> + dropdown strategi di-hardcode di HTML + tiap halaman try/catch.'],
+      ['Pair manual → listview', 'Backtest & Market Hub kini pakai <b>pair picker listview</b> (top-by-volume + search + refresh + fallback offline). Input manual disembunyikan di &lt;details&gt;.'],
+      ['Opsi strategi ke-2 / combo hilang', 'Dikembalikan: <b>Strategi 1 dropdown + Strategi 2+ checkboxes + Mode OR/AND/MAJORITY</b> (setara ExperimentConfig), validasi min 2 strategi, auto-OR bila ada centang.'],
+      ['Engine (tetap freqtrade-grade)', 'close[i]→open[i+1], SL-dulu se-candle, fee 2 sisi + slippage, sizing risiko-tetap + clamp leverage 1–100, dedup timestamp, hormat tanggal, min 60, expiry→EXPIRED, metrik Sharpe/Sortino/Calmar/CAGR/exposure.'],
+      ['Chart (arah tetap)', 'Kunci sumbu Y anti-gepeng, 1 label dinamis hijau/merah, error provider jujur, overlay toggle, countdown ikut timeframe.'],
+    ].map(([t, d]) => '<details open><summary>' + t + '</summary><p class="sub">' + d + '</p></details>').join('');
+  } catch { /* abaikan */ }
+}
+
+try { init(); } catch (e) {
+  // Tab tetap hidup via fallback inline walau init gagal
+  console.warn('init partial:', e);
+  try { setStatus('Sebagian modul gagal: ' + e.message + ' — tab tetap bisa dibuka.', true); } catch { /* abaikan */ }
+}

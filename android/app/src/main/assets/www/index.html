@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>AetherSignalBot Web v3.23 — Backtest freqtrade-grade</title>
-<meta name="description" content="AetherSignalBot Web: backtest engine freqtrade-grade, 25 strategi, chart TradingView Lightweight, multi-provider. Arah aplikasi tetap: signal bot crypto.">
+<title>AetherSignalBot v3.24 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
+<meta name="description" content="AetherSignalBot: signal bot crypto terinspirasi freqtrade. Struktur sama dengan APK asli: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Strategy Lab.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,72 +12,156 @@
   <header class="top">
     <div class="brand">
       <div class="logo">Æ</div>
-      <h1>AetherSignalBot <small>Web v3.23 · freqtrade-inspired · arah app tetap: signal bot crypto</small></h1>
+      <h1>AetherSignalBot <small>v3.24 · struktur &amp; fungsi sama dengan APK 3.22 · signal bot freqtrade-inspired</small></h1>
     </div>
-    <nav class="tabs" id="tabs">
-      <button class="tab active" data-tab="backtest">📊 Backtest</button>
-      <button class="tab" data-tab="lab">🧪 Strategy Lab</button>
-      <button class="tab" data-tab="market">🌍 Market</button>
-      <button class="tab" data-tab="bantuan">❓ Bantuan</button>
-    </nav>
   </header>
 
-  <!-- ============ BACKTEST ============ -->
-  <section id="tab-backtest">
+  <!-- ============ DASHBOARD ============ -->
+  <section id="tab-dashboard" data-page="dashboard">
     <div class="card">
-      <h2>Konfigurasi Backtest <span class="countdown hidden" id="countdown"></span></h2>
-      <p class="sub">Engine freqtrade-grade: eksekusi di <b>open candle berikutnya</b> (tanpa lookahead), SL-dulu bila SL+TP tersentuh se-candle, fee 2 sisi + slippage, sizing risiko tetap + leverage, 1 posisi per waktu, equity compounding. Minimal 60 candle.</p>
+      <h2>Dashboard <span class="pill" id="botBadge">BOT STOP</span></h2>
+      <p class="sub">Monitoring ringan meniru <b>MonitoringService</b> APK asli: scan top pair tiap interval, tulis sinyal ke daftar Sinyal + riwayat lokal. Bukan auto-trading.</p>
+      <div class="row">
+        <button class="btn primary" id="btnStartBot">▶ Start Bot</button>
+        <button class="btn danger hidden" id="btnStopBot">■ Stop Bot</button>
+        <span class="status" id="botStatus">Bot berhenti.</span>
+      </div>
+      <div class="kpis" style="margin-top:10px" id="dashKpis"></div>
+    </div>
+    <div class="card">
+      <h2>Sinyal Terakhir</h2>
+      <p class="sub">Sama seperti kartu <b>Last Signal</b> di APK. Klik untuk detail + chart.</p>
+      <div id="lastSignal"><p class="sub">Belum ada sinyal — Start Bot atau jalankan backtest.</p></div>
+      <div class="row">
+        <button class="btn ghost sm" data-goto="sinyal">📋 Buka daftar Sinyal</button>
+        <button class="btn ghost sm" data-goto="riwayat">🕘 Buka Riwayat</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STRATEGI ============ -->
+  <section id="tab-strategi" data-page="strategi" class="hidden">
+    <div class="card">
+      <h2>Strategies</h2>
+      <p class="sub">25 strategi bawaan APK dipertahankan semua. Centang = aktif untuk combo/monitoring. Klik nama = detail + pakai di Backtest / Lab.</p>
+      <div class="row"><input id="stratSearch" placeholder="Cari strategi… (mis. rsi, macd, fvg)" style="max-width:280px"></div>
+      <div class="grid c2" id="stratList" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>Strategy Lab</h2>
+      <p class="sub">Grid-search SL × TP × risiko pada data terakhir (skor freqtrade-style). Setara <b>StrategyLabActivity</b> versi ringan.</p>
+      <div class="row">
+        <button class="btn primary" id="btnOpt">🔍 Optimasi (27 kombinasi)</button>
+        <span class="status" id="optStatus">Butuh hasil backtest dulu.</span>
+      </div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblOpt"><thead><tr><th>#</th><th>SL%</th><th>TP%</th><th>Ris%</th><th>Net</th><th>PF</th><th>DD%</th><th>Trades</th><th>Aksi</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ MARKET HUB ============ -->
+  <section id="tab-market" data-page="market" class="hidden">
+    <div class="card">
+      <h2>Market Hub</h2>
+      <p class="sub">Listview pair by volume — <b>tanpa input manual</b> (input manual hanya opsi terakhir). Pilih pair untuk dipakai di Backtest / lihat detail.</p>
+      <div class="row">
+        <select id="mktProvider" style="max-width:150px"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="demo">Demo</option></select>
+        <select id="mktTf" style="max-width:110px"><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        <button class="btn primary sm" id="btnMarket">⟳ Muat</button>
+        <span class="status" id="mktStatus"></span>
+      </div>
+      <div class="row" style="margin-top:8px"><input id="mktSearch" placeholder="Filter pair… (mis. SOL)" style="max-width:280px"></div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblMkt"><thead><tr><th>Pair</th><th>Harga</th><th>24h%</th><th>Sinyal</th><th></th></tr></thead><tbody><tr><td colspan="5" style="text-align:center;color:var(--dim)">Belum dimuat — klik Muat.</td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ BACKTEST ============ -->
+  <section id="tab-backtest" data-page="backtest" class="hidden">
+    <div class="card">
+      <h2>Backtest <span class="countdown hidden" id="countdown"></span></h2>
+      <p class="sub">Engine freqtrade-grade: sinyal di <b>close[i] → eksekusi open[i+1]</b>, SL-dulu bila SL+TP se-candle, fee 2 sisi + slippage, sizing risiko-tetap + leverage, 1 posisi/waktu, compounding. Min 60 candle.</p>
       <div class="grid c4">
+        <label class="f">Pair (dari listview)
+          <div class="row"><button class="btn ghost sm" id="btnPickPair" type="button">📋 <span id="pairLabel">BTCUSDT</span> ▾</button></div>
+        </label>
         <label class="f">Provider
           <select id="provider"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="demo">Demo (Offline)</option></select>
-        </label>
-        <label class="f">Simbol / Pair
-          <input id="symbol" value="BTCUSDT" spellcheck="false" placeholder="BTCUSDT">
         </label>
         <label class="f">Timeframe
           <select id="timeframe"><option>1m</option><option>5m</option><option selected>15m</option><option>30m</option><option>1h</option><option>4h</option><option>1d</option><option>1w</option></select>
         </label>
-        <label class="f">Jumlah candle
+        <label class="f">Candle
           <select id="limit"><option>200</option><option selected>500</option><option>1000</option></select>
         </label>
       </div>
       <div class="grid c4" style="margin-top:10px">
-        <label class="f">Strategi <select id="strategy"></select></label>
+        <label class="f">Strategi 1 (utama)
+          <select id="strategy">
+            <option value="ema_trend">EMA Trend</option>
+            <option value="ema_cross">EMA Cross 9/21</option>
+            <option value="rsi">RSI Reversal</option>
+            <option value="macd">MACD</option>
+            <option value="bollinger">Bollinger Mean-Revert</option>
+            <option value="stochastic">Stochastic</option>
+            <option value="adx">ADX Trend</option>
+            <option value="supertrend">Supertrend</option>
+            <option value="vwap">VWAP Revert</option>
+            <option value="support_resistance">Support / Resistance</option>
+            <option value="breakout">Breakout 20</option>
+            <option value="pullback">Pullback EMA21</option>
+            <option value="market_structure">Market Structure</option>
+            <option value="bos">BOS</option>
+            <option value="choch">CHoCH</option>
+            <option value="liquidity_sweep">Liquidity Sweep</option>
+            <option value="order_block">Order Block</option>
+            <option value="fvg">Fair Value Gap</option>
+            <option value="breaker">Breaker Block</option>
+            <option value="fibonacci">Fibonacci</option>
+            <option value="smc_basic">SMC Basic</option>
+            <option value="ict_setup">ICT Setup</option>
+            <option value="volume">Volume Spike</option>
+            <option value="mtf_confirm">MTF Confirm</option>
+            <option value="donchian_momentum">Donchian Momentum</option>
+          </select>
+        </label>
         <label class="f">Mode combo
-          <select id="comboMode"><option value="">Single</option><option value="OR">Combo OR</option><option value="AND">Combo AND</option><option value="MAJORITY">Combo Majority</option></select>
+          <select id="comboMode"><option value="">Single (strategi 1 saja)</option><option value="OR">Combo OR</option><option value="AND">Combo AND</option><option value="MAJORITY">Combo Majority</option></select>
         </label>
         <label class="f">Modal awal (USDT) <input id="capital" type="number" value="1000" min="10" step="10"></label>
         <label class="f">Risiko / trade (%) <input id="risk" type="number" value="1" min="0.1" max="10" step="0.1"></label>
+      </div>
+      <div class="card" id="comboBox" style="margin:10px 0 0;background:var(--panel2)">
+        <b style="font-size:12px">Strategi 2+ (combo — opsi kedua dst, setara ExperimentConfig APK)</b>
+        <p class="sub" style="margin:4px 0">Aktif bila Mode combo ≠ Single. Pilih minimal 1 tambahan (disarankan 2).</p>
+        <div class="checks" id="comboChecks"></div>
       </div>
       <div class="grid c4" style="margin-top:10px">
         <label class="f">Leverage (1–100) <input id="leverage" type="number" value="1" min="1" max="100" step="1"></label>
         <label class="f">Fee / sisi (%) <input id="fee" type="number" value="0.05" min="0" max="2" step="0.01"></label>
         <label class="f">Slippage / sisi (%) <input id="slippage" type="number" value="0.02" min="0" max="2" step="0.01"></label>
-        <label class="f">Max holding (candle) <input id="maxholding" type="number" value="100" min="1" max="2000"></label>
+        <label class="f">Max holding <input id="maxholding" type="number" value="100" min="1" max="2000"></label>
       </div>
       <div class="grid c3" style="margin-top:10px">
         <label class="f">SL % <input id="sl" type="number" value="1.5" min="0.05" step="0.1"></label>
         <label class="f">TP % <input id="tp" type="number" value="3" min="0.05" step="0.1"></label>
-        <label class="f">Gunakan ATR?
+        <label class="f">Level ATR?
           <select id="useatr"><option value="0" selected>Tidak (SL/TP %)</option><option value="1">Ya (ATR 14)</option></select>
         </label>
       </div>
       <div class="grid c3" style="margin-top:10px">
-        <label class="f">Dari tanggal (opsional) <input id="from" type="date"></label>
-        <label class="f">Sampai tanggal (opsional) <input id="to" type="date"></label>
-        <label class="f">Import CSV (time,o,h,l,c,v) <input id="csv" type="file" accept=".csv,.txt"></label>
+        <label class="f">Dari tanggal <input id="from" type="date"></label>
+        <label class="f">Sampai tanggal <input id="to" type="date"></label>
+        <label class="f">Import CSV <input id="csv" type="file" accept=".csv,.txt"></label>
       </div>
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="run">▶ Jalankan Backtest</button>
         <button class="btn ghost" id="runAll">⚡ Multi-pair (top 5)</button>
         <button class="btn ghost" id="cancel" disabled>Batal</button>
-        <span class="status" id="status">Siap. Pilih provider → Jalankan.</span>
+        <span class="status" id="status">Siap.</span>
       </div>
     </div>
 
     <div class="card">
       <h2>Chart <span style="color:var(--dim);font-weight:400;font-size:12px" id="chartMeta"></span></h2>
-      <p class="sub">Candle + volume + EMA20/50/200 (glow), marker entry/exit trade, label harga dinamis hijau/merah. Pinch 2 jari hanya zoom waktu (sumbu harga dikunci agar tidak gepeng — FIX v3.22).</p>
       <div class="checks" style="margin-bottom:8px">
         <label><input type="checkbox" id="ovVol" checked> Volume</label>
         <label><input type="checkbox" id="ovE20" checked> EMA20</label>
@@ -102,59 +186,110 @@
     </div>
   </section>
 
-  <!-- ============ LAB ============ -->
-  <section id="tab-lab" class="hidden">
+  <!-- ============ SINYAL ============ -->
+  <section id="tab-sinyal" data-page="sinyal" class="hidden">
     <div class="card">
-      <h2>Strategy Lab — optimasi grid sederhana</h2>
-      <p class="sub">Grid-search SL × TP × risiko pada data yang sama, ranking by <b>net profit + profit factor + maxDD penalty</b> (skor freqtrade-style). Tidak mengubah arah app: tetap signal bot, bukan auto-trading.</p>
+      <h2>Signals</h2>
+      <p class="sub">Setara <b>SignalListActivity</b>: filter arah + timeframe + cari. Klik baris = detail (setara SignalDetailActivity).</p>
       <div class="row">
-        <button class="btn primary" id="btnOpt">🔍 Optimasi (27 kombinasi)</button>
-        <span class="status" id="optStatus">Butuh hasil backtest dulu (data &amp; strategi dasar sama).</span>
+        <select id="fltDir" style="max-width:140px"><option value="">Semua arah</option><option>LONG</option><option>SHORT</option></select>
+        <select id="fltTf" style="max-width:140px"><option value="">Semua TF</option><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        <input id="fltSearch" placeholder="Cari pair…" style="max-width:180px">
+        <button class="btn ghost sm" id="btnClearSignals">Hapus riwayat</button>
       </div>
-      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblOpt"><thead><tr><th>#</th><th>SL%</th><th>TP%</th><th>Risiko%</th><th>Net</th><th>PF</th><th>DD%</th><th>Trades</th><th>Aksi</th></tr></thead><tbody></tbody></table></div>
-    </div>
-    <div class="card">
-      <h2>Katalog 25 Strategi</h2>
-      <p class="sub">Semua strategi bawaan APK v3.22 dipertahankan (EMA, RSI, MACD, BB, Stoch, ADX, Supertrend, VWAP, S/R, Breakout, Pullback, Market Structure, BOS, CHoCH, Liquidity Sweep, Order Block, FVG, Breaker, Fibonacci, SMC, ICT, Volume, MTF + varian). Klik untuk pakai di Backtest.</p>
-      <div class="grid c2" id="stratList"></div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblSignals"><thead><tr><th>Waktu</th><th>Pair</th><th>Arah</th><th>Harga</th><th>SL</th><th>TP</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
-  <!-- ============ MARKET ============ -->
-  <section id="tab-market" class="hidden">
+  <!-- ============ RIWAYAT ============ -->
+  <section id="tab-riwayat" data-page="riwayat" class="hidden">
     <div class="card">
-      <h2>Market &amp; Sinyal Live (ringan)</h2>
-      <p class="sub">Top pair by volume + sinyal terakhir dari strategi terpilih pada 200 candle terbaru. Sinyal dihitung dari close terakhir (bukan prediksi masa depan).</p>
-      <div class="row"><button class="btn primary" id="btnMarket">⟳ Muat Market</button><span class="status" id="mktStatus"></span></div>
-      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblMkt"><thead><tr><th>Pair</th><th>Harga</th><th>24h%</th><th>Sinyal</th></tr></thead><tbody></tbody></table></div>
+      <h2>History</h2>
+      <p class="sub">Setara <b>HistoryActivity</b>: semua trade backtest yang pernah dijalankan (tersimpan lokal).</p>
+      <div class="kpis" id="histKpis"></div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblHist"><thead><tr><th>Waktu</th><th>Pair</th><th>Arah</th><th>PnL</th><th>Hasil</th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="btnClearHist">Hapus riwayat trade</button></div>
     </div>
   </section>
 
-  <!-- ============ BANTUAN ============ -->
-  <section id="tab-bantuan" class="hidden">
+  <!-- ============ PENGATURAN ============ -->
+  <section id="tab-pengaturan" data-page="pengaturan" class="hidden">
     <div class="card">
-      <h2>Apa yang diperbaiki dari v3.22 (laporan fix)</h2>
+      <h2>Settings</h2>
+      <div class="grid c3">
+        <label class="f">Provider default
+          <select id="setProvider"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="demo">Demo</option></select>
+        </label>
+        <label class="f">Timeframe default
+          <select id="setTf"><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        </label>
+        <label class="f">Notifikasi sinyal
+          <select id="setNotif"><option value="1">Aktif</option><option value="0">Mati</option></select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary sm" id="btnSaveSet">💾 Simpan</button>
+        <button class="btn ghost sm" id="btnExport">📤 Export data (JSON)</button>
+        <span class="status" id="setStatus"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Bantuan &amp; laporan fix</h2>
       <div id="fixReport"></div>
-    </div>
-    <div class="card">
-      <h2>Metodologi backtest (freqtrade-style)</h2>
-      <p class="sub" style="font-size:13px;line-height:1.8">
-      • Data dinormalisasi: sort timestamp, dedup, validasi OHLC finite + high/low konsisten, filter tanggal.<br>
-      • Sinyal dihitung di <b>close[i]</b>, eksekusi di <b>open[i+1]</b> + slippage merugikan — tanpa lookahead.<br>
-      • SL/TP intrabar: bila keduanya tersentuh dalam 1 candle → <b>SL dulu (konservatif)</b>.<br>
-      • Fee dihitung <b>2 sisi</b> (entry+exit) × fee%, slippage 2 sisi.<br>
-      • Sizing: <b>risiko tetap</b> (equity × risk%) / jarak SL, notional di-clamp ke equity × leverage. Leverage 1–100, risiko 0.1–10%.<br>
-      • 1 posisi per waktu (non-overlap), equity compounding, max holding → EXPIRED.<br>
-      • Metrik: winRate, profitFactor (aman bagi-nol), expectancy, avgWin/Loss, averageR, maxDD + %, Sharpe, Sortino, Calmar, CAGR, exposure, streaks.
-      </p>
-      <details><summary>Catatan provider</summary>
-      <p class="sub">Binance/Bybit memakai endpoint publik tanpa API key (CORS-friendly). Bila provider gagal, pesan error ditampilkan jujur (bukan "NO MARKET DATA" palsu). Mode Demo selalu tersedia offline dengan generator seeded.</p>
+      <details><summary>Metodologi backtest</summary>
+      <p class="sub" style="font-size:13px;line-height:1.8">Sinyal di close[i] → eksekusi open[i+1] + slippage. SL+TP se-candle → SL dulu. Fee 2 sisi. Sizing risiko-tetap, clamp equity×leverage. 1 posisi/waktu, compounding, max holding → EXPIRED. Metrik: winRate, PF, expectancy, avgR, maxDD+%, Sharpe, Sortino, Calmar, CAGR, exposure, streaks.</p>
       </details>
     </div>
   </section>
 
-  <footer>AetherSignalBot Web v3.23 · backtest engine disempurnakan · chart dikunci Y + label dinamis · arah app tetap: signal bot terinspirasi freqtrade · bukan saran finansial.</footer>
+  <!-- bottom nav: SAMA dengan APK (Dashboard, Strategies, Market Hub, Backtest, Settings) + Sinyal & Riwayat -->
+  <nav class="bottomnav" id="bottomnav">
+    <button class="bnav active" data-tab="dashboard">📊<span>Dashboard</span></button>
+    <button class="bnav" data-tab="strategi">🧠<span>Strategi</span></button>
+    <button class="bnav" data-tab="market">🌍<span>Market</span></button>
+    <button class="bnav" data-tab="backtest">⚗️<span>Backtest</span></button>
+    <button class="bnav" data-tab="pengaturan">⚙️<span>Setting</span></button>
+  </nav>
+  <div class="row" style="justify-content:center;margin-top:6px">
+    <button class="btn ghost sm" data-goto="sinyal">📋 Sinyal</button>
+    <button class="btn ghost sm" data-goto="riwayat">🕘 Riwayat</button>
+  </div>
+
+  <!-- modal: pair picker (listview) -->
+  <div class="modal hidden" id="pairModal"><div class="sheet">
+    <h3>Pilih Pair <button class="btn ghost sm" id="pairClose" style="float:right">✕</button></h3>
+    <div class="row"><input id="pairSearch" placeholder="Filter…"><button class="btn ghost sm" id="pairRefresh">⟳</button></div>
+    <div id="pairList" class="pairlist"><p class="sub">Memuat…</p></div>
+    <details style="margin-top:8px"><summary>Opsi manual (tidak disarankan)</summary>
+      <div class="row" style="margin-top:6px"><input id="pairManual" placeholder="Tulis manual, mis. BTCUSDT" style="max-width:200px"><button class="btn ghost sm" id="pairManualBtn">Pakai</button></div>
+    </details>
+  </div></div>
+
+  <!-- modal: detail (sinyal/market/strategi) -->
+  <div class="modal hidden" id="detailModal"><div class="sheet">
+    <h3 id="detailTitle">Detail <button class="btn ghost sm" id="detailClose" style="float:right">✕</button></h3>
+    <div id="detailBody"></div>
+  </div></div>
+
+  <footer>AetherSignalBot v3.24 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
 </div>
+
+<!-- Fallback pra-module: tab HARUS bisa dibuka walau modul gagal (FIX: tab strategi/market mati di APK) -->
+<script>
+(function(){
+  function show(name){
+    document.querySelectorAll('section[data-page]').forEach(function(s){ s.classList.toggle('hidden', s.getAttribute('data-page')!==name); });
+    document.querySelectorAll('#bottomnav .bnav').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-tab')===name); });
+    try{ window.scrollTo({top:0}); }catch(e){ window.scrollTo(0,0); }
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-tab],[data-goto]') : null;
+    if(!b) return;
+    show(b.getAttribute('data-tab') || b.getAttribute('data-goto'));
+  });
+  window.__aetherShow = show;
+})();
+</script>
 <script src="js/vendor/lightweight-charts.standalone.production.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>

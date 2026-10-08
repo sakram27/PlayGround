@@ -1,7 +1,0 @@
-com.aether.signal.app-pngs-0 /home/runner/work/PlayGround/PlayGround/android/app/build/generated/res/pngs/debug
-com.aether.signal.app-resValues-1 /home/runner/work/PlayGround/PlayGround/android/app/build/generated/res/resValues/debug
-com.aether.signal.app-packageDebugResources-2 /home/runner/work/PlayGround/PlayGround/android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.aether.signal.app-packageDebugResources-3 /home/runner/work/PlayGround/PlayGround/android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.aether.signal.app-merged_res-4 /home/runner/work/PlayGround/PlayGround/android/app/build/intermediates/merged_res/debug
-com.aether.signal.app-debug-5 /home/runner/work/PlayGround/PlayGround/android/app/src/debug/res
-com.aether.signal.app-main-6 /home/runner/work/PlayGround/PlayGround/android/app/src/main/res

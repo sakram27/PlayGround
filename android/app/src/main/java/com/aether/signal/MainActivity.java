@@ -19,8 +19,23 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
+        s.setBuiltInZoomControls(false);
         s.setAllowFileAccess(true);
-        web.setWebViewClient(new WebViewClient());
+        // FIX v3.24: ES-module import (core.js/data.js/charts.js) via file:// diblokir
+        // WebView tanpa flag ini -> app.js gagal total -> semua tab mati.
+        s.setAllowFileAccessFromFileURLs(true);
+        s.setAllowUniversalAccessFromFileURLs(true);
+        s.setMediaPlaybackRequiresUserGesture(false);
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                // Jangan blank: tampilkan pesan jujur agar bisa didiagnosis
+                String html = "<html><body style='background:#070b11;color:#e6edf3;font-family:sans-serif;padding:24px'>"
+                    + "<h3>Gagal memuat AetherSignalBot</h3><p>" + description + "</p>"
+                    + "<p>" + failingUrl + "</p></body></html>";
+                view.loadData(html, "text/html", "utf-8");
+            }
+        });
         web.loadUrl("file:///android_asset/www/index.html");
     }
 

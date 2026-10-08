@@ -61,3 +61,15 @@ footer{color:var(--dim);font-size:11px;text-align:center;margin-top:18px;line-he
 .checks label{display:flex;gap:6px;align-items:center;flex-direction:row}
 .checks input{width:auto}
 .hidden{display:none!important}
+.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:rgba(11,17,25,.97);border-top:1px solid var(--line);backdrop-filter:blur(8px)}
+.bottomnav .bnav{flex:1;background:none;border:0;color:var(--mut);padding:8px 2px 9px;font-size:18px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.bottomnav .bnav span{font-size:10px}
+.bottomnav .bnav.active{color:var(--neon)}
+.app{padding-bottom:120px}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.modal .sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:82vh;overflow-y:auto;padding:14px}
+@media(min-width:760px){.modal{align-items:center}.modal .sheet{border-radius:16px}}
+.pairlist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pairitem{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;text-align:left;width:100%;color:var(--txt);font-size:13px}
+.pairitem small{color:var(--dim)}
+.sigcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;cursor:pointer}
