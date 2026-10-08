@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Aether Chart</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0D1117; }
+  #chart { width: 100%; height: 340px; background: #0D1117; }
+  #chart iframe { width: 100%; height: 100%; border: 0; display: block; background: #0D1117; }
+  #fallback {
+    display: none; width: 100%; height: 340px; color: #8B949E;
+    font-family: -apple-system, Roboto, sans-serif; font-size: 14px; line-height: 1.6;
+    align-items: center; justify-content: center; text-align: center; flex-direction: column;
+  }
+  #fallback button {
+    margin-top: 14px; background: #1F6FEB; color: #FFFFFF; border: 0;
+    border-radius: 8px; padding: 10px 24px; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div id="chart">
+  <iframe id="tvframe" src="" allowfullscreen></iframe>
+</div>
+<div id="fallback">
+  <div>Gagal memuat chart — periksa koneksi internet.</div>
+  <button onclick="location.reload()">Muat Ulang Chart</button>
+</div>
+<script>
+  function getParam(name) {
+    try {
+      var m = new RegExp('[?&]' + name + '=([^&]+)').exec(window.location.search);
+      return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : null;
+    } catch (e) { return null; }
+  }
+  var symbol = getParam('symbol') || 'BINANCE:BTCUSDT';
+  var interval = getParam('interval') || '15';
+  var frame = document.getElementById('tvframe');
+  frame.src = 'https://s.tradingview.com/widgetembed/?frameElementId=tradingview_aether&symbol=' +
+    encodeURIComponent(symbol) + '&interval=' + interval +
+    '&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=0D1117&studies=Volume%40tv-basicstudies' +
+    '&theme=dark&style=1&timezone=Asia%2FJakarta&locale=id';
+
+  function showFallback() {
+    var c = document.getElementById('chart');
+    var f = document.getElementById('fallback');
+    if (c) c.style.display = 'none';
+    if (f) f.style.display = 'flex';
+  }
+  window.addEventListener('error', showFallback, true);
+  setTimeout(function () {
+    try {
+      if (navigator.onLine === false) showFallback();
+    } catch (e) {}
+  }, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html,body{margin:0;padding:0;background:#070b11;height:100%;overflow:hidden}
+  #chart{position:fixed;inset:0}
+  #title{position:fixed;top:4px;left:8px;color:#9aa7b4;font:11px monospace;z-index:6;pointer-events:none;white-space:nowrap}
+  #src{position:fixed;top:18px;left:8px;color:#6b7a89;font:10px monospace;z-index:6;pointer-events:none;white-space:nowrap}
+  #empty{position:fixed;inset:0;display:none;background:#0a1017;color:#8b98a6;font:13px monospace;
+    z-index:8;align-items:center;justify-content:center;pointer-events:none;white-space:pre-line;text-align:center;padding:16px}
+  #loading{position:fixed;inset:0;display:none;background:#070b11;color:#6b7a89;font:12px monospace;
+    z-index:9;align-items:center;justify-content:center;pointer-events:none}
+</style>
+<script src="lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<div id="chart"></div>
+<div id="title"></div>
+<div id="src"></div>
+<div id="empty">NO MARKET DATA</div>
+<div id="loading">MEMUAT DATA MARKET…</div>
+<script>
+"use strict";
+// ===== Aether chart renderer — TradingView Lightweight Charts v4 (bundle lokal) =====
+var el=document.getElementById('chart');
+var titleEl=document.getElementById('title'), srcEl=document.getElementById('src'), emptyEl=document.getElementById('empty');
+var loadingEl=document.getElementById('loading');
+var lastClose=null, lastBull=true;
+var chart=null, candle=null, vol=null, emaS={}, emaGlow={};
+var mode='full', lastPayload=null;
+var overlays={volume:true,ema20:true,ema50:true,ema200:false};
+var priceLineHandles=[]; var lastPriceLine=null;
+var THEME={
+  layout:{background:{type:'solid',color:'#070b11'},fontSize:10,fontFamily:'monospace',textColor:'#9aa7b4'},
+  grid:{vertLines:{color:'#16202b'},horzLines:{color:'#16202b'}},
+  rightPriceScale:{borderColor:'#243449',autoScale:true,scaleMargins:{top:0.06,bottom:0.20}},
+  timeScale:{borderColor:'#243449',timeVisible:true,secondsVisible:false,rightOffset:6,barSpacing:7},
+  crosshair:{mode:0,vertLine:{color:'#3a4a5f',labelBackgroundColor:'#243449'},horzLine:{color:'#3a4a5f',labelBackgroundColor:'#243449'}},
+  // TASK 4b: kunci skala harga (Y) agar candle tidak gepeng saat zoom/pan 2 jari.
+  // Drag pada sumbu harga & vertical-drag dimatikan; pinch hanya menskalakan waktu (X).
+  handleScale:{axisPressedMouseMove:{time:true,price:false},axisDoubleClickReset:false,mouseWheel:true,pinch:true},
+  handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false}
+};
+var MINI={ layout:{background:{type:'solid',color:'#0b1119'},textColor:'#0b1119'},
+  grid:{vertLines:{visible:false},horzLines:{visible:false}},
+  rightPriceScale:{visible:false},timeScale:{visible:false},
+  crosshair:{mode:3}, handleScroll:false, handleScale:false };
+
+function applySize(){ if(!chart) return;
+  var w=el.clientWidth||window.innerWidth, h=el.clientHeight||window.innerHeight;
+  chart.applyOptions({width:Math.max(10,w),height:Math.max(10,h)});
+}
+function observeResize(){
+  if(window.ResizeObserver){ try{ new ResizeObserver(function(){applySize();}).observe(el); }catch(e){} }
+  window.addEventListener('resize',function(){applySize();setTimeout(reportLayout,80);}); window.addEventListener('orientationchange',function(){setTimeout(applySize,120)});
+}
+function isValidCandle(c){
+  if(!c||!isFinite(c.t)||!isFinite(c.o)||!isFinite(c.h)||!isFinite(c.l)||!isFinite(c.c)) return false;
+  if(c.h<=0||c.l<=0||c.o<=0||c.c<=0) return false;
+  if(c.h<Math.max(c.o,c.c)-1e-9||c.l>Math.min(c.o,c.c)+1e-9) return false;
+  return true;
+}
+function buildFull(){
+  // FIX CHART-02: guard bila bundle lightweight-charts gagal dimuat (WebView offline/File-broken).
+  if(typeof LightweightCharts==='undefined'){ emptyEl.textContent='Chart engine gagal dimuat (bundle lokal rusak).'; emptyEl.style.display='flex'; return; }
+  if(chart) return;
+  chart=LightweightCharts.createChart(el,THEME);
+  // ATURAN 6: palet neon premium (hijau neon naik / merah neon turun).
+  // priceLineVisible/lastValueVisible DISABLED: label harga terakhir digambar oleh
+  // lastPriceLine kustom (warna dinamis bull/bear) — mencegah label dobel bertumpuk.
+  candle=chart.addCandlestickSeries({upColor:'#00E676',downColor:'#FF5252',borderVisible:false,wickUpColor:'#00E676',wickDownColor:'#FF5252',priceLineVisible:false,lastValueVisible:false});
+  vol=chart.addHistogramSeries({priceScaleId:'',priceFormat:{type:'volume'},priceLineVisible:false,lastValueVisible:false});
+  chart.priceScale('').applyOptions({scaleMargins:{top:0.84,bottom:0}});
+  // ATURAN 6: garis melengkung (Curved) + glow companion (stroke lebar, alpha rendah) di belakang.
+  function addEma(key,color,glowColor){
+    emaGlow[key]=chart.addLineSeries({color:glowColor,lineWidth:6,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false,lineType:2});
+    emaS[key]=chart.addLineSeries({color:color,lineWidth:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false,lineType:2});
+  }
+  addEma('e20','#00E5FF','rgba(0,229,255,0.16)');
+  addEma('e50','#00E676','rgba(0,230,118,0.16)');
+  addEma('e200','#B388FF','rgba(179,136,255,0.14)');
+  applySize(); observeResize();
+}
+function buildMini(){
+  if(chart) return;
+  chart=LightweightCharts.createChart(el,MINI);
+  candle=chart.addAreaSeries({lineColor:'#34d399',lineWidth:2,topColor:'rgba(52,211,153,0.28)',bottomColor:'rgba(52,211,153,0.02)',priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+  applySize(); observeResize();
+}
+function destroyChart(){
+  if(!chart) return;
+  try{ chart.remove(); }catch(e){}
+  chart=null; candle=null; vol=null; emaS={}; emaGlow={}; priceLineHandles=[]; lastPriceLine=null;
+}
+function emaArr(values,period){
+  var out=[],k=2/(period+1),prev=null;
+  for(var i=0;i<values.length;i++){
+    if(i+1<period){ out.push(null); continue; }
+    if(prev===null){ var s=0; for(var j=i-period+1;j<=i;j++) s+=values[j]; prev=s/period; }
+    else prev=values[i]*k+prev*(1-k);
+    out.push(prev);
+  }
+  return out;
+}
+function emaData(candles,period){
+  var closes=candles.map(function(c){return c.c});
+  var em=emaArr(closes,period), out=[];
+  for(var i=0;i<candles.length;i++){ if(em[i]!==null&&isFinite(em[i])) out.push({time:candles[i].t,value:em[i]}); }
+  return out;
+}
+function applyOverlays(){
+  if(!vol) return;
+  try{ vol.applyOptions({visible:!!overlays.volume}); }catch(e){}
+  try{ emaS.e20.applyOptions({visible:!!overlays.ema20}); }catch(e){}
+  try{ emaS.e50.applyOptions({visible:!!overlays.ema50}); }catch(e){}
+  try{ emaS.e200.applyOptions({visible:!!overlays.ema200}); }catch(e){}
+  try{ emaGlow.e20.applyOptions({visible:!!overlays.ema20}); }catch(e){}
+  try{ emaGlow.e50.applyOptions({visible:!!overlays.ema50}); }catch(e){}
+  try{ emaGlow.e200.applyOptions({visible:!!overlays.ema200}); }catch(e){}
+}
+// ===== LIVE COUNTDOWN — mengikuti interval data chart yang sebenarnya =====
+// TASK 2: HTML TIDAK lagi menggambar timer — timer = TextView native di Android.
+// HTML hanya melaporkan posisi-Y label harga terakhir (priceToCoordinate) ke Kotlin,
+// agar TextView timer bisa "menempel" tepat di bawah Current Price Label pada Y-axis.
+function reportLayout(){
+  try{
+    if(!chart||!candle||lastClose==null) return;
+    var y=null;
+    if(typeof candle.priceToCoordinate==='function'){ y=candle.priceToCoordinate(lastClose); }
+    if(y==null||!isFinite(y)) return;
+    // FIX CHART-01: priceToCoordinate mengembalikan CSS px — JANGAN dikali dpr.
+    // Kirim JSON {yCssPx, dpr, chartHeightCssPx} agar Kotlin konversi sendiri.
+    // Kompatibel mundur: tetap panggil Std 1-arg lama bila bridge lama.
+    var dpr=window.devicePixelRatio||1;
+    var hCss=el.clientHeight||window.innerHeight||0;
+    if(window.AetherBridge&&window.AetherBridge.onLayoutInfo){
+      try{
+        if(window.AetherBridge.onLayoutInfo.length>=2){ window.AetherBridge.onLayoutInfo(y, dpr); }
+        else{ window.AetherBridge.onLayoutInfo(JSON.stringify({y:y,dpr:dpr,h:hCss})); }
+      }catch(e){ try{ window.AetherBridge.onLayoutInfo(y); }catch(e2){} }
+    }
+  }catch(e){}
+}
+// FIX CHART-05: laporkan juga setiap scroll/zoom agar timer native tetap menempel.
+try{
+  if(window.__aetherLayoutHooked!==true){
+    window.__aetherLayoutHooked=true;
+    var __sched=null;
+    window.addEventListener('scroll',function(){ if(__sched)clearTimeout(__sched); __sched=setTimeout(reportLayout,120); },true);
+  }
+}catch(e){}
+window.setOverlays=function(json){
+  try{ var o=JSON.parse(json); if(o) overlays=o; }catch(e){}
+  applyOverlays();
+};
+// Loading state: tampil saat data provider masih diambil.
+window.setLoading=function(json){
+  var o=null; try{ o=JSON.parse(json); }catch(e){}
+  if(o&&o.loading){ emptyEl.style.display='none'; loadingEl.style.display='flex'; }
+  else loadingEl.style.display='none';
+};
+// payload: {mode, candles:[{t,o,h,l,c,v}], title, source, markers:[...], priceLines:[...], errorText}
+window.renderChart=function(json){
+  var p; try{ p=JSON.parse(json); }catch(e){ p=null; }
+  loadingEl.style.display='none';
+  titleEl.textContent=(p&&p.title)||''; srcEl.textContent=(p&&p.source)||'';
+  if(!p||!p.candles||!p.candles.length){
+    // Error provider jujur — JANGAN pura-pura "NO MARKET DATA" kalau provider yang gagal.
+    if(p&&p.errorText){ emptyEl.textContent=p.errorText; }
+    else{ emptyEl.textContent='NO MARKET DATA'; }
+    emptyEl.style.display='flex';
+    if(chart){ try{ candle.setData([]); if(vol) vol.setData([]);
+      ['e20','e50','e200'].forEach(function(k){ if(emaS[k]) emaS[k].setData([]); }); }catch(e){} }
+    return;
+  }
+  emptyEl.style.display='none';
+  var wantMode=(p.mode==='mini')?'mini':'full';
+  if(wantMode!==mode){ mode=wantMode; destroyChart(); }
+  if(mode==='mini'){
+    buildMini();
+    var mini=[],i;
+    for(i=0;i<p.candles.length;i++){ var c=p.candles[i];
+      mini.push({time:c.t,value:c.c}); }
+    candle.setData(mini);
+    chart.timeScale().fitContent();
+    return;
+  }
+  buildFull();
+  if(!chart||!candle) return; // bundle rusak — sudah tampil error di atas
+  // FIX CHART-04: sanitasi — buang candle rusak agar setData tidak throw & chart tidak kosong misterius.
+  var clean=p.candles.filter(isValidCandle);
+  if(!clean.length){ emptyEl.textContent=(p.errorText||'NO MARKET DATA (semua candle invalid)'); emptyEl.style.display='flex'; return; }
+  var data=clean.map(function(c){ return {time:c.t,open:c.o,high:c.h,low:c.l,close:c.c}; });
+  candle.setData(data);
+  var vd=[],d;
+  for(var j=0;j<clean.length;j++){ d=clean[j];
+    vd.push({time:d.t,value:(d.v||0),color:(d.c>=d.o?'rgba(52,211,153,0.45)':'rgba(248,113,113,0.45)')}); }
+  vol.setData(vd);
+  if(data.length>=20){ var d20=emaData(clean,20); emaS.e20.setData(d20); emaGlow.e20.setData(d20); } else { emaS.e20.setData([]); emaGlow.e20.setData([]); }
+  if(data.length>=50){ var d50=emaData(clean,50); emaS.e50.setData(d50); emaGlow.e50.setData(d50); } else { emaS.e50.setData([]); emaGlow.e50.setData([]); }
+  if(data.length>=200){ var d200=emaData(clean,200); emaS.e200.setData(d200); emaGlow.e200.setData(d200); } else { emaS.e200.setData([]); emaGlow.e200.setData([]); }
+  priceLineHandles.forEach(function(h){ try{ candle.removePriceLine(h); }catch(e){} });
+  priceLineHandles=[];
+  (p.priceLines||[]).forEach(function(pl){
+    if(pl.price==null||!isFinite(pl.price)) return;
+    try{ priceLineHandles.push(candle.createPriceLine({price:pl.price,color:pl.color||'#8ab4f8',
+      lineWidth:1,lineStyle:(pl.dashed===false)?0:2,axisLabelVisible:true,title:pl.title||''})); }catch(e){}
+  });
+  // FIX CHART-03: hanya marker yang waktunya ada di data (mencegah chart kosong/throw).
+  try{
+    var timeSet={}; data.forEach(function(c){ timeSet[c.time]=true; });
+    var validMarkers=(p.markers||[]).filter(function(m){ return m&&timeSet[m.t]; }).map(function(m){
+      return {time:m.t,position:m.pos||'belowBar',color:m.color||'#34d399',shape:m.shape||'arrowUp',text:m.text||''}; });
+    candle.setMarkers(validMarkers);
+  }catch(e){}
+  applyOverlays();
+  // FIX CHART-05: jangan reset zoom user setiap render — fit hanya bila jumlah bar berubah.
+  try{
+    var nBars=data.length;
+    if(window.__lastBars!==nBars){ window.__lastBars=nBars; chart.timeScale().fitContent(); }
+    else if(typeof chart.timeScale==='function'){ /* pertahankan viewport */ }
+  }catch(e){ try{ chart.timeScale().fitContent(); }catch(e2){} }
+  // TASK 3: label harga terakhir berwarna dinamis (bull=hijau, bear=merah) + timer di bawahnya.
+  if(lastPriceLine){ try{ candle.removePriceLine(lastPriceLine); }catch(e){} lastPriceLine=null; }
+  if(data.length){
+    var lastCandle=data[data.length-1];
+    lastClose=lastCandle.close;
+    lastBull=lastCandle.close>=lastCandle.open;
+    if(p.tf){
+      try{ lastPriceLine=candle.createPriceLine({price:lastClose,color:(lastBull?'#00E676':'#FF5252'),
+        lineWidth:1,lineStyle:0,axisLabelVisible:true,title:''}); }catch(e){}
+    }
+  }
+  // TASK 2: laporkan posisi Y label harga ke Android (untuk anchor timer native).
+  setTimeout(reportLayout, 80); reportLayout();
+};
+applySize();
+</script>
+</body>
+</html>
