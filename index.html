@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0A0C10">
+<title>Aether Signal — Terminal Sinyal Trading</title>
+<meta name="description" content="Aether Signal: terminal sinyal trading crypto & forex terinspirasi freqtrade. Dashboard, Markets, Signals, Strategy Lab, AI Analysis, Settings. Sinyal edukasi, bukan nasihat keuangan.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+</head>
+<body>
+<!-- SVG sprite: satu sistem ikon, stroke konsisten -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-dash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+    <symbol id="i-mkt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 6-7"/><path d="M18 9h3v3"/><path d="M3 21h18"/></symbol>
+    <symbol id="i-sig" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+    <symbol id="i-lab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6l-5 9a2.4 2.4 0 002 3.6h10a2.4 2.4 0 002-3.6l-5-9V3"/><path d="M7.5 15h9"/></symbol>
+    <symbol id="i-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="3"/><circle cx="9.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><path d="M9 15c1 1 5 1 6 0"/></symbol>
+    <symbol id="i-set" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.2 3h-4l-.4 2.5a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.4 2.5h4l.4-2.5a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-dot" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- ===== Header global: brand · status data · jam · settings ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="icon.svg" alt="Aether">
+      <div class="brand-tx"><b>Aether Signal</b><small id="clockLine">Terminal Sinyal Trading</small></div>
+    </div>
+    <div class="top-status">
+      <span class="live" id="feedDot"><svg><use href="#i-dot"/></svg><em id="feedTxt">Menyiapkan feed…</em></span>
+      <span class="clock" id="clock">--:--</span>
+      <button class="iconbtn" data-goto="pengaturan" aria-label="Pengaturan"><svg><use href="#i-set"/></svg></button>
+    </div>
+  </header>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="tab-dashboard" data-page="dashboard">
+    <div class="sec-head"><div><h2>Dashboard</h2><p>Ringkasan kondisi market dan sinyal terpenting.</p></div></div>
+
+    <div class="strip" id="mktStrip" aria-label="Market overview"><div class="strip-empty">Market overview — buka Markets lalu Muat untuk mengisi strip ini.</div></div>
+
+    <div class="feat" id="featSig">
+      <div class="feat-top"><span class="eyebrow">Featured Signal</span><span class="countdown hidden" id="featCd"></span></div>
+      <div id="lastSignal"><p class="muted">Belum ada sinyal — Start engine atau jalankan backtest.</p></div>
+      <div class="feat-actions">
+        <button class="btn ghost sm" data-goto="sinyal">Daftar Sinyal</button>
+        <button class="btn ghost sm" data-goto="riwayat">Riwayat</button>
+      </div>
+    </div>
+
+    <div class="cond" id="mktCond" aria-label="Market condition"></div>
+
+    <div class="panel">
+      <div class="panel-h"><h3>Bot Engine</h3><span class="badge" id="botBadge">STOP</span></div>
+      <p class="desc">Satu engine untuk <b>Start Bot + Dry Run</b>: scan pair pilihan tiap interval, tulis sinyal + kelola posisi paper otomatis (SL/TP, fee+slippage). Tanpa uang asli.</p>
+      <div class="row">
+        <button class="btn ghost sm" id="engPairsBtn">Pair&nbsp;(<span id="engCount">0</span>)</button>
+        <button class="btn primary" id="btnStartBot"><svg><use href="#i-play"/></svg>Start</button>
+        <button class="btn danger hidden" id="btnStopBot"><svg><use href="#i-stop"/></svg>Stop</button>
+        <span class="status" id="botStatus">Berhenti.</span>
+      </div>
+      <div class="panel inset hidden" id="engPickBox">
+        <b class="mini-h">Pair engine (dipakai Bot + Dry Run)</b>
+        <div class="row"><input id="engSearch" placeholder="Filter…" style="max-width:200px"><button class="btn ghost sm" id="engReload">Muat daftar</button></div>
+        <div class="checks" id="engChecks"></div>
+      </div>
+      <div class="kpis" id="dashKpis"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><h3>Recent Signals</h3><button class="linkbtn" data-goto="sinyal">Lihat semua</button></div>
+      <div id="recentSig" class="rows"></div>
+    </div>
+  </section>
+
+  <!-- ============ STRATEGI (Strategy Lab · tab: Strategy/Hyperopt) ============ -->
+  <section id="tab-strategi" data-page="strategi" class="hidden">
+    <div class="sec-head"><div><h2>Strategy Lab</h2><p>Strategi, optimasi, dan riset — tanpa mengubah logika engine.</p></div></div>
+    <nav class="subtabs" data-subtabs="lab">
+      <button class="active" data-goto="strategi">Strategy</button>
+      <button data-goto="backtest" data-anchor="labAnchor">Hyperopt</button>
+      <button data-goto="backtest">Backtest</button>
+      <button data-goto="backtest" data-anchor="resAnchor">Results</button>
+    </nav>
+    <div class="panel">
+      <div class="panel-h"><h3>Strategies</h3></div>
+      <p class="desc">25 strategi bawaan dipertahankan semua. Centang = aktif untuk combo/monitoring. Klik nama = detail + pakai di Backtest / Lab.</p>
+      <div class="row"><input id="stratSearch" placeholder="Cari strategi… (mis. rsi, macd, fvg)" style="max-width:280px"></div>
+      <div class="stratgrid" id="stratList"></div>
+    </div>
+    <div class="panel" id="labAnchor">
+      <div class="panel-h"><h3>Hyperopt</h3></div>
+      <p class="desc">Grid-search SL × TP × risiko pada data terakhir (skor freqtrade-style). Setara StrategyLab versi ringan.</p>
+      <div class="row">
+        <button class="btn primary" id="btnOpt"><svg><use href="#i-play"/></svg>Optimasi (27 kombinasi)</button>
+        <span class="status" id="optStatus">Butuh hasil backtest dulu.</span>
+      </div>
+      <div class="scrollx"><table class="tbl" id="tblOpt"><thead><tr><th>#</th><th>SL%</th><th>TP%</th><th>Ris%</th><th>Net</th><th>PF</th><th>DD%</th><th>Trades</th><th>Aksi</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ MARKETS ============ -->
+  <section id="tab-market" data-page="market" class="hidden">
+    <div class="sec-head"><div><h2>Markets</h2><p>Watchlist pair dengan kondisi real-time dari engine.</p></div></div>
+    <div class="panel">
+      <div class="row">
+        <select id="mktProvider" style="max-width:170px"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="yahoo">Yahoo (Forex)</option><option value="demo">Demo</option></select>
+        <select id="mktCat" style="max-width:170px"><option value="top">Crypto Top</option><option value="forex">Mata Uang, Metal &amp; XAU</option></select>
+        <select id="mktTf" style="max-width:110px"><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        <button class="btn primary sm" id="btnMarket">Muat</button>
+        <span class="status" id="mktStatus"></span>
+      </div>
+      <div class="row"><input id="mktSearch" placeholder="Filter pair… (mis. SOL)" style="max-width:280px"></div>
+      <div class="scrollx"><table class="tbl watch" id="tblMkt"><thead><tr><th>Pair</th><th>Harga</th><th>24h%</th><th>Sinyal</th><th></th></tr></thead><tbody><tr><td colspan="5" class="empty-cell">Belum dimuat — klik Muat.</td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ STRATEGY LAB · Backtest/Results (data-page tetap "backtest") ============ -->
+  <section id="tab-backtest" data-page="backtest" class="hidden">
+    <div class="sec-head"><div><h2>Strategy Lab</h2><p>Konfigurasi backtest, eksekusi, dan analisis hasil.</p></div></div>
+    <nav class="subtabs" data-subtabs="lab">
+      <button data-goto="strategi">Strategy</button>
+      <button data-goto="strategi" data-anchor="labAnchor">Hyperopt</button>
+      <button class="active" data-goto="backtest">Backtest</button>
+      <button data-goto="backtest" data-anchor="resAnchor">Results</button>
+    </nav>
+    <div class="row end"><button class="btn ghost sm" id="collapseAll" type="button">Ciutkan semua</button><button class="btn ghost sm" id="expandAll" type="button">Buka semua</button></div>
+
+    <div class="card panel">
+      <h2>Backtest <span class="countdown hidden" id="countdown"></span></h2>
+      <p class="desc">Engine freqtrade-grade: sinyal di <b>close[i] → eksekusi open[i+1]</b>, SL-dulu bila SL+TP se-candle, fee 2 sisi + slippage, sizing risiko-tetap + leverage, 1 posisi/waktu, compounding. Min 60 candle.</p>
+      <div class="formgrid">
+        <label class="f">Pair (dari listview)
+          <span class="row"><button class="btn ghost sm" id="btnPickPair" type="button"><span id="pairLabel">BTCUSDT</span></button></span>
+        </label>
+        <label class="f">Provider
+          <select id="provider"><option value="binance">Binance (Crypto)</option><option value="bybit">Bybit (Crypto)</option><option value="yahoo">Yahoo (Forex &amp; Metal)</option><option value="demo">Demo (Offline)</option></select>
+        </label>
+        <label class="f">Timeframe
+          <select id="timeframe"><option>1m</option><option>5m</option><option selected>15m</option><option>30m</option><option>1h</option><option>4h</option><option>1d</option><option>1w</option></select>
+        </label>
+        <label class="f">Candle
+          <select id="limit"><option>200</option><option selected>500</option><option>1000</option></select>
+        </label>
+      </div>
+      <div class="formgrid">
+        <label class="f">Strategi 1 (utama)
+          <select id="strategy">
+            <option value="ema_trend">EMA Trend</option>
+            <option value="ema_cross">EMA Cross 9/21</option>
+            <option value="rsi">RSI Reversal</option>
+            <option value="macd">MACD</option>
+            <option value="bollinger">Bollinger Mean-Revert</option>
+            <option value="stochastic">Stochastic</option>
+            <option value="adx">ADX Trend</option>
+            <option value="supertrend">Supertrend</option>
+            <option value="vwap">VWAP Revert</option>
+            <option value="support_resistance">Support / Resistance</option>
+            <option value="breakout">Breakout 20</option>
+            <option value="pullback">Pullback EMA21</option>
+            <option value="market_structure">Market Structure</option>
+            <option value="bos">BOS</option>
+            <option value="choch">CHoCH</option>
+            <option value="liquidity_sweep">Liquidity Sweep</option>
+            <option value="order_block">Order Block</option>
+            <option value="fvg">Fair Value Gap</option>
+            <option value="breaker">Breaker Block</option>
+            <option value="fibonacci">Fibonacci</option>
+            <option value="smc_basic">SMC Basic</option>
+            <option value="ict_setup">ICT Setup</option>
+            <option value="volume">Volume Spike</option>
+            <option value="mtf_confirm">MTF Confirm</option>
+            <option value="donchian_momentum">Donchian Momentum</option>
+          </select>
+        </label>
+        <label class="f">Mode combo
+          <select id="comboMode"><option value="">Single (strategi 1 saja)</option><option value="OR">Combo OR</option><option value="AND">Combo AND</option><option value="MAJORITY">Combo Majority</option></select>
+        </label>
+        <label class="f">Modal awal (USDT) <input id="capital" type="number" value="1000" min="10" step="10"></label>
+        <label class="f">Risiko / trade (%) <input id="risk" type="number" value="1" min="0.1" max="10" step="0.1"></label>
+      </div>
+      <div class="panel inset" id="comboBox">
+        <b class="mini-h">Strategi 2+ (combo)</b>
+        <p class="desc">Aktif bila Mode combo ≠ Single. Pilih minimal 1 tambahan (disarankan 2).</p>
+        <div class="checks" id="comboChecks"></div>
+      </div>
+      <div class="panel inset" id="filterBox">
+        <b class="mini-h">Filter sinyal (15 filter bawaan)</b>
+        <p class="desc">Centang untuk mengaktifkan. Berlaku di Backtest &amp; Dry Run.</p>
+        <div class="filtergroups" id="filterChecks"></div>
+        <div class="formgrid">
+          <label class="f">Volume × <input id="fVol" type="number" value="1" min="0.2" max="5" step="0.1"></label>
+          <label class="f">ADX min <input id="fAdx" type="number" value="20" min="5" max="60" step="1"></label>
+          <label class="f">RSI LONG≤ / SHORT≥ <span class="row"><input id="fRsiHi" type="number" value="72" min="50" max="95" step="1" style="max-width:70px"> <input id="fRsiLo" type="number" value="28" min="5" max="50" step="1" style="max-width:70px"></span></label>
+          <label class="f">ATR min–max % <span class="row"><input id="fAtrMin" type="number" value="0.3" min="0" max="5" step="0.1" style="max-width:70px"> <input id="fAtrMax" type="number" value="5" min="0.5" max="20" step="0.5" style="max-width:70px"></span></label>
+        </div>
+        <div class="formgrid">
+          <label class="f">Sesi trading (UTC)
+            <select id="fSession"><option value="all">Semua sesi (24h)</option><option value="asia">Asia 00–08</option><option value="london">London 07–16</option><option value="ny">New York 13–21</option><option value="asia_london">Asia+London 00–16</option><option value="london_ny">London+NY 07–21</option></select>
+          </label>
+          <label class="f">Cooldown (candle) <input id="fCool" type="number" value="3" min="0" max="50" step="1"></label>
+          <label class="f">S/R buffer % <input id="fSr" type="number" value="0.3" min="0" max="3" step="0.1"></label>
+        </div>
+      </div>
+      <div class="formgrid">
+        <label class="f">Leverage (1–100) <input id="leverage" type="number" value="1" min="1" max="100" step="1"></label>
+        <label class="f">Fee / sisi (%) <input id="fee" type="number" value="0.05" min="0" max="2" step="0.01"></label>
+        <label class="f">Slippage / sisi (%) <input id="slippage" type="number" value="0.02" min="0" max="2" step="0.01"></label>
+        <label class="f">Max holding <input id="maxholding" type="number" value="100" min="1" max="2000"></label>
+      </div>
+      <div class="formgrid">
+        <label class="f">SL % <input id="sl" type="number" value="1.5" min="0.05" step="0.1"></label>
+        <label class="f">TP % <input id="tp" type="number" value="3" min="0.05" step="0.1"></label>
+        <label class="f">Level ATR?
+          <select id="useatr"><option value="0" selected>Tidak (SL/TP %)</option><option value="1">Ya (ATR 14)</option></select>
+        </label>
+      </div>
+      <div class="formgrid">
+        <label class="f">Dari tanggal <input id="from" type="date"></label>
+        <label class="f">Sampai tanggal <input id="to" type="date"></label>
+        <label class="f">Import CSV <input id="csv" type="file" accept=".csv,.txt"></label>
+      </div>
+      <div class="runbar">
+        <button class="btn primary" id="run"><svg><use href="#i-play"/></svg>Jalankan Backtest</button>
+        <button class="btn ghost" id="btnMulti">Multi-pair manual</button>
+        <button class="btn ghost" id="runAll">Top 5 otomatis</button>
+        <button class="btn ghost" id="cancel" disabled>Batal</button>
+        <span class="status" id="status">Siap.</span>
+      </div>
+      <div class="panel inset hidden" id="multiBox">
+        <b class="mini-h">Pilih pair manual (multi-pair backtest)</b>
+        <p class="desc">Centang pair lalu klik “Jalankan multi terpilih”. Daftar mengikuti provider aktif.</p>
+        <div class="row"><input id="multiSearch" placeholder="Filter…" style="max-width:200px"><button class="btn ghost sm" id="multiReload">Muat daftar</button><button class="btn primary sm" id="multiRun">Jalankan multi terpilih</button></div>
+        <div class="checks" id="multiChecks"></div>
+      </div>
+    </div>
+
+    <div class="card panel" id="resAnchor">
+      <h2>Chart <span class="chartmeta" id="chartMeta"></span></h2>
+      <div class="checks overlaybar">
+        <label><input type="checkbox" id="ovVol" checked> Volume</label>
+        <label><input type="checkbox" id="ovE20" checked> EMA20</label>
+        <label><input type="checkbox" id="ovE50" checked> EMA50</label>
+        <label><input type="checkbox" id="ovE200"> EMA200</label>
+      </div>
+      <div id="chart"><div id="chartEmpty">Belum ada data — jalankan backtest.</div></div>
+      <div id="equity"></div>
+    </div>
+
+    <div class="card panel">
+      <h2>Hasil Backtest</h2>
+      <p class="desc" id="summaryLine">Belum ada hasil.</p>
+      <div class="kpis" id="kpis"></div>
+      <div class="metricduet">
+        <div class="scrollx"><table class="tbl" id="tblPair"><thead><tr><th>Metrik</th><th>Nilai</th></tr></thead><tbody></tbody></table></div>
+        <div class="scrollx"><table class="tbl" id="tblAdv"><thead><tr><th>Metrik lanjut</th><th>Nilai</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <h3 class="minititle">Daftar Trade (<span id="tradeCount">0</span>)</h3>
+      <div class="scrollx tradelist"><table class="tbl" id="tblTrades"><thead><tr><th>#</th><th>Waktu</th><th>Arah</th><th>Entry</th><th>Exit</th><th>PnL</th><th>R</th><th>Hasil</th></tr></thead><tbody></tbody></table></div>
+      <div id="multiOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ DRY RUN (sub-tab Signals · Positions) ============ -->
+  <section id="tab-dryrun" data-page="dryrun" class="hidden">
+    <div class="sec-head"><div><h2>Signals</h2><p>Posisi paper dari Bot Engine — konfigurasi ikut Backtest.</p></div></div>
+    <nav class="subtabs" data-subtabs="signals">
+      <button data-goto="sinyal">Signals</button>
+      <button class="active" data-goto="dryrun">Positions</button>
+      <button data-goto="riwayat">History</button>
+    </nav>
+    <div class="panel">
+      <div class="panel-h"><h3>Dry Run <span class="badge" id="dryBadge">STOP</span></h3><button class="linkbtn" data-goto="dashboard">Kelola Engine</button></div>
+      <p class="desc">Monitor posisi paper <b>Bot Engine</b> — tombol Start/Stop hanya ada <b>satu di Dashboard</b>. <span class="status" id="dryStatus">Berhenti.</span></p>
+      <h3 class="minititle">Posisi terbuka (paper)</h3>
+      <div class="scrollx"><table class="tbl" id="tblDryOpen"><thead><tr><th>Pair</th><th>Arah</th><th>Entry</th><th>Mark</th><th>PnL*</th><th>SL</th><th>TP</th></tr></thead><tbody><tr><td colspan="7" class="empty-cell">Kosong.</td></tr></tbody></table></div>
+      <h3 class="minititle">Trade dry-run tertutup (<span id="dryClosedCount">0</span>)</h3>
+      <div class="scrollx cap"><table class="tbl" id="tblDryClosed"><thead><tr><th>Waktu</th><th>Pair</th><th>Arah</th><th>PnL*</th><th>Hasil</th></tr></thead><tbody></tbody></table></div>
+      <div class="row"><button class="btn ghost sm" id="dryClear">Hapus hasil dry-run</button><span class="status">*mark-to-market, fee+slippage sudah termasuk.</span></div>
+    </div>
+  </section>
+
+  <!-- ============ SIGNALS ============ -->
+  <section id="tab-sinyal" data-page="sinyal" class="hidden">
+    <div class="sec-head"><div><h2>Signals</h2><p>Semua sinyal dari engine — klik baris untuk detail.</p></div></div>
+    <nav class="subtabs" data-subtabs="signals">
+      <button class="active" data-goto="sinyal">Signals</button>
+      <button data-goto="dryrun">Positions</button>
+      <button data-goto="riwayat">History</button>
+    </nav>
+    <div class="panel">
+      <div class="filterbar">
+        <select id="fltDir" style="max-width:140px"><option value="">Semua arah</option><option>LONG</option><option>SHORT</option></select>
+        <select id="fltTf" style="max-width:140px"><option value="">Semua TF</option><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        <input id="fltSearch" placeholder="Cari pair…" style="max-width:180px">
+        <button class="btn ghost sm" id="btnClearSignals">Hapus riwayat</button>
+      </div>
+      <div class="scrollx"><table class="tbl sigtbl" id="tblSignals"><thead><tr><th>Waktu</th><th>Pair</th><th>Arah</th><th>Harga</th><th>SL</th><th>TP</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY (sub-tab Signals · History) ============ -->
+  <section id="tab-riwayat" data-page="riwayat" class="hidden">
+    <div class="sec-head"><div><h2>Signals</h2><p>Semua trade backtest yang pernah dijalankan (tersimpan lokal).</p></div></div>
+    <nav class="subtabs" data-subtabs="signals">
+      <button data-goto="sinyal">Signals</button>
+      <button data-goto="dryrun">Positions</button>
+      <button class="active" data-goto="riwayat">History</button>
+    </nav>
+    <div class="panel">
+      <div class="kpis" id="histKpis"></div>
+      <div class="scrollx"><table class="tbl" id="tblHist"><thead><tr><th>Waktu</th><th>Pair</th><th>Arah</th><th>PnL</th><th>Hasil</th></tr></thead><tbody></tbody></table></div>
+      <div class="row"><button class="btn ghost sm" id="btnClearHist">Hapus riwayat trade</button></div>
+    </div>
+  </section>
+
+  <!-- ============ AI ANALYSIS (baru · interpreter atas output engine) ============ -->
+  <section id="tab-ai" data-page="ai" class="hidden">
+    <div class="sec-head"><div><h2>AI Analysis</h2><p>Interpretasi terstruktur atas data engine — bukan ramalan, bukan perintah order.</p></div></div>
+    <div class="aibar row">
+      <select id="aiDepth" style="max-width:190px"><option value="ringkas">Ringkas</option><option value="mendalam">Mendalam</option></select>
+      <button class="btn primary sm" id="aiRun">Analisis Sekarang</button>
+      <span class="status" id="aiStatus">Siap — membaca sinyal &amp; riwayat tersimpan.</span>
+    </div>
+    <div id="aiContent"><div class="panel"><p class="desc">Belum ada analisis. Klik <b>Analisis Sekarang</b> — AI membaca sinyal, posisi paper, dan riwayat trade dari engine, lalu menyusun ringkasan DATA / ANALYSIS / OPINION.</p></div></div>
+    <p class="disclaimer">Sinyal edukasi. Bukan nasihat keuangan. Tidak mengeksekusi order.</p>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="tab-pengaturan" data-page="pengaturan" class="hidden">
+    <div class="sec-head"><div><h2>Settings</h2><p>Provider, notifikasi, tampilan, dan data.</p></div></div>
+    <div class="panel">
+      <div class="panel-h"><h3>Providers &amp; Data Source</h3></div>
+      <div class="formgrid">
+        <label class="f">Provider default
+          <select id="setProvider"><option value="binance">Binance (Crypto)</option><option value="bybit">Bybit (Crypto)</option><option value="yahoo">Yahoo (Forex &amp; Metal)</option><option value="demo">Demo</option></select>
+        </label>
+        <label class="f">Timeframe default
+          <select id="setTf"><option>15m</option><option>1h</option><option>4h</option><option>1d</option></select>
+        </label>
+        <label class="f">Notifikasi sinyal
+          <select id="setNotif"><option value="1">Aktif</option><option value="0">Mati</option></select>
+        </label>
+      </div>
+      <div class="row">
+        <button class="btn primary sm" id="btnSaveSet">Simpan</button>
+        <button class="btn ghost sm" id="btnExport">Export data (JSON)</button>
+        <span class="status" id="setStatus"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Appearance</h3></div>
+      <div class="formgrid">
+        <label class="f">Kepadatan
+          <select id="setDensity"><option value="nyaman">Nyaman</option><option value="rapat">Rapat (pro)</option></select>
+        </label>
+        <label class="f">Ukuran angka
+          <select id="setNumsize"><option value="normal">Normal</option><option value="besar">Besar</option></select>
+        </label>
+        <label class="f">Gerakan
+          <select id="setMotion"><option value="penuh">Animasi penuh</option><option value="kurang">Kurangi animasi</option></select>
+        </label>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>AI Analysis</h3></div>
+      <div class="formgrid">
+        <label class="f">Gaya bahasa
+          <select id="setAiLang"><option value="id">Indonesia</option><option value="id-simple">Indonesia sederhana</option></select>
+        </label>
+        <label class="f">Kedalaman default
+          <select id="setAiDepth"><option value="ringkas">Ringkas</option><option value="mendalam">Mendalam</option></select>
+        </label>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Tes Koneksi Provider</h3></div>
+      <p class="desc">Cek satu per satu: Binance, Bybit, Yahoo Forex, Demo. Jika Binance/Bybit gagal (umum: diblokir jaringan/ISP), pakai <b>Yahoo</b> atau <b>Demo</b>.</p>
+      <div class="row">
+        <button class="btn ghost sm" id="btnTestConn">Tes koneksi</button>
+        <span class="status" id="connStatus"></span>
+      </div>
+      <div class="scrollx"><table class="tbl" id="tblConn"><thead><tr><th>Provider</th><th>Hasil</th><th>Detail</th></tr></thead><tbody><tr><td colspan="3" class="empty-cell">Belum dites.</td></tr></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><h3>Bantuan &amp; laporan fix</h3></div>
+      <div id="fixReport"></div>
+      <details><summary>Metodologi backtest</summary>
+      <p class="desc">Sinyal di close[i] → eksekusi open[i+1] + slippage. SL+TP se-candle → SL dulu. Fee 2 sisi. Sizing risiko-tetap, clamp equity×leverage. 1 posisi/waktu, compounding, max holding → EXPIRED. Metrik: winRate, PF, expectancy, avgR, maxDD+%, Sharpe, Sortino, Calmar, CAGR, exposure, streaks.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- bottom nav: 6 tab utama -->
+  <nav class="bottomnav" id="bottomnav" aria-label="Navigasi utama">
+    <button class="bnav active" data-tab="dashboard"><svg><use href="#i-dash"/></svg><span>Dashboard</span></button>
+    <button class="bnav" data-tab="market"><svg><use href="#i-mkt"/></svg><span>Markets</span></button>
+    <button class="bnav" data-tab="sinyal"><svg><use href="#i-sig"/></svg><span>Signals</span></button>
+    <button class="bnav" data-tab="backtest"><svg><use href="#i-lab"/></svg><span>Lab</span></button>
+    <button class="bnav" data-tab="ai"><svg><use href="#i-ai"/></svg><span>AI</span></button>
+    <button class="bnav" data-tab="pengaturan"><svg><use href="#i-set"/></svg><span>Setting</span></button>
+  </nav>
+
+  <!-- modal: pair picker -->
+  <div class="modal hidden" id="pairModal" role="dialog" aria-modal="true" aria-label="Pilih Pair"><div class="sheet">
+    <div class="sheet-h"><h3>Pilih Pair</h3><button class="iconbtn" id="pairClose" aria-label="Tutup"><svg><use href="#i-x"/></svg></button></div>
+    <div class="row">
+      <select id="pairCat" style="max-width:190px"><option value="top">Crypto Top</option><option value="forex">Mata Uang, Metal &amp; XAU</option></select>
+      <input id="pairSearch" placeholder="Filter…" style="max-width:150px">
+      <button class="btn ghost sm" id="pairRefresh">Muat</button>
+    </div>
+    <div id="pairList" class="pairlist"><p class="muted">Memuat…</p></div>
+    <details><summary>Opsi manual (tidak disarankan)</summary>
+      <div class="row"><input id="pairManual" placeholder="Tulis manual, mis. BTCUSDT" style="max-width:200px"><button class="btn ghost sm" id="pairManualBtn">Pakai</button></div>
+    </details>
+  </div></div>
+
+  <!-- modal: detail -->
+  <div class="modal hidden" id="detailModal" role="dialog" aria-modal="true" aria-label="Detail"><div class="sheet">
+    <div class="sheet-h"><h3 id="detailTitle">Detail <button class="iconbtn" id="detailClose" aria-label="Tutup"><svg><use href="#i-x"/></svg></button></h3></div>
+    <div id="detailBody"></div>
+  </div></div>
+
+  <footer>Aether Signal · signal bot freqtrade-inspired · Sinyal edukasi, bukan nasihat keuangan.</footer>
+</div>
+
+<!-- Fallback pra-module: tab HARUS bisa dibuka walau modul gagal -->
+<script>
+(function(){
+  function show(name){
+    document.querySelectorAll('section[data-page]').forEach(function(s){ s.classList.toggle('hidden', s.getAttribute('data-page')!==name); });
+    document.querySelectorAll('#bottomnav .bnav').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-tab')===name); });
+    document.querySelectorAll('[data-subtabs]').forEach(function(nav){
+      var scope = nav.getAttribute('data-subtabs');
+      nav.querySelectorAll('button').forEach(function(x){
+        var t = x.getAttribute('data-goto');
+        var on = (t===name) || (scope==='lab' && ((name==='strategi'||name==='backtest') && (t===name))) || (scope==='signals' && ((name==='sinyal'||name==='dryrun'||name==='riwayat') && (t===name)));
+        x.classList.toggle('active', !!on);
+      });
+    });
+    try{ window.scrollTo({top:0}); }catch(e){ window.scrollTo(0,0); }
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-tab],[data-goto]') : null;
+    if(!b) return;
+    var t = b.getAttribute('data-tab') || b.getAttribute('data-goto');
+    if(!t) return;
+    (window.__aetherShow || show)(t);
+    var a = b.getAttribute('data-anchor');
+    if(a){ setTimeout(function(){ var el=document.getElementById(a); if(el) el.scrollIntoView({block:'start'}); },60); }
+  });
+  window.__aetherShow = show;
+})();
+</script>
+<script src="js/vendor/lightweight-charts.standalone.production.js"></script>
+<!-- bundle klasik (bukan module) agar pasti jalan di WebView APK file:// maupun browser lama -->
+<script src="js/bundle.js"></script>
+<script src="js/ui-premium.js"></script>
+</body>
+</html>
