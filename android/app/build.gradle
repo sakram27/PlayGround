@@ -1,0 +1,29 @@
+plugins {
+    id("com.android.application")
+}
+
+android {
+    namespace = "com.aether.signal"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.aether.signal"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 51
+        versionName = "3.23"
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

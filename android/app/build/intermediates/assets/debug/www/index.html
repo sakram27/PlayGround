@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>AetherSignalBot Web v3.23 — Backtest freqtrade-grade</title>
+<meta name="description" content="AetherSignalBot Web: backtest engine freqtrade-grade, 25 strategi, chart TradingView Lightweight, multi-provider. Arah aplikasi tetap: signal bot crypto.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">Æ</div>
+      <h1>AetherSignalBot <small>Web v3.23 · freqtrade-inspired · arah app tetap: signal bot crypto</small></h1>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="backtest">📊 Backtest</button>
+      <button class="tab" data-tab="lab">🧪 Strategy Lab</button>
+      <button class="tab" data-tab="market">🌍 Market</button>
+      <button class="tab" data-tab="bantuan">❓ Bantuan</button>
+    </nav>
+  </header>
+
+  <!-- ============ BACKTEST ============ -->
+  <section id="tab-backtest">
+    <div class="card">
+      <h2>Konfigurasi Backtest <span class="countdown hidden" id="countdown"></span></h2>
+      <p class="sub">Engine freqtrade-grade: eksekusi di <b>open candle berikutnya</b> (tanpa lookahead), SL-dulu bila SL+TP tersentuh se-candle, fee 2 sisi + slippage, sizing risiko tetap + leverage, 1 posisi per waktu, equity compounding. Minimal 60 candle.</p>
+      <div class="grid c4">
+        <label class="f">Provider
+          <select id="provider"><option value="binance">Binance</option><option value="bybit">Bybit</option><option value="demo">Demo (Offline)</option></select>
+        </label>
+        <label class="f">Simbol / Pair
+          <input id="symbol" value="BTCUSDT" spellcheck="false" placeholder="BTCUSDT">
+        </label>
+        <label class="f">Timeframe
+          <select id="timeframe"><option>1m</option><option>5m</option><option selected>15m</option><option>30m</option><option>1h</option><option>4h</option><option>1d</option><option>1w</option></select>
+        </label>
+        <label class="f">Jumlah candle
+          <select id="limit"><option>200</option><option selected>500</option><option>1000</option></select>
+        </label>
+      </div>
+      <div class="grid c4" style="margin-top:10px">
+        <label class="f">Strategi <select id="strategy"></select></label>
+        <label class="f">Mode combo
+          <select id="comboMode"><option value="">Single</option><option value="OR">Combo OR</option><option value="AND">Combo AND</option><option value="MAJORITY">Combo Majority</option></select>
+        </label>
+        <label class="f">Modal awal (USDT) <input id="capital" type="number" value="1000" min="10" step="10"></label>
+        <label class="f">Risiko / trade (%) <input id="risk" type="number" value="1" min="0.1" max="10" step="0.1"></label>
+      </div>
+      <div class="grid c4" style="margin-top:10px">
+        <label class="f">Leverage (1–100) <input id="leverage" type="number" value="1" min="1" max="100" step="1"></label>
+        <label class="f">Fee / sisi (%) <input id="fee" type="number" value="0.05" min="0" max="2" step="0.01"></label>
+        <label class="f">Slippage / sisi (%) <input id="slippage" type="number" value="0.02" min="0" max="2" step="0.01"></label>
+        <label class="f">Max holding (candle) <input id="maxholding" type="number" value="100" min="1" max="2000"></label>
+      </div>
+      <div class="grid c3" style="margin-top:10px">
+        <label class="f">SL % <input id="sl" type="number" value="1.5" min="0.05" step="0.1"></label>
+        <label class="f">TP % <input id="tp" type="number" value="3" min="0.05" step="0.1"></label>
+        <label class="f">Gunakan ATR?
+          <select id="useatr"><option value="0" selected>Tidak (SL/TP %)</option><option value="1">Ya (ATR 14)</option></select>
+        </label>
+      </div>
+      <div class="grid c3" style="margin-top:10px">
+        <label class="f">Dari tanggal (opsional) <input id="from" type="date"></label>
+        <label class="f">Sampai tanggal (opsional) <input id="to" type="date"></label>
+        <label class="f">Import CSV (time,o,h,l,c,v) <input id="csv" type="file" accept=".csv,.txt"></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="run">▶ Jalankan Backtest</button>
+        <button class="btn ghost" id="runAll">⚡ Multi-pair (top 5)</button>
+        <button class="btn ghost" id="cancel" disabled>Batal</button>
+        <span class="status" id="status">Siap. Pilih provider → Jalankan.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Chart <span style="color:var(--dim);font-weight:400;font-size:12px" id="chartMeta"></span></h2>
+      <p class="sub">Candle + volume + EMA20/50/200 (glow), marker entry/exit trade, label harga dinamis hijau/merah. Pinch 2 jari hanya zoom waktu (sumbu harga dikunci agar tidak gepeng — FIX v3.22).</p>
+      <div class="checks" style="margin-bottom:8px">
+        <label><input type="checkbox" id="ovVol" checked> Volume</label>
+        <label><input type="checkbox" id="ovE20" checked> EMA20</label>
+        <label><input type="checkbox" id="ovE50" checked> EMA50</label>
+        <label><input type="checkbox" id="ovE200"> EMA200</label>
+      </div>
+      <div id="chart"><div id="chartEmpty">Belum ada data — jalankan backtest.</div></div>
+      <div id="equity" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Hasil Backtest</h2>
+      <p class="sub" id="summaryLine">Belum ada hasil.</p>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid c2" style="margin-top:10px">
+        <div class="scrollx"><table class="tbl" id="tblPair"><thead><tr><th>Metrik</th><th>Nilai</th></tr></thead><tbody></tbody></table></div>
+        <div class="scrollx"><table class="tbl" id="tblAdv"><thead><tr><th>Metrik lanjut</th><th>Nilai</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <h3 style="font-size:13px;margin:14px 0 6px">Daftar Trade (<span id="tradeCount">0</span>)</h3>
+      <div class="scrollx" style="max-height:320px;overflow-y:auto"><table class="tbl" id="tblTrades"><thead><tr><th>#</th><th>Waktu</th><th>Arah</th><th>Entry</th><th>Exit</th><th>PnL</th><th>R</th><th>Hasil</th></tr></thead><tbody></tbody></table></div>
+      <div id="multiOut" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ LAB ============ -->
+  <section id="tab-lab" class="hidden">
+    <div class="card">
+      <h2>Strategy Lab — optimasi grid sederhana</h2>
+      <p class="sub">Grid-search SL × TP × risiko pada data yang sama, ranking by <b>net profit + profit factor + maxDD penalty</b> (skor freqtrade-style). Tidak mengubah arah app: tetap signal bot, bukan auto-trading.</p>
+      <div class="row">
+        <button class="btn primary" id="btnOpt">🔍 Optimasi (27 kombinasi)</button>
+        <span class="status" id="optStatus">Butuh hasil backtest dulu (data &amp; strategi dasar sama).</span>
+      </div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblOpt"><thead><tr><th>#</th><th>SL%</th><th>TP%</th><th>Risiko%</th><th>Net</th><th>PF</th><th>DD%</th><th>Trades</th><th>Aksi</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>Katalog 25 Strategi</h2>
+      <p class="sub">Semua strategi bawaan APK v3.22 dipertahankan (EMA, RSI, MACD, BB, Stoch, ADX, Supertrend, VWAP, S/R, Breakout, Pullback, Market Structure, BOS, CHoCH, Liquidity Sweep, Order Block, FVG, Breaker, Fibonacci, SMC, ICT, Volume, MTF + varian). Klik untuk pakai di Backtest.</p>
+      <div class="grid c2" id="stratList"></div>
+    </div>
+  </section>
+
+  <!-- ============ MARKET ============ -->
+  <section id="tab-market" class="hidden">
+    <div class="card">
+      <h2>Market &amp; Sinyal Live (ringan)</h2>
+      <p class="sub">Top pair by volume + sinyal terakhir dari strategi terpilih pada 200 candle terbaru. Sinyal dihitung dari close terakhir (bukan prediksi masa depan).</p>
+      <div class="row"><button class="btn primary" id="btnMarket">⟳ Muat Market</button><span class="status" id="mktStatus"></span></div>
+      <div class="scrollx" style="margin-top:10px"><table class="tbl" id="tblMkt"><thead><tr><th>Pair</th><th>Harga</th><th>24h%</th><th>Sinyal</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ BANTUAN ============ -->
+  <section id="tab-bantuan" class="hidden">
+    <div class="card">
+      <h2>Apa yang diperbaiki dari v3.22 (laporan fix)</h2>
+      <div id="fixReport"></div>
+    </div>
+    <div class="card">
+      <h2>Metodologi backtest (freqtrade-style)</h2>
+      <p class="sub" style="font-size:13px;line-height:1.8">
+      • Data dinormalisasi: sort timestamp, dedup, validasi OHLC finite + high/low konsisten, filter tanggal.<br>
+      • Sinyal dihitung di <b>close[i]</b>, eksekusi di <b>open[i+1]</b> + slippage merugikan — tanpa lookahead.<br>
+      • SL/TP intrabar: bila keduanya tersentuh dalam 1 candle → <b>SL dulu (konservatif)</b>.<br>
+      • Fee dihitung <b>2 sisi</b> (entry+exit) × fee%, slippage 2 sisi.<br>
+      • Sizing: <b>risiko tetap</b> (equity × risk%) / jarak SL, notional di-clamp ke equity × leverage. Leverage 1–100, risiko 0.1–10%.<br>
+      • 1 posisi per waktu (non-overlap), equity compounding, max holding → EXPIRED.<br>
+      • Metrik: winRate, profitFactor (aman bagi-nol), expectancy, avgWin/Loss, averageR, maxDD + %, Sharpe, Sortino, Calmar, CAGR, exposure, streaks.
+      </p>
+      <details><summary>Catatan provider</summary>
+      <p class="sub">Binance/Bybit memakai endpoint publik tanpa API key (CORS-friendly). Bila provider gagal, pesan error ditampilkan jujur (bukan "NO MARKET DATA" palsu). Mode Demo selalu tersedia offline dengan generator seeded.</p>
+      </details>
+    </div>
+  </section>
+
+  <footer>AetherSignalBot Web v3.23 · backtest engine disempurnakan · chart dikunci Y + label dinamis · arah app tetap: signal bot terinspirasi freqtrade · bukan saran finansial.</footer>
+</div>
+<script src="js/vendor/lightweight-charts.standalone.production.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
