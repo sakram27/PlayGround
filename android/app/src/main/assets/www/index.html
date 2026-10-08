@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#070b12">
-<title>AetherSignalBot v3.30 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
+<title>AetherSignalBot v3.31 — Dashboard · Strategi · Market Hub · Backtest · Settings</title>
 <meta name="description" content="AetherSignalBot: signal bot crypto terinspirasi freqtrade. Struktur sama dengan APK asli: Dashboard, Strategies, Market Hub, Backtest, Settings + Signals, History, Strategy Lab.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
@@ -221,17 +221,10 @@
   <section id="tab-dryrun" data-page="dryrun" class="hidden">
     <div class="card">
       <h2>Dry Run <span class="pill" id="dryBadge">STOP</span></h2>
-      <p class="sub">Tampilan posisi paper dari <b>Bot Engine yang sama</b> (Start di sini = Start di Dashboard). Konfigurasi ikut Backtest: strategi + combo + filter + risiko.</p>
+      <p class="sub">Monitor posisi paper <b>Bot Engine</b> — tombol Start/Stop hanya ada <b>satu di Dashboard</b>. Konfigurasi ikut Backtest: strategi + combo + filter + risiko.</p>
       <div class="row">
-        <button class="btn ghost sm" id="dryPairsBtn">☑ Pair (<span id="dryCount">0</span>)</button>
-        <button class="btn primary sm" id="dryStart">▶ Start</button>
-        <button class="btn danger sm hidden" id="dryStop">■ Stop</button>
+        <button class="btn ghost sm" data-goto="dashboard">⚙️ Kelola Engine</button>
         <span class="status" id="dryStatus">Berhenti.</span>
-      </div>
-      <div class="card hidden" id="dryPickBox" style="margin:10px 0 0;background:var(--panel2)">
-        <b style="font-size:12px">Pair dry-run (manual)</b>
-        <div class="row" style="margin-top:6px"><input id="drySearch" placeholder="Filter…" style="max-width:200px"><button class="btn ghost sm" id="dryReload">⟳ Muat daftar</button></div>
-        <div class="checks" id="dryChecks" style="margin-top:8px"></div>
       </div>
       <h3 style="font-size:13px;margin:12px 0 6px">Posisi terbuka (paper)</h3>
       <div class="scrollx"><table class="tbl" id="tblDryOpen"><thead><tr><th>Pair</th><th>Arah</th><th>Entry</th><th>Mark</th><th>PnL*</th><th>SL</th><th>TP</th></tr></thead><tbody><tr><td colspan="7" style="text-align:center;color:var(--dim)">Kosong.</td></tr></tbody></table></div>
@@ -340,7 +333,7 @@
     <div id="detailBody"></div>
   </div></div>
 
-  <footer>AetherSignalBot v3.30 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
+  <footer>AetherSignalBot v3.31 · fungsi &amp; arah tetap: signal bot freqtrade-inspired · bukan saran finansial.</footer>
 </div>
 
 <!-- Fallback pra-module: tab HARUS bisa dibuka walau modul gagal (FIX: tab strategi/market mati di APK) -->

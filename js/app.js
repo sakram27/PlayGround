@@ -615,9 +615,8 @@ function init() {
     const r = state.eng.running;
     try {
       $('btnStartBot').classList.toggle('hidden', r); $('btnStopBot').classList.toggle('hidden', !r);
-      $('dryStart').classList.toggle('hidden', r); $('dryStop').classList.toggle('hidden', !r);
       $('botBadge').textContent = r ? 'RUN' : 'STOP';
-      $('dryBadge').textContent = r ? 'RUN' : 'STOP';
+      try { $('dryBadge').textContent = r ? 'RUN' : 'STOP'; } catch {}
     } catch { /* abaikan */ }
   }
   $('btnStartBot').addEventListener('click', startEngine);
@@ -639,7 +638,6 @@ function init() {
   }
   function renderEng() {
     try {
-      $('dryCount').textContent = state.engPairs.size;
       try { $('engCount').textContent = state.engPairs.size; } catch {}
       const d = state.eng;
       $('tblDryOpen').querySelector('tbody').innerHTML = d.positions.map((o) =>
@@ -725,7 +723,7 @@ function init() {
     renderEng();
   }
   async function loadEngList(boxId, searchId) {
-    const box = $(boxId || 'dryChecks');
+    const box = $(boxId || 'engChecks');
     box.innerHTML = '<p class="sub">Memuat…</p>';
     try {
       const prov = $('provider').value;
@@ -735,7 +733,7 @@ function init() {
           '<label><input type="checkbox" value="' + esc(s) + '" ' + (state.engPairs.has(s) ? 'checked' : '') + '> <span class="paircell">' + pairIcon(s) + esc(s) + '</span></label>').join('');
       };
       render('');
-      $(searchId || 'drySearch').oninput = (e) => render(e.target.value.toUpperCase());
+      $(searchId || 'engSearch').oninput = (e) => render(e.target.value.toUpperCase());
       box.onchange = () => {
         state.engPairs = new Set([...box.querySelectorAll('input:checked')].map((c) => c.value));
         store.set('aether_engpairs', [...state.engPairs]);
@@ -744,12 +742,9 @@ function init() {
     } catch (err) { box.innerHTML = '<p class="sub">Gagal: ' + esc(err.message) + '</p>'; }
   }
 
-  // engine pair pickers (dashboard + dryrun = set yang sama)
-  $('dryPairsBtn').addEventListener('click', () => { $('dryPickBox').classList.toggle('hidden'); if (!$('dryPickBox').classList.contains('hidden')) loadEngList('dryChecks', 'drySearch'); });
-  $('dryReload').addEventListener('click', () => loadEngList('dryChecks', 'drySearch'));
+  // engine pair picker (satu-satunya di dashboard)
   $('engPairsBtn').addEventListener('click', () => { $('engPickBox').classList.toggle('hidden'); if (!$('engPickBox').classList.contains('hidden')) loadEngList('engChecks', 'engSearch'); });
   $('engReload').addEventListener('click', () => loadEngList('engChecks', 'engSearch'));
-  $('dryStart').addEventListener('click', startEngine);
   $('dryClear').addEventListener('click', () => {
     state.eng.positions = []; state.eng.closed = []; state.eng.equity = null;
     store.set('aether_dryclosed', []); store.set('aether_dryequity', null);
