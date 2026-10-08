@@ -19,3 +19,5 @@ node_modules/
 
 android/.gradle/
 android/app/build/
+
+dist/
