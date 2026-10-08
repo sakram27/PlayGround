@@ -6,7 +6,6 @@
 import { runBacktest, strategyList, filterList, applyFilters, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
 import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV, binanceActiveHost } from './data.js';
 import { pairIcon } from './icons.js';
-import { pairIcon } from './icons.js';
 import { renderMain, renderEquity } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
