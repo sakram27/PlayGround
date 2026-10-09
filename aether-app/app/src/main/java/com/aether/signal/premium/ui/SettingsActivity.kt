@@ -7,6 +7,13 @@ import com.aether.signal.premium.R
 import com.aether.signal.premium.data.fetchHistory
 import com.aether.signal.premium.data.getCandles
 import com.aether.signal.premium.data.topPairs
+import com.aether.signal.premium.data.PROVIDER_IDS
+import com.aether.signal.premium.data.PROVIDER_LABELS
+import com.aether.signal.premium.data.providerSupports
+import com.aether.signal.premium.data.isDataStale
+import com.aether.signal.premium.data.FetchErrorKind
+import com.aether.signal.premium.data.classifyFetchError
+import com.aether.signal.premium.engine.parseTimeframe
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import org.json.JSONArray
@@ -29,10 +36,64 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             snack(this, "Tersimpan.")
         }
         findViewById<MaterialButton>(R.id.btnExport).setOnClickListener { export() }
+        findViewById<MaterialButton>(R.id.btnImport).setOnClickListener { importJson() }
         findViewById<MaterialButton>(R.id.btnTest).setOnClickListener { testConn() }
         paintFetch()
+        paintHealth()
         paintNotif()
+        paintQuiet()
         paintAlways()
+    }
+
+    /** P8: Health Center — status nyata per provider + tombol uji per baris. */
+    private fun paintHealth() {
+        val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.healthList)
+        list.vertical(this)
+        val probe = mapOf("binance" to "BTCUSDT", "bybit" to "BTCUSDT", "yahoo" to "EUR/USD", "demo" to "BTCUSDT")
+        val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
+        val items = PROVIDER_IDS.map { p ->
+            val st = App.healthStats(p)
+            val supported = providerSupports(p, App.pair)
+            val stale = isDataStale(App.lastHealthSuccess(p), System.currentTimeMillis(), tfMin)
+            val head = if (!st.checked) "BELUM DIUJI"
+            else if (st.lastOk) "SEHAT · ${st.lastLatencyMs}ms"
+            else "GAGAL · ${kindLabel(st.lastKind)}"
+            SigItem(head, "${PROVIDER_LABELS[PROVIDER_IDS.indexOf(p)]}",
+                "cek ${if (st.lastAt > 0) App.fmtT(st.lastAt) else "—"} · " +
+                    "OK ${st.success}/gagal ${st.failed} (20 terakhir) · " +
+                    "dukung ${App.pair}: ${if (supported) "ya" else "tidak"} · " +
+                    "data: ${if (stale) "kedaluwarsa" else "segar"}" +
+                    if (!st.checked || st.lastMsg.isEmpty()) "" else " · ${st.lastMsg.take(50)}",
+                "UJI")
+        }
+        list.adapter = SigAdapter(items, onClick = { pos ->
+            testProvider(PROVIDER_IDS[pos], probe[PROVIDER_IDS[pos]] ?: "BTCUSDT")
+        })
+    }
+
+    private fun kindLabel(k: FetchErrorKind?): String = when (k) {
+        FetchErrorKind.TRANSIENT -> "sementara"
+        FetchErrorKind.PERMANENT -> "permanen"
+        null -> "tak diketahui"
+    }
+
+    /** Uji aktif satu provider (atas tindakan pengguna) + catat hasilnya. */
+    private fun testProvider(provider: String, symbol: String) {
+        snack(this, "Menguji $provider…")
+        runBg {
+            val t0 = System.nanoTime()
+            try {
+                val r = getCandles(provider, symbol, "1h", 60)
+                App.recordHealth(provider, true, (System.nanoTime() - t0) / 1_000_000, null,
+                    "${r.candles.size} candle $symbol")
+                runOnUiThread { snack(this, "$provider OK (${r.candles.size} candle)."); paintHealth() }
+            } catch (e: Exception) {
+                val msg = e.message ?: "error"
+                App.recordHealth(provider, false, (System.nanoTime() - t0) / 1_000_000,
+                    classifyFetchError(msg), msg)
+                runOnUiThread { snack(this, "$provider gagal: ${msg.take(80)}"); paintHealth() }
+            }
+        }
     }
 
     // ---------- notifikasi (D4): 5 sakelar independen + status izin ----------
@@ -55,6 +116,9 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         swSo.setOnCheckedChangeListener { _, on -> NotifBus.soundOn = on; paintNotifStatus() }
         swV.setOnCheckedChangeListener { _, on -> NotifBus.vibrateOn = on; paintNotifStatus() }
         findViewById<MaterialButton>(R.id.btnNotifPerm).setOnClickListener { requestNotifPerm() }
+        findViewById<MaterialButton>(R.id.btnNotifHistory).setOnClickListener {
+            startActivity(android.content.Intent(this, NotifHistoryActivity::class.java))
+        }
         paintNotifStatus()
     }
 
@@ -83,12 +147,80 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         if (req == 4101) paintNotifStatus()
     }
 
+    // ---------- JAM TENANG (FITUR 4) ----------
+    private fun paintQuiet() {
+        NotifBus.init(this)
+        val sw = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swQuiet)
+        sw.setOnCheckedChangeListener(null)
+        sw.isChecked = NotifBus.quietEnabled
+        sw.setOnCheckedChangeListener { _, on ->
+            val q = NotifBus.quietHours()
+            val err = quietValidationError(q.copy(enabled = on))
+            if (on && err != null) {
+                snack(this, "$err (atur jam & hari dulu).")
+            }
+            NotifBus.quietEnabled = on
+            paintQuietStatus()
+        }
+        findViewById<android.widget.Button>(R.id.btnQuietStart).setOnClickListener { pickQuietTime(true) }
+        findViewById<android.widget.Button>(R.id.btnQuietEnd).setOnClickListener { pickQuietTime(false) }
+        findViewById<android.widget.Button>(R.id.btnQuietDays).setOnClickListener { pickQuietDays() }
+        paintQuietStatus()
+    }
+
+    private fun paintQuietStatus() {
+        val q = NotifBus.quietHours()
+        findViewById<android.widget.Button>(R.id.btnQuietStart).text = "Mulai ${fmtMinuteOfDay(q.startMin)}"
+        findViewById<android.widget.Button>(R.id.btnQuietEnd).text = "Selesai ${fmtMinuteOfDay(q.endMin)}"
+        findViewById<android.widget.Button>(R.id.btnQuietDays).text = "Hari: ${quietDaysLabel(q.days)}"
+        findViewById<TextView>(R.id.quietStatus).text = quietSummary(q) +
+            "\nCatatan: jam tenang tidak menghentikan sinyal/backtest maupun notifikasi aplikasi lain, " +
+            "dan sistem Android/OEM tetap dapat menunda notifikasi."
+    }
+
+    private fun pickQuietTime(isStart: Boolean) {
+        val cur = if (isStart) NotifBus.quietStartMin else NotifBus.quietEndMin
+        android.app.TimePickerDialog(this, { _, h, m ->
+            val q = NotifBus.quietHours()
+            val newStart = if (isStart) h * 60 + m else q.startMin
+            val newEnd = if (isStart) q.endMin else h * 60 + m
+            val err = quietValidationError(QuietHours(q.enabled, newStart, newEnd, q.days))
+            if (err != null) snack(this, err)
+            else {
+                if (isStart) NotifBus.quietStartMin = newStart else NotifBus.quietEndMin = newEnd
+                paintQuietStatus()
+            }
+        }, cur / 60, cur % 60, true).show()
+    }
+
+    private fun pickQuietDays() {
+        val order = QUIET_DAY_ORDER
+        val checked = BooleanArray(order.size) { order[it].first in NotifBus.quietDays }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Hari berlaku jam tenang")
+            .setMultiChoiceItems(order.map { it.second }.toTypedArray(), checked) { _, which, isChecked ->
+                checked[which] = isChecked
+            }
+            .setPositiveButton("Simpan") { _, _ ->
+                val days = order.filterIndexed { i, _ -> checked[i] }.map { it.first }.toSet()
+                val q = NotifBus.quietHours()
+                val err = quietValidationError(QuietHours(q.enabled, q.startMin, q.endMin, days))
+                if (err != null) snack(this, err)
+                else { NotifBus.quietDays = days; paintQuietStatus() }
+            }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
     override fun onResume() {
         super.onResume()
         try { paintNotifStatus() } catch (e: Exception) { /* layout belum siap */ }
+        try { paintQuietStatus() } catch (e: Exception) { /* layout belum siap */ }
         try { paintAlwaysStatus() } catch (e: Exception) { /* layout belum siap */ }
         try { paintBattStatus() } catch (e: Exception) { /* layout belum siap */ }
         try { paintNetStatus() } catch (e: Exception) { /* layout belum siap */ }
+        try { paintHealth() } catch (e: Exception) { /* layout belum siap */ }
+        try { paintSaverStatus() } catch (e: Exception) { /* layout belum siap */ }
     }
 
     // ---------- Selalu Siaga (E): status dari layanan NYATA, bukan sakelar ----------
@@ -115,6 +247,32 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         paintAlwaysStatus()
         paintBattStatus()
         paintNetStatus()
+        paintSaver()
+    }
+
+    /** P7: mode hemat baterai — kurangi frekuensi, jangan hentikan diam-diam. */
+    private fun paintSaver() {
+        val sw = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swSaver)
+        sw.setOnCheckedChangeListener(null)
+        sw.isChecked = App.batterySaver
+        sw.setOnCheckedChangeListener { _, on ->
+            App.batterySaver = on; App.saveBatterySaver()
+            paintSaverStatus()
+            snack(this, if (on) "Mode hemat aktif: interval mengikuti timeframe."
+            else "Mode hemat mati: interval normal 60 detik.")
+        }
+        paintSaverStatus()
+    }
+
+    private fun paintSaverStatus() {
+        try {
+            val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
+            findViewById<TextView>(R.id.saverStatus).text = if (App.batterySaver)
+                "Hemat AKTIF · cek tiap ${saverIntervalSec(tfMin)} dtk (TF ${App.timeframe}). " +
+                    "Pemantauan tetap jalan; sistem tetap bisa membatasi."
+            else
+                "Hemat MATI · cek tiap 60 detik."
+        } catch (e: Exception) { /* abaikan */ }
     }
 
     /** Tiga status jujur (E1): dikecualikan / aktif / belum diperiksa. */
@@ -210,35 +368,127 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             val h = JSONArray()
             for (t in App.hist) h.put(JSONObject().put("asset", t.asset).put("pnl", t.pnl).put("result", t.result))
             o.put("signals", s).put("hist", h)
+            // P11: skema v2 terdokumentasi. Termasuk: provider, strategi, timeframe,
+            // watchlist kustom, batas watchlist, pair engine, mode hemat, sakelar notifikasi.
+            // TIDAK termasuk: sinyal/riwayat live (hanya arsip baca), kredensial
+            // (aplikasi tidak menyimpan API key/token sama sekali), cache harga.
+            val cfg = JSONObject()
+                .put("provider", App.provider)
+                .put("strategy", App.strategy)
+                .put("timeframe", App.timeframe)
+                .put("customPairs", JSONArray(App.customPairs.toList()))
+                .put("watchLimit", App.watchLimit)
+                .put("engPairs", JSONArray(App.engPairs.toList()))
+                .put("batterySaver", App.batterySaver)
+                .put("notif", JSONObject()
+                    .put("entry", NotifBus.entryOn).put("sl", NotifBus.slOn)
+                    .put("tp", NotifBus.tpOn).put("sound", NotifBus.soundOn)
+                    .put("vibrate", NotifBus.vibrateOn))
+                .put("quiet", JSONObject()
+                    .put("enabled", NotifBus.quietEnabled)
+                    .put("start", NotifBus.quietStartMin)
+                    .put("end", NotifBus.quietEndMin)
+                    .put("days", encodeQuietDays(NotifBus.quietDays)))
+            o.put("config", cfg)
+            o.put("app", "aether-signal").put("v", 1).put("schemaVersion", 2)
             val f = java.io.File(filesDir, "aether-export.json")
             f.writeText(o.toString(1))
             snack(this, "Tersimpan: ${f.absolutePath}")
         } catch (e: Exception) { snack(this, "Export gagal: ${e.message}") }
     }
 
+    private fun importJson() {
+        try {
+            val i = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "application/json"; addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            }
+            startActivityForResult(i, 2201)
+        } catch (e: Exception) { snack(this, "Tidak dapat membuka pemilih berkas: ${e.message}") }
+    }
+
+    override fun onActivityResult(req: Int, res: Int, data: android.content.Intent?) {
+        super.onActivityResult(req, res, data)
+        if (req != 2201 || res != RESULT_OK || data?.data == null) return
+        // P11: validasi PENUH dulu; batal/gagal = nol perubahan pada konfigurasi aktif.
+        val plan: ImportPlan
+        try {
+            val txt = contentResolver.openInputStream(data.data!!)!!.bufferedReader().readText()
+            plan = parseConfigImport(txt)
+        } catch (e: Exception) {
+            snack(this, "Import dibatalkan: ${e.message}")
+            return
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Pulihkan konfigurasi?")
+            .setMessage(importSummary(plan) + "\n\nKonfigurasi saat ini akan ditimpa.")
+            .setPositiveButton("Pulihkan") { _, _ -> applyImport(plan) }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    /** Terapkan atomik setelah persetujuan (P11). */
+    private fun applyImport(plan: ImportPlan) {
+        try {
+            plan.provider?.let { App.provider = it }
+            plan.strategy?.let { App.strategy = it }
+            plan.timeframe?.let { App.timeframe = it }
+            App.customPairs = LinkedHashSet(plan.customPairs)
+            App.saveCustomPairs()
+            plan.watchLimit?.let { App.watchLimit = it; App.saveWatchLimit() }
+            if (plan.engPairs.isNotEmpty()) {
+                App.engPairs = LinkedHashSet(plan.engPairs)
+                App.saveEngPairs()
+            }
+            plan.batterySaver?.let { App.batterySaver = it; App.saveBatterySaver() }
+            for ((k, v) in plan.notif) {
+                when (k) {
+                    "entry" -> NotifBus.entryOn = v
+                    "sl" -> NotifBus.slOn = v
+                    "tp" -> NotifBus.tpOn = v
+                    "sound" -> NotifBus.soundOn = v
+                    "vibrate" -> NotifBus.vibrateOn = v
+                }
+            }
+            plan.quiet?.let { q ->
+                NotifBus.quietEnabled = q.enabled
+                NotifBus.quietStartMin = q.startMin
+                NotifBus.quietEndMin = q.endMin
+                NotifBus.quietDays = q.days
+            }
+            App.saveStrategy()
+            App.prefs.edit().putString("provider", App.provider).putString("strategy", App.strategy).apply()
+            snack(this, "Konfigurasi dipulihkan. Sinyal/riwayat lama tetap dipertahankan.")
+            recreate()
+        } catch (e: Exception) { snack(this, "Gagal menerapkan: ${e.message}") }
+    }
+
     private fun testConn() {
         findViewById<TextView>(R.id.status).text = "Mengetes…"
         runBg {
             val rows = ArrayList<SigItem>()
-            fun t(name: String, fn: () -> String) {
+            fun t(name: String, prov: String, fn: () -> String) {
                 val t0 = System.nanoTime()
                 try {
                     val info = fn()
+                    App.recordHealth(prov, true, (System.nanoTime() - t0) / 1_000_000, null, info)
                     rows.add(SigItem("OK", name, "$info · ${(System.nanoTime() - t0) / 1e6}ms".take(60), ""))
                 } catch (e: Exception) {
-                    rows.add(SigItem("××", name, (e.message ?: "?").take(60), ""))
+                    val msg = e.message ?: "?"
+                    App.recordHealth(prov, false, (System.nanoTime() - t0) / 1_000_000, classifyFetchError(msg), msg)
+                    rows.add(SigItem("××", name, msg.take(60), ""))
                 }
             }
-            t("Binance") { val j = topPairs("binance", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
-            t("Bybit") { val j = topPairs("bybit", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
-            t("Yahoo") { val c = getCandles("yahoo", "EUR/USD", "1h", 60); "${c.candles.size}c EUR/USD" }
-            t("Demo") { val c = getCandles("demo", "BTCUSDT", "15m", 60); "${c.candles.size}c lokal" }
+            t("Binance", "binance") { val j = topPairs("binance", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
+            t("Bybit", "bybit") { val j = topPairs("bybit", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
+            t("Yahoo", "yahoo") { val c = getCandles("yahoo", "EUR/USD", "1h", 60); "${c.candles.size}c EUR/USD" }
+            t("Demo", "demo") { val c = getCandles("demo", "BTCUSDT", "15m", 60); "${c.candles.size}c lokal" }
             runOnUiThread {
                 findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.connList).apply {
                     vertical(this@SettingsActivity)
                     adapter = SigAdapter(rows)
                 }
                 findViewById<TextView>(R.id.status).text = "Selesai. Yang gagal berarti diblokir jaringan/perangkat."
+                try { paintHealth() } catch (e: Exception) { /* abaikan */ }
             }
         }
     }

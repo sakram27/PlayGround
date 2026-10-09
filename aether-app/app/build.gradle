@@ -12,8 +12,8 @@ android {
         applicationId = "com.aether.signal.premium"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "5.4"
+        versionCode = 12
+        versionName = "5.8"
     }
     buildTypes {
         getByName("debug") {

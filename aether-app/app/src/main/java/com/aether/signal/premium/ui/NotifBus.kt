@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.aether.signal.premium.R
 import com.aether.signal.premium.ai.Sig
+import java.util.Calendar
 
 // Notifikasi Android native (D): entry / SL / TP dari mesin live (BotEngine).
 // - Hanya sinyal/pemicu NYATA (src dryrun-*); backtest historis diabaikan.
@@ -59,6 +60,61 @@ object NotifBus {
             prefs().edit().putBoolean("vibrate", v).apply()
             appCtx?.let { ensureChannels(it) }
         }
+
+    // ---------- jam tenang (FITUR 4, persist) ----------
+    var quietEnabled: Boolean
+        get() = prefs().getBoolean("qh_enabled", false)
+        set(v) = prefs().edit().putBoolean("qh_enabled", v).apply()
+    var quietStartMin: Int
+        get() = prefs().getInt("qh_start", 22 * 60)
+        set(v) = prefs().edit().putInt("qh_start", v.coerceIn(0, 1439)).apply()
+    var quietEndMin: Int
+        get() = prefs().getInt("qh_end", 7 * 60)
+        set(v) = prefs().edit().putInt("qh_end", v.coerceIn(0, 1439)).apply()
+    var quietDays: Set<Int>
+        get() = parseQuietDays(prefs().getString("qh_days", "1,2,3,4,5,6,7"))
+        set(v) = prefs().edit().putString("qh_days", encodeQuietDays(v)).apply()
+
+    fun quietHours(): QuietHours = QuietHours(quietEnabled, quietStartMin, quietEndMin, quietDays)
+
+    /** true bila saat ini notifikasi Aether harus ditahan (jam tenang). */
+    fun quietNow(): Boolean {
+        val c = appCtx ?: return false
+        return try {
+            val cal = Calendar.getInstance()
+            val mins = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+            quietActive(quietHours(), mins, cal.get(Calendar.DAY_OF_WEEK))
+        } catch (e: Exception) { false }
+    }
+
+    // ---------- riwayat notifikasi nyata (FITUR 3, persist) ----------
+    private var histCache: MutableList<NotifRec>? = null
+
+    fun history(): MutableList<NotifRec> {
+        var h = histCache
+        if (h == null) {
+            h = parseNotifHistory(prefs().getString("history", null))
+            histCache = h
+        }
+        return h
+    }
+
+    private fun persistHistory() {
+        try { prefs().edit().putString("history", encodeNotifHistory(history())).apply() } catch (e: Exception) { }
+    }
+
+    /** Hapus riwayat tampilan. TIDAK menyentuh status deduplikasi aktif (dipisah). */
+    fun clearHistory() {
+        histCache = ArrayList()
+        prefs().edit().remove("history").apply()
+    }
+
+    /** Reset deduplikasi (agar kejadian lama boleh diberitahukan lagi). Terpisah dari riwayat. */
+    fun resetDedup() {
+        prefs().edit().remove("seen").apply()
+    }
+
+    fun dedupCount(): Int = seenIds().size
 
     fun systemEnabled(): Boolean {
         val c = appCtx ?: return false
@@ -130,9 +186,22 @@ object NotifBus {
         } catch (e: Exception) { null }
     }
 
-    private fun post(channel: String, id: Int, title: String, text: String) {
+    /**
+     * Kirim satu notifikasi + catat hasilnya secara jujur pada riwayat.
+     * Urutan gerbang: jam tenang → izin sistem → posting. Setiap gerbang mencatat
+     * status apa adanya; "DIKIRIM" berarti perintah tampil diterima Android tanpa error.
+     */
+    private fun dispatch(kind: String, channel: String, id: Int, title: String, text: String, s: Sig) {
         val c = appCtx ?: return
-        if (!systemEnabled()) return
+        val rec = NotifRec(System.currentTimeMillis(), kind, s.pair, s.tf, s.dir, s.price, "DIKIRIM")
+        if (quietNow()) {
+            addNotifRec(history(), rec.copy(status = "DITAHAN")); persistHistory()
+            return
+        }
+        if (!systemEnabled()) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+            return
+        }
         ensureChannels(c)
         val b = NotificationCompat.Builder(c, channel)
             .setSmallIcon(R.drawable.ic_notif)
@@ -144,7 +213,12 @@ object NotifBus {
         tapIntent()?.let { b.setContentIntent(it) }
         try {
             NotificationManagerCompat.from(c).notify(id, b.build())
-        } catch (e: SecurityException) { /* izin dicabut saat posting */ }
+            addNotifRec(history(), rec); persistHistory()
+        } catch (e: SecurityException) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
+        }
     }
 
     /** Dipanggil BotEngine tepat setelah pushSignal live. Backtest ("backtest") diabaikan. */
@@ -154,25 +228,25 @@ object NotifBus {
                 if (!entryOn) return
                 val key = "e|${s.pair}|${s.tf}|${s.t}|${s.dir}"
                 if (!markSeen(key)) return
-                post(CH_ENTRY, key.hashCode(),
+                dispatch("entry", CH_ENTRY, key.hashCode(),
                     "Entry ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · SL ${App.fmt(s.sl, 4)} · TP ${App.fmt(s.tp, 4)} · ${App.fmtDate(s.t)}")
+                    "${s.tf} @ ${App.fmt(s.price, 4)} · SL ${App.fmt(s.sl, 4)} · TP ${App.fmt(s.tp, 4)} · ${App.fmtDate(s.t)}", s)
             }
             s.src == "dryrun-TP" -> {
                 if (!tpOn) return
                 val key = "x|${s.pair}|${s.t}|${s.dir}|TP"
                 if (!markSeen(key)) return
-                post(CH_SLTP, key.hashCode(),
+                dispatch("tp", CH_SLTP, key.hashCode(),
                     "Take profit tercapai · ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}")
+                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
             }
             s.src == "dryrun-SL" -> {
                 if (!slOn) return
                 val key = "x|${s.pair}|${s.t}|${s.dir}|SL"
                 if (!markSeen(key)) return
-                post(CH_SLTP, key.hashCode(),
+                dispatch("sl", CH_SLTP, key.hashCode(),
                     "Stop loss tercapai · ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}")
+                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
             }
             else -> { /* backtest/sumber lain: bukan kejadian live */ }
         }

@@ -27,5 +27,10 @@
         <Space android:layout_width="8dp" android:layout_height="1dp" />
         <Button android:id="@+id/btnSecond" android:layout_width="0dp" android:layout_height="wrap_content"
             android:layout_weight="1" style="@style/BtnGhost" />
+        <Space android:id="@+id/spCsv" android:layout_width="8dp" android:layout_height="1dp"
+            android:visibility="gone" />
+        <Button android:id="@+id/btnCsv" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="CSV" style="@style/BtnGhost"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RIWAYAT NOTIFIKASI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Catatan nyata dari kejadian live mesin (entry/SL/TP). &quot;Dipublikasikan ke Android&quot; berarti perintah tampil diterima tanpa error — kemunculan akhirnya tetap bergantung pengaturan sistem Android Anda. Bukan dari ID deduplikasi."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/histStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/histList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/histEmpty" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="13sp" android:gravity="center" android:padding="16dp"
+                    android:text="Belum ada notifikasi tercatat. Riwayat terisi saat mesin live mengirim sinyal entry/SL/TP." />
+                <Button android:id="@+id/btnHistClear" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Hapus riwayat"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="48dp" />
+                <Button android:id="@+id/btnHistResetDedup" android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Reset deduplikasi (pisah dari riwayat)"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Menghapus riwayat TIDAK menghapus status deduplikasi, sehingga notifikasi lama tidak terkirim ulang secara tidak sengaja. Reset deduplikasi dilakukan terpisah."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

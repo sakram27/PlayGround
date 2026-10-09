@@ -3,7 +3,15 @@ package com.aether.signal.premium.ui
 import android.content.Context
 import android.content.SharedPreferences
 import com.aether.signal.premium.ai.Sig
+import com.aether.signal.premium.data.CandleDiskCache
+import com.aether.signal.premium.data.FetchErrorKind
 import com.aether.signal.premium.data.FetchMeta
+import com.aether.signal.premium.data.HEALTH_RING
+import com.aether.signal.premium.data.HealthSample
+import com.aether.signal.premium.data.ProviderStats
+import com.aether.signal.premium.data.decodeHealth
+import com.aether.signal.premium.data.encodeHealth
+import com.aether.signal.premium.data.summarizeHealth
 import com.aether.signal.premium.engine.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -39,6 +47,9 @@ object App {
     var presetCustom: Boolean = false
     var comboMode: String = "" // "" | OR | AND | MAJORITY
     var comboExtra: LinkedHashSet<String> = LinkedHashSet()
+    // C: watchlist kustom + batas jumlah tampil (persist, C7).
+    var customPairs: LinkedHashSet<String> = LinkedHashSet()
+    var watchLimit: Int = DEFAULT_WATCH_LIMIT
     var capital: Double = 1000.0
     var riskPct: Double = 1.0
     var leverage: Int = 1
@@ -68,16 +79,22 @@ object App {
 
     var engPairs: LinkedHashSet<String> = LinkedHashSet(listOf("BTCUSDT", "ETHUSDT"))
     var engRunning: Boolean = false
+    // P7: mode hemat baterai (persist).
+    var batterySaver: Boolean = false
 
     fun init(ctx: Context) {
         if (this::prefs.isInitialized) return
         prefs = ctx.getSharedPreferences("aether", Context.MODE_PRIVATE)
+        try { CandleDiskCache.attach(java.io.File(ctx.filesDir, "candles")) } catch (e: Exception) { /* cache opsional */ }
         pair = prefs.getString("pair", "BTCUSDT") ?: "BTCUSDT"
         multiSel = LinkedHashSet(prefs.getStringSet("multipair", emptySet()) ?: emptySet())
         strategy = prefs.getString("strategy", "ema_trend") ?: "ema_trend"
         provider = prefs.getString("provider", "binance") ?: "binance"
         engPairs = LinkedHashSet(prefs.getStringSet("engpairs", setOf("BTCUSDT", "ETHUSDT")) ?: emptySet())
         comboExtra = LinkedHashSet(prefs.getStringSet("comboextra", emptySet()) ?: emptySet())
+        customPairs = LinkedHashSet(prefs.getStringSet("custompairs", emptySet()) ?: emptySet())
+        watchLimit = prefs.getInt("watchlimit", DEFAULT_WATCH_LIMIT).coerceIn(1, MAX_WATCH_PAIRS)
+        batterySaver = prefs.getBoolean("batterySaver", false)
         val savedFilters = prefs.getStringSet("filteron", null)
         if (savedFilters != null) {
             for (id in FILTER_DEFS.map { it.id }) filterOn[id] = savedFilters.contains(id)
@@ -89,6 +106,49 @@ object App {
     fun saveStrategy() = prefs.edit().putString("strategy", strategy).apply()
     fun saveEngPairs() = prefs.edit().putStringSet("engpairs", LinkedHashSet(engPairs)).apply()
     fun saveCombo() = prefs.edit().putStringSet("comboextra", LinkedHashSet(comboExtra)).apply()
+    fun saveCustomPairs() = prefs.edit().putStringSet("custompairs", LinkedHashSet(customPairs)).apply()
+    fun saveWatchLimit() = prefs.edit().putInt("watchlimit", watchLimit.coerceIn(1, MAX_WATCH_PAIRS)).apply()
+    fun saveBatterySaver() = prefs.edit().putBoolean("batterySaver", batterySaver).apply()
+    fun resetWatchlist() {
+        customPairs.clear(); saveCustomPairs()
+        watchLimit = DEFAULT_WATCH_LIMIT; saveWatchLimit()
+    }
+
+    // P8: ring kesehatan provider (persist JSON, maks 20 sampel/provider).
+    private var healthCache: MutableMap<String, MutableList<HealthSample>>? = null
+    private fun healthAll(): MutableMap<String, MutableList<HealthSample>> {
+        var h = healthCache
+        if (h == null) {
+            h = decodeHealth(prefs.getString("provider_health", null))
+                .mapValues { it.value.toMutableList() }.toMutableMap()
+            healthCache = h
+        }
+        return h
+    }
+    fun recordHealth(provider: String, ok: Boolean, latencyMs: Long, kind: FetchErrorKind?, msg: String) {
+        try {
+            val h = healthAll()
+            val list = h.getOrPut(provider) { ArrayList() }
+            list.add(HealthSample(ok, latencyMs, kind, msg.take(120), System.currentTimeMillis()))
+            while (list.size > HEALTH_RING) list.removeAt(0)
+            prefs.edit().putString("provider_health", encodeHealth(h)).apply()
+        } catch (e: Exception) { /* telemetri tak boleh crash */ }
+    }
+    fun healthStats(provider: String): ProviderStats =
+        try { summarizeHealth(healthAll()[provider] ?: emptyList()) } catch (e: Exception) {
+            ProviderStats(false, false, 0, 0, 0, 0, null, "")
+        }
+    fun lastHealthSuccess(provider: String): Long =
+        try { healthAll()[provider]?.lastOrNull { it.ok }?.at ?: 0L } catch (e: Exception) { 0L }
+
+    // A7: cache harga terakhir per pair (bedakan live vs cache di UI).
+    private fun lpKey(prov: String, sym: String, tf: String) = "lp_${prov}_${sym}_$tf"
+    fun saveLastPrice(prov: String, sym: String, tf: String, price: String, chg: Double?, spark: List<Double>) {
+        prefs.edit().putString(lpKey(prov, sym, tf),
+            serializeLastPrice(price, chg, spark, System.currentTimeMillis())).apply()
+    }
+    fun getLastPrice(prov: String, sym: String, tf: String): LastPrice? =
+        parseLastPrice(prefs.getString(lpKey(prov, sym, tf), null))
     fun saveFilters() = prefs.edit().putStringSet(
         "filteron",
         FILTER_DEFS.map { it.id }.filter { filterOn[it] == true }.toSet()

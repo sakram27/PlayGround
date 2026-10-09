@@ -30,8 +30,14 @@ class SignalsActivity : BaseActivity(0) {
 
     private fun list() = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
 
+    private fun csvViews(show: Boolean) {
+        findViewById<View>(R.id.btnCsv).visibility = if (show) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.spCsv).visibility = if (show) View.VISIBLE else View.GONE
+    }
+
     private fun paint() {
         list().vertical(this)
+        csvViews(false)
         findViewById<TextView>(R.id.hero).visibility = View.GONE
         findViewById<View>(R.id.loading).visibility = View.GONE
         findViewById<TextView>(R.id.empty).visibility = View.GONE
@@ -96,6 +102,8 @@ class SignalsActivity : BaseActivity(0) {
                 bMain.setOnClickListener { confirm(this, "Hapus", "Hapus riwayat trade?") { App.clearHist(); paint() } }
                 bSecond.text = "Ke Lab"
                 bSecond.setOnClickListener { navTo("lab") }
+                findViewById<MaterialButton>(R.id.btnCsv).setOnClickListener { exportHistCsv() }
+                csvViews(true)
                 val items = App.hist.take(150).map {
                     SigItem(it.direction, "${it.asset}  ${it.result}", App.fmtDate(it.exitTime), App.fmtMoney(it.pnl), it.asset)
                 }
@@ -105,5 +113,51 @@ class SignalsActivity : BaseActivity(0) {
                 }
             }
         }
+    }
+
+    /** P10: ekspor riwayat nyata ke CSV. Pilih lokasi (SAF); fallback bagikan. */
+    private fun exportHistCsv() {
+        if (App.hist.isEmpty()) {
+            snack(this, "Riwayat kosong — tidak ada yang diekspor.")
+            return
+        }
+        pendingCsv = buildHistCsv(App.hist)
+        try {
+            val i = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(android.content.Intent.CATEGORY_OPENABLE)
+                type = "text/csv"
+                putExtra(android.content.Intent.EXTRA_TITLE, "aether-riwayat.csv")
+            }
+            startActivityForResult(i, 3301)
+        } catch (e: Exception) {
+            shareCsvFallback()
+        }
+    }
+
+    private var pendingCsv: String? = null
+
+    override fun onActivityResult(req: Int, res: Int, data: android.content.Intent?) {
+        super.onActivityResult(req, res, data)
+        if (req != 3301 || res != RESULT_OK || data?.data == null) return
+        try {
+            contentResolver.openOutputStream(data.data!!)!!.bufferedWriter().use { it.write(pendingCsv ?: "") }
+            snack(this, "CSV tersimpan di lokasi pilihan.")
+        } catch (e: Exception) { snack(this, "Gagal menyimpan CSV: ${e.message}") }
+        pendingCsv = null
+    }
+
+    private fun shareCsvFallback() {
+        try {
+            val dir = java.io.File(filesDir, "shared").apply { mkdirs() }
+            val f = java.io.File(dir, "aether-riwayat.csv")
+            f.writeText(pendingCsv ?: "")
+            val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", f)
+            val sh = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/csv"; putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(sh, "Bagikan CSV"))
+        } catch (e: Exception) { snack(this, "Export gagal: ${e.message}") }
+        pendingCsv = null
     }
 }

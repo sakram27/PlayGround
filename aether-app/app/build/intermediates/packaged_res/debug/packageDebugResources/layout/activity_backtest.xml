@@ -244,6 +244,28 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="RISIKO &amp; BIAYA" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Preset risiko mengisi parameter di bawah. Anda tetap dapat mengubahnya manual (status menjadi Kustom)."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnPresetConservative" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Konservatif" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:textSize="11sp" />
+                    <Button android:id="@+id/btnPresetBalanced" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Seimbang" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:textSize="11sp" />
+                    <Button android:id="@+id/btnPresetAggressive" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Agresif" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:textSize="11sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/riskPresetStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <com.google.android.material.textfield.TextInputLayout
@@ -408,6 +430,19 @@
                 <TextView android:id="@+id/sumLine" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/whyBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone" android:layout_marginTop="8dp"
+                    android:background="@color/inset" android:padding="10dp">
+                    <TextView android:id="@+id/whyHead" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="MENGAPA TIDAK ADA TRANSAKSI?"
+                        android:textColor="@color/amber" android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/whyBody" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/txt"
+                        android:textSize="12sp" android:lineSpacingMultiplier="1.1"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
@@ -436,13 +471,28 @@
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
-                <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="DIAGNOSTIK"
-                    android:textColor="@color/dim" android:textSize="10sp"
-                    android:textStyle="bold" android:layout_marginTop="8dp" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
+                <Button android:id="@+id/btnDiagToggle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Buka diagnostik &amp; alasan filter ▾"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <LinearLayout android:id="@+id/diagBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="DIAGNOSTIK"
+                        android:textColor="@color/dim" android:textSize="10sp"
+                        android:textStyle="bold" android:layout_marginTop="8dp" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                    <Button android:id="@+id/btnAudit" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="Audit Konsistensi Live vs Backtest"
+                        style="@style/BtnGhost" android:layout_marginTop="8dp"
+                        android:minHeight="48dp" />
+                    <TextView android:id="@+id/auditVerdict" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="6dp" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.aether.signal.premium.R
+import com.aether.signal.premium.engine.parseTimeframe
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,7 +26,9 @@ import java.util.concurrent.TimeUnit
 class MonitorService : Service() {
 
     companion object {
-        const val INTERVAL_SEC = 60L
+        const val INTERVAL_SEC = MONITOR_INTERVAL_SEC
+        const val BACKOFF_SEC = MONITOR_BACKOFF_SEC
+        const val BACKOFF_MAX_SEC = MONITOR_BACKOFF_MAX_SEC
         const val SVC_ID = 3101
         const val ACT_STOP = "com.aether.signal.premium.STOP_MONITOR"
 
@@ -37,6 +40,12 @@ class MonitorService : Service() {
             private set
         @Volatile var lastSummary: String = ""
             private set
+        /** Gagal beruntun (semua pair gagal) — pengatur jeda bertahap (E4). */
+        @Volatile var failStreak: Int = 0
+            private set
+
+        /** Jeda berikutnya (detik) — didelegasikan ke PureLogic (teruji JVM). */
+        fun nextDelaySec(fails: Int): Long = backoffDelaySec(fails)
 
         private const val PREF_MON = "aether_monitor"
 
@@ -98,6 +107,7 @@ class MonitorService : Service() {
         }
         running = true
         lastError = null
+        failStreak = 0
         BotEngine.setExternallyDriven(true)
         App.engRunning = true
         try {
@@ -108,11 +118,29 @@ class MonitorService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        // Tick awal segera, lalu tiap INTERVAL_SEC.
-        exec.execute { safeTick(); refresh() }
-        sched?.cancel(false)
-        sched = exec.scheduleAtFixedRate({ safeTick(); refresh() }, INTERVAL_SEC, INTERVAL_SEC, TimeUnit.SECONDS)
+        // Tick awal segera, lalu terjadwal ulang dengan jeda adaptif (backoff + hemat).
+        exec.execute { safeTick(); refresh(); scheduleNext(currentDelay()) }
         return START_STICKY
+    }
+
+    /** Jeda saat ini: basis hemat/normal lalu backoff bila gagal beruntun (P7). */
+    private fun currentDelay(): Long {
+        val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
+        return effectiveDelaySec(failStreak, App.batterySaver, tfMin)
+    }
+
+    private fun scheduleNext(delaySec: Long) {
+        if (!running) return
+        try {
+            sched?.cancel(false)
+            sched = exec.schedule({
+                if (!running) return@schedule
+                safeTick(); refresh()
+                scheduleNext(currentDelay())
+            }, delaySec, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            lastError = e.message
+        }
     }
 
     private fun safeTick() {
@@ -120,15 +148,19 @@ class MonitorService : Service() {
             BotEngine.tick(false)
             lastTickMs = System.currentTimeMillis()
             lastError = null
+            val allFail = BotEngine.lastTotalPairs > 0 && BotEngine.lastOkPairs == 0
+            failStreak = if (allFail) failStreak + 1 else 0
             val t = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(lastTickMs))
-            lastSummary = if (BotEngine.lastTotalPairs > 0 && BotEngine.lastOkPairs == 0)
-                "Menunggu koneksi · 0/${BotEngine.lastTotalPairs} pair OK · $t"
+            lastSummary = if (allFail)
+                "Menunggu koneksi · 0/${BotEngine.lastTotalPairs} pair OK · $t" +
+                    if (failStreak > 0) " · jeda ${nextDelaySec(failStreak)} dtk" else ""
             else
                 "${BotEngine.lastOkPairs}/${BotEngine.lastTotalPairs} pair OK · ${App.signals.size} sinyal · ${BotEngine.positions.size} posisi · $t"
         } catch (e: Exception) {
             // Offline/gagal: status menunggu, scheduler tetap (E3: pemulihan otomatis).
+            failStreak++
             lastError = e.message
-            lastSummary = "Menunggu koneksi · ${e.message?.take(60)}"
+            lastSummary = "Menunggu koneksi · ${e.message?.take(60)} · jeda ${nextDelaySec(failStreak)} dtk"
         }
     }
 

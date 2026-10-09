@@ -40,7 +40,16 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     override fun build() {
         setBar("Backtest Console", "Kuantitatif · engine terverifikasi")
         wireStatic()
-        refreshAll()
+        // P3: dibuka dari Market → simbol+TF mengikuti pilihan (sudah divalidasi
+        // pengirim; verifikasi ulang di sini). Tampilkan ringkasan, TANPA autorun.
+        if (intent.getBooleanExtra("fromMarket", false)) {
+            val a = intent.getStringExtra("asset") ?: ""
+            val t = intent.getStringExtra("timeframe") ?: ""
+            if (a.isNotEmpty()) { App.pair = a; App.savePair() }
+            if (BACKTEST_TIMEFRAMES.contains(t)) App.timeframe = t
+            refreshAll()
+            setStatus("Dari Market: ${App.pair} · ${App.timeframe} · ${App.strategy} — periksa konfigurasi lalu tekan Jalankan.", false)
+        } else refreshAll()
     }
 
     // ---------- wiring statis (sekali) ----------
@@ -107,10 +116,15 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<View>(R.id.tradePrev).setOnClickListener { tradePage = maxOf(0, tradePage - 1); paintTrades() }
         findViewById<View>(R.id.tradeNext).setOnClickListener { tradePage++; paintTrades() }
         findViewById<View>(R.id.tradeCsv).setOnClickListener { exportTrades() }
+        findViewById<View>(R.id.btnAudit).setOnClickListener { runAudit() }
+        findViewById<View>(R.id.btnDiagToggle).setOnClickListener { toggleDiag() }
+        findViewById<View>(R.id.btnPresetConservative).setOnClickListener { confirmPreset("conservative") }
+        findViewById<View>(R.id.btnPresetBalanced).setOnClickListener { confirmPreset("balanced") }
+        findViewById<View>(R.id.btnPresetAggressive).setOnClickListener { confirmPreset("aggressive") }
         bindNum(R.id.inCapital, App.capital.toString()) { App.capital = it.toDoubleOrNull() ?: 1000.0 }
-        bindNum(R.id.inRisk, App.riskPct.toString()) { App.riskPct = it.toDoubleOrNull() ?: 1.0 }
-        bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.5 }
-        bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 3.0 }
+        bindNum(R.id.inRisk, App.riskPct.toString()) { App.riskPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
+        bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.5; paintRiskPreset() }
+        bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 3.0; paintRiskPreset() }
         findViewById<SwitchMaterial>(R.id.swAtr).apply {
             isChecked = App.useAtr
             setOnCheckedChangeListener { _, on -> App.useAtr = on }
@@ -162,6 +176,45 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         App.feePct = 0.05; App.slipPct = 0.02; App.maxHolding = 100
         App.slPct = 1.5; App.tpPct = 3.0; App.useAtr = false
         snack(this, "Parameter risiko dikembalikan ke bawaan.")
+    }
+
+    /** FITUR 2: preset risiko. Ringkasan nilai ditampilkan DULU; baru diterapkan bila disetujui.
+     *  Tidak ada perubahan diam-diam saat halaman dibuka. */
+    private fun confirmPreset(id: String) {
+        val p = presetById(id) ?: return
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Terapkan preset ${p.name}?")
+            .setMessage(p.tagline + "\n\nNilai: " + riskPresetSummary(p) +
+                "\n\nMengubah risiko juga mengubah hasil backtest. Anda tetap dapat menyunting manual setelahnya.")
+            .setPositiveButton("Terapkan") { _, _ -> applyRiskPreset(p) }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    private fun applyRiskPreset(p: RiskPreset) {
+        App.riskPct = p.riskPct; App.leverage = p.leverage; App.maxHolding = p.maxHolding
+        App.slPct = p.slPct; App.tpPct = p.tpPct
+        paintConfig()
+        snack(this, "Preset ${p.name} diterapkan. Tekan Jalankan untuk menghitung ulang.")
+    }
+
+    /** Status preset jujur: "Kustom" bila nilai aktif tak sama dengan preset mana pun. */
+    private fun paintRiskPreset() {
+        try {
+            val name = riskPresetLabel(App.riskPct, App.leverage, App.maxHolding, App.slPct, App.tpPct)
+            val detail = "Risiko ${App.riskPct}% · Leverage ${App.leverage}× · Maks tahan ${App.maxHolding} candle · SL ${App.slPct}% · TP ${App.tpPct}%"
+            findViewById<TextView>(R.id.riskPresetStatus).text = "Preset aktif: $name" +
+                (if (name == "Kustom") " (nilai manual tidak sama dengan preset mana pun)." else ".") +
+                "\n$detail"
+        } catch (e: Exception) { /* layout belum siap */ }
+    }
+
+    private fun toggleDiag() {
+        val box = findViewById<View>(R.id.diagBox)
+        val open = box.visibility == View.VISIBLE
+        box.visibility = if (open) View.GONE else View.VISIBLE
+        (findViewById<View>(R.id.btnDiagToggle) as? android.widget.Button)?.text =
+            if (open) "Buka diagnostik & alasan filter ▾" else "Tutup diagnostik & alasan filter ▴"
     }
 
     // ---------- refresh tampilan ----------
@@ -229,6 +282,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<TextInputEditText>(R.id.inRisk).setText(App.riskPct.toString())
         findViewById<TextInputEditText>(R.id.inSl).setText(App.slPct.toString())
         findViewById<TextInputEditText>(R.id.inTp).setText(App.tpPct.toString())
+        paintRiskPreset()
     }
 
     private fun paintComboCount() {
@@ -627,6 +681,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val r = App.result
         if (r == null) {
             findViewById<TextView>(R.id.sumLine).text = "Belum ada hasil — tekan Run."
+            findViewById<View>(R.id.whyBox).visibility = View.GONE
             return
         }
         if (r.error != null) {
@@ -634,7 +689,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             findViewById<TextView>(R.id.heroNet).setTextColor(0xFFF6465D.toInt())
             findViewById<TextView>(R.id.heroSub).text = r.error
             findViewById<TextView>(R.id.sumLine).text = "${r.asset} · ${classifyResult(r)}"
-            paintKv(emptyList()); paintPairs(emptyList()); paintTrades(); paintTech(r)
+            paintKv(emptyList()); paintPairs(emptyList()); paintTrades(); paintTech(r); paintWhy(r)
             return
         }
         val noTr = r.totalTrades <= 0
@@ -661,6 +716,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         tradePage = 0
         paintTrades()
         paintTech(r)
+        paintWhy(r)
     }
 
     private fun paintKv(rows: List<Pair<String, String>>) {
@@ -715,8 +771,41 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
     }
 
-    private fun paintTech(r: BacktestResult) {
-        val d = r.diag
+    /** P6: audit konsistensi live vs backtest — memakai mesin yang sama, tanpa
+     *  mengubahnya. Input + konfigurasi dicatat pada verdict. */
+    private fun runAudit() {
+        val v = findViewById<TextView>(R.id.auditVerdict)
+        val r = App.result
+        val p = App.params
+        if (r == null || p == null || App.candles.isEmpty()) {
+            v.text = "Tidak dapat dibandingkan: jalankan backtest dulu."
+            v.setTextColor(0xFF8B95A5.toInt())
+            return
+        }
+        v.text = "Menghitung…"
+        runBg {
+            val rep = try {
+                auditLiveVsBacktest(
+                    App.candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? },
+                    p, r)
+            } catch (e: Exception) {
+                AuditReport(AuditVerdict.UNCOMPARABLE, "Audit gagal: ${e.message}",
+                    p.asset, p.timeframe, p.strategy, 0, null, null, App.candles.size)
+            }
+            runOnUiThread {
+                val col = when (rep.verdict) {
+                    AuditVerdict.MATCH -> 0xFF0ECB81.toInt()
+                    AuditVerdict.MISMATCH -> 0xFFF6465D.toInt()
+                    AuditVerdict.UNCOMPARABLE -> 0xFF8B95A5.toInt()
+                }
+                v.text = "${rep.verdict}: ${rep.reason}\n" +
+                    "Input: ${rep.asset} · ${rep.timeframe} · ${rep.strategy} · ${rep.candlesUsed} candle"
+                v.setTextColor(col)
+            }
+        }
+    }
+
+    private fun paintTech(r: BacktestResult) {        val d = r.diag
         findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.techList).apply {
             vertical(this@BacktestActivity)
             adapter = KvAdapter(listOf(
@@ -729,6 +818,18 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 "Cache" to (d.cacheUsed ?: "—")
             ))
         }
+    }
+
+    /** FITUR 1: "Mengapa Tidak Ada Transaksi?" hanya saat nol transaksi (murni,
+     *  dihitung dari diagnostik backtest yang sedang ditampilkan). */
+    private fun paintWhy(r: BacktestResult) {
+        try {
+            val box = findViewById<View>(R.id.whyBox)
+            val body = findViewById<TextView>(R.id.whyBody)
+            val txt = explainNoTrades(r)
+            if (txt.isEmpty()) { box.visibility = View.GONE; body.text = "" }
+            else { box.visibility = View.VISIBLE; body.text = txt }
+        } catch (e: Exception) { /* layout belum siap */ }
     }
 
     private fun exportTrades() {

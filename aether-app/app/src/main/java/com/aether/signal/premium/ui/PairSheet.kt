@@ -15,6 +15,7 @@ class PairSheet(
     private val sym: String, private val prov: String, private val tf: String,
     private val price: String, private val chg: Double?, private val sig: String,
     private val spark: List<Double> = emptyList(),
+    private val staleNote: String = "",
     private val onBacktest: () -> Unit, private val onChart: () -> Unit
 ) {
     fun show() {
@@ -26,7 +27,8 @@ class PairSheet(
         } catch (e: Exception) { /* ikon opsional */ }
         v.findViewById<SparkView>(R.id.spark).setData(spark)
         v.findViewById<TextView>(R.id.meta).text =
-            "Harga $price · ${if (chg != null && chg.isFinite()) App.fmt(chg) + "%" else "—"} · sinyal $sig · $prov $tf"
+            "Harga $price · ${if (chg != null && chg.isFinite()) App.fmt(chg) + "%" else "—"} · sinyal $sig · $prov $tf" +
+                if (staleNote.isNotEmpty()) "\n$staleNote" else ""
         v.findViewById<View>(R.id.btnBacktest).setOnClickListener { dlg.dismiss(); onBacktest() }
         v.findViewById<View>(R.id.btnChart).setOnClickListener { dlg.dismiss(); onChart() }
         dlg.setContentView(v)

@@ -12,7 +12,7 @@ import com.aether.signal.premium.R
 // Ikon pair: lihat PairIcons (satu-satunya sumber pemetaan).
 
 
-data class WatchItem(val sym: String, val price: String, val chg: Double?, val sig: String, val err: String?, val spark: List<Double> = emptyList())
+data class WatchItem(val sym: String, val price: String, val chg: Double?, val sig: String, val err: String?, val spark: List<Double> = emptyList(), val stale: Boolean = false, val updatedAt: Long = 0L)
 
 class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit) : RecyclerView.Adapter<WatchAdapter.H>() {
     private var ctx: android.content.Context? = null
@@ -28,6 +28,18 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
     fun notifyRow(sym: String) {
         val i = items.indexOfFirst { it.sym == sym }
         if (i >= 0) notifyItemChanged(i)
+    }
+
+    /** Ganti SATU item dengan data segar lalu gambar ulang barisnya.
+     *  WAJIB dipakai setelah fetch: snapshot lama di adapter tidak berubah
+     *  sendiri (akar harga/spark tak pernah tampil). */
+    fun notifyRow(sym: String, item: WatchItem) {
+        val i = items.indexOfFirst { it.sym == sym }
+        if (i < 0) return
+        (items as? MutableList<WatchItem>)?.set(i, item) ?: run {
+            items = items.toMutableList().also { it[i] = item }
+        }
+        notifyItemChanged(i)
     }
     class H(v: View) : RecyclerView.ViewHolder(v) {
         val icon: ImageView = v.findViewById(R.id.icon)
@@ -46,14 +58,18 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
         val r = items[i]
         try { h.icon.setImageDrawable(PairIcons.iconFor(ctx ?: h.itemView.context, r.sym)) } catch (e: Exception) { /* ikon jangan matikan baris */ }
         h.sym.text = r.sym
-        h.price.text = if (r.err != null) "—" else r.price
-        // Sparkline data nyata saja; kosong -> INVISIBLE (ruang tetap, kartu stabil).
+        // A7: harga cache ditampilkan REDUP + label waktu — bukan harga live.
+        // Tanpa cache dan gagal: "—" + ERR (bukan angka nol, A5).
+        h.price.text = if (r.err != null && r.price == "—") "—" else r.price
+        h.price.alpha = if (r.stale) 0.55f else 1f
         h.spark.setData(r.spark)
         h.sym.text = r.sym
-        h.price.text = if (r.err != null) "—" else r.price
-        if (r.err != null) {
+        if (r.err != null && r.price == "—") {
             h.chg.text = "ERR"
             h.chg.setTextColor(0xFFF6465D.toInt())
+        } else if (r.stale) {
+            h.chg.text = "⏱ " + fmtClock(r.updatedAt)
+            h.chg.setTextColor(0xFF8B95A5.toInt())
         } else if (r.chg != null && r.chg.isFinite()) {
             val up = r.chg >= 0
             h.chg.text = (if (up) "▲ +" else "▼ ") + App.fmt(r.chg) + "%"
@@ -62,7 +78,7 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
             h.chg.text = r.sig
             h.chg.setTextColor(0xFF8B95A5.toInt())
         }
-        h.itemView.setOnClickListener { if (r.err == null) onClick(r) }
+        h.itemView.setOnClickListener { if (r.err == null || r.price != "—") onClick(r) }
     }
 }
 
@@ -109,8 +125,7 @@ class KvAdapter(var items: List<Pair<String, String>>) : RecyclerView.Adapter<Kv
     }
 }
 
-class ProgAdapter(var items: List<Triple<String, String, Int>>) : RecyclerView.Adapter<ProgAdapter.H>() {
-    class H(v: View) : RecyclerView.ViewHolder(v) {
+class ProgAdapter(var items: List<Triple<String, String, Int>>) : RecyclerView.Adapter<ProgAdapter.H>() {    class H(v: View) : RecyclerView.ViewHolder(v) {
         val t: TextView = v as TextView
     }
     override fun onCreateViewHolder(p: ViewGroup, t: Int): H {
@@ -136,4 +151,39 @@ fun RecyclerView.vertical(ctx: android.content.Context) {
             out.bottom = 1
         }
     })
+}
+
+/** P9: baris pair kustom — ikon + drag handle + hapus. Urutan = urutan data. */
+class CustomPairAdapter(
+    var items: MutableList<String>,
+    val onDelete: (String) -> Unit,
+    val onMove: (from: Int, to: Int) -> Unit,
+    val onDragStart: (RecyclerView.ViewHolder) -> Unit
+) : RecyclerView.Adapter<CustomPairAdapter.H>() {
+    class H(v: View) : RecyclerView.ViewHolder(v) {
+        val icon: ImageView = v.findViewById(R.id.icon)
+        val sym: TextView = v.findViewById(R.id.sym)
+        val drag: TextView = v.findViewById(R.id.drag)
+        val del: View = v.findViewById(R.id.del)
+    }
+    override fun onCreateViewHolder(p: ViewGroup, t: Int) =
+        H(LayoutInflater.from(p.context).inflate(R.layout.item_custompair, p, false))
+    override fun getItemCount() = items.size
+    override fun onBindViewHolder(h: H, i: Int) {
+        val s = items[i]
+        try { h.icon.setImageDrawable(PairIcons.iconFor(h.itemView.context, s)) } catch (e: Exception) { /* ikon opsional */ }
+        h.sym.text = s
+        h.drag.setOnTouchListener { _, e ->
+            if (e.action == android.view.MotionEvent.ACTION_DOWN) onDragStart(h)
+            false
+        }
+        h.del.setOnClickListener { onDelete(s) }
+    }
+    fun move(from: Int, to: Int) {
+        if (from == to) return
+        val s = items.removeAt(from)
+        items.add(to, s)
+        notifyItemMoved(from, to)
+        onMove(from, to)
+    }
 }

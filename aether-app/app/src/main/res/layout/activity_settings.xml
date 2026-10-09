@@ -29,6 +29,13 @@
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Export JSON" style="@style/BtnGhost" />
                 </LinearLayout>
+                <Button android:id="@+id/btnImport" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Import JSON (pulihkan)"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Export mencakup sinyal, riwayat, dan konfigurasi (provider, strategi, filter, watchlist kustom). Import menimpa konfigurasi saat ini."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
@@ -48,6 +55,23 @@
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/connList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="KESEHATAN PROVIDER" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Status dari pemeriksaan nyata, bukan tebakan. Kosong = belum pernah diuji."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/healthList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
@@ -89,6 +113,48 @@
                 <Button android:id="@+id/btnNotifPerm" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Aktifkan izin notifikasi"
                     style="@style/BtnGhost" android:layout_marginTop="6dp" />
+                <Button android:id="@+id/btnNotifHistory" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Riwayat notifikasi"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="JAM TENANG" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Tahan notifikasi Aether pada jam &amp; hari tertentu. Sinyal tetap dihitung dan tetap tersimpan; hanya notifikasinya yang tidak ditampilkan. Jam tenang hanya berlaku untuk Aether, bukan aplikasi lain atau pengingat sistem Android."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swQuiet" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Aktifkan jam tenang"
+                    android:textColor="@color/txt" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="4dp">
+                    <Button android:id="@+id/btnQuietStart" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Mulai 22:00" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnQuietEnd" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Selesai 07:00" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                </LinearLayout>
+                <Button android:id="@+id/btnQuietDays" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Pilih hari"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="44dp" />
+                <TextView android:id="@+id/quietStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
@@ -112,6 +178,14 @@
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:fontFamily="monospace"
                     android:layout_marginTop="6dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swSaver" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Mode hemat baterai"
+                    android:textColor="@color/txt" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <TextView android:id="@+id/saverStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="OPTIMASI BATERAI" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold"
