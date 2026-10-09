@@ -2,6 +2,7 @@ package com.aether.signal.premium.ui
 
 import com.aether.signal.premium.engine.BacktestDiag
 import com.aether.signal.premium.engine.BacktestResult
+import com.aether.signal.premium.engine.FILTER_DEFS
 
 // FITUR 1 (V12): penjelasan hasil backtest nol transaksi — MURNI & teruji JVM.
 // Seluruh angka berasal dari BacktestDiag mesin yang benar-benar dijalankan.
@@ -54,6 +55,22 @@ fun topReasons(map: Map<String, Int>, n: Int): List<ReasonCount> =
         .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
         .take(n)
         .map { ReasonCount(humanFilterReason(it.key), it.key, it.value) }
+
+/**
+ * Petakan kunci filterReasons ("RSI Filter (RSI jenuh 74)") ke id filter ("rsi").
+ * Mengembalikan null bila tak dapat dipetakan — pemanggil wajib jujur ke pengguna.
+ */
+fun filterIdForReasonKey(key: String): String? {
+    val base = key.substringBefore(" (").trim()
+    if (base.isEmpty()) return null
+    return FILTER_DEFS.find { it.name == base }?.id
+}
+
+/** Id filter penyebab utama (jumlah penolakan tertinggi); null bila tak ada/tak terpeta. */
+fun primaryFilterId(filterReasons: Map<String, Int>): String? {
+    val top = topReasons(filterReasons, 1).firstOrNull() ?: return null
+    return filterIdForReasonKey(top.raw)
+}
 
 private fun hasDiag(d: BacktestDiag): Boolean =
     d.evaluatedBars > 0 || d.rawCount > 0 || d.signalsRaw > 0 || d.filteredOut > 0 ||

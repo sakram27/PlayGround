@@ -30,6 +30,8 @@
         <activity android:name=".ui.AiActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.NotifHistoryActivity" android:exported="false" />
+        <activity android:name=".ui.ReplayActivity" android:exported="false" />
+        <activity android:name=".ui.JournalActivity" android:exported="false" />
         <service
             android:name=".ui.MonitorService"
             android:exported="false"

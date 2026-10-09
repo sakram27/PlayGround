@@ -20,6 +20,7 @@ import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.chip.Chip
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -28,6 +29,7 @@ import com.google.android.material.textfield.TextInputEditText
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 class BacktestActivity : BaseActivity(R.id.nav_lab) {
     override val contentLayout = R.layout.activity_backtest
@@ -118,10 +120,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<View>(R.id.tradeCsv).setOnClickListener { exportTrades() }
         findViewById<View>(R.id.btnAudit).setOnClickListener { runAudit() }
         findViewById<View>(R.id.btnDiagToggle).setOnClickListener { toggleDiag() }
+        findViewById<View>(R.id.btnReplay).setOnClickListener { openReplay() }
         findViewById<View>(R.id.btnPresetConservative).setOnClickListener { confirmPreset("conservative") }
         findViewById<View>(R.id.btnPresetBalanced).setOnClickListener { confirmPreset("balanced") }
         findViewById<View>(R.id.btnPresetAggressive).setOnClickListener { confirmPreset("aggressive") }
-        bindNum(R.id.inCapital, App.capital.toString()) { App.capital = it.toDoubleOrNull() ?: 1000.0 }
+        bindNum(R.id.inCapital, App.capital.toString()) { App.capital = it.toDoubleOrNull() ?: 1000.0; paintRiskPreset() }
         bindNum(R.id.inRisk, App.riskPct.toString()) { App.riskPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
         bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.5; paintRiskPreset() }
         bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 3.0; paintRiskPreset() }
@@ -206,6 +209,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             findViewById<TextView>(R.id.riskPresetStatus).text = "Preset aktif: $name" +
                 (if (name == "Kustom") " (nilai manual tidak sama dengan preset mana pun)." else ".") +
                 "\n$detail"
+            // V13: pratinjau nominal — hanya membaca nilai, tak mengubah konfigurasi.
+            findViewById<TextView>(R.id.riskPreview).text = riskPreviewText(App.capital, App.riskPct)
         } catch (e: Exception) { /* layout belum siap */ }
     }
 
@@ -682,6 +687,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         if (r == null) {
             findViewById<TextView>(R.id.sumLine).text = "Belum ada hasil — tekan Run."
             findViewById<View>(R.id.whyBox).visibility = View.GONE
+            findViewById<View>(R.id.btnReplay).visibility = View.GONE
+            paintHeat(emptyList())
             return
         }
         if (r.error != null) {
@@ -689,7 +696,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             findViewById<TextView>(R.id.heroNet).setTextColor(0xFFF6465D.toInt())
             findViewById<TextView>(R.id.heroSub).text = r.error
             findViewById<TextView>(R.id.sumLine).text = "${r.asset} · ${classifyResult(r)}"
+            findViewById<View>(R.id.btnReplay).visibility = View.GONE
             paintKv(emptyList()); paintPairs(emptyList()); paintTrades(); paintTech(r); paintWhy(r)
+            paintHeat(emptyList())
             return
         }
         val noTr = r.totalTrades <= 0
@@ -717,6 +726,25 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         paintTrades()
         paintTech(r)
         paintWhy(r)
+        paintHeat(tradeRows)
+        paintReplayBtn()
+    }
+
+    /** V14 F1: tombol replay hanya bila ada data + parameter hasil run terakhir. */
+    private fun paintReplayBtn() {
+        try {
+            val ok = App.result?.error == null && App.params != null && App.candles.isNotEmpty()
+            findViewById<View>(R.id.btnReplay).visibility = if (ok) View.VISIBLE else View.GONE
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun openReplay() {
+        if (App.result?.error != null || App.params == null || App.candles.isEmpty()) {
+            snack(this, "Data historis tidak cukup untuk replay — jalankan backtest dulu.")
+            return
+        }
+        // Replay membaca App.candles + App.params apa adanya (tanpa request jaringan).
+        startActivity(Intent(this, ReplayActivity::class.java))
     }
 
     private fun paintKv(rows: List<Pair<String, String>>) {
@@ -761,13 +789,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val pages = maxOf(1, (tradeRows.size + per - 1) / per)
         tradePage = tradePage.coerceIn(0, pages - 1)
         findViewById<TextView>(R.id.tradePage).text = "Transaksi ${tradeRows.size} · ${tradePage + 1} / $pages"
+        val page = tradeRows.drop(tradePage * per).take(per)
         findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.tradeList).apply {
             vertical(this@BacktestActivity)
-            adapter = SigAdapter(tradeRows.drop(tradePage * per).take(per).mapIndexed { k, t ->
+            adapter = SigAdapter(page.mapIndexed { k, t ->
                 SigItem(t.direction, "${tradePage * per + k + 1}. ${t.asset}",
                     "${App.fmtT(t.exitTime)} · in ${App.fmt(t.entry, 4)} out ${App.fmt(t.exit, 4)} · R ${App.fmt(t.rMultiple)} · ${t.result}",
                     App.fmtMoney(t.pnl), t.asset)
-            })
+            }, onClick = { pos -> if (pos in page.indices) openTradeDetail(page[pos]) })
         }
     }
 
@@ -826,10 +855,251 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         try {
             val box = findViewById<View>(R.id.whyBox)
             val body = findViewById<TextView>(R.id.whyBody)
+            val btn = findViewById<View>(R.id.btnWhyFilter)
+            val btnWi = findViewById<View>(R.id.btnWhatIf)
             val txt = explainNoTrades(r)
-            if (txt.isEmpty()) { box.visibility = View.GONE; body.text = "" }
-            else { box.visibility = View.VISIBLE; body.text = txt }
+            if (txt.isEmpty()) {
+                box.visibility = View.GONE; body.text = ""
+                btn.visibility = View.GONE; btnWi.visibility = View.GONE
+                return
+            }
+            box.visibility = View.VISIBLE; body.text = txt
+            // V13 F2: tombol hanya tampil bila penyebab utama TERPETAKAN ke id filter.
+            val fid = primaryFilterId(r.diag.filterReasons)
+            if (fid == null) {
+                btn.visibility = View.GONE
+            } else {
+                val fname = FILTER_DEFS.find { it.id == fid }?.name ?: fid
+                (btn as? android.widget.Button)?.text = "Lihat Filter: $fname"
+                btn.visibility = View.VISIBLE
+                btn.setOnClickListener { jumpToFilter() }
+            }
+            // V14 F2: simulasi what-if — hanya bila filter penyebab AKTIF di params kini.
+            val p = App.params
+            val fidActive = fid != null && p != null &&
+                p.filters.any { it.name == fid && it.enabled }
+            if (fidActive) {
+                btnWi.visibility = View.VISIBLE
+                btnWi.setOnClickListener { confirmWhatIf(fid!!) }
+            } else {
+                btnWi.visibility = View.GONE
+            }
         } catch (e: Exception) { /* layout belum siap */ }
+    }
+
+    /**
+     * V13 F2: gulir ke kartu FILTER + sorot sementara. Hanya visual:
+     * tak mengubah nilai, tak melonggarkan filter, tak menjalankan ulang backtest.
+     */
+    private fun jumpToFilter() {
+        val r = App.result
+        val fid = r?.let { primaryFilterId(it.diag.filterReasons) }
+        if (fid == null) {
+            snack(this, "Penyebab filter tidak dapat dipetakan pada hasil ini.")
+            return
+        }
+        val fname = FILTER_DEFS.find { it.id == fid }?.name ?: fid
+        try {
+            val card = findViewById<MaterialCardView>(R.id.filterCard)
+            val scroll = findViewById<android.widget.ScrollView>(R.id.backtestScroll)
+            scroll.post { scroll.smoothScrollTo(0, card.top) }
+            val density = resources.displayMetrics.density
+            card.strokeWidth = (2 * density).toInt()
+            card.strokeColor = androidx.core.content.ContextCompat.getColor(this, R.color.amber)
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                try { card.strokeWidth = 0 } catch (e: Exception) { /* abaikan */ }
+            }, 2500)
+            snack(this, "Filter \"$fname\" disorot — nilai tidak diubah.")
+        } catch (e: Exception) {
+            snack(this, "Tidak dapat menuju kartu filter: ${e.message}")
+        }
+    }
+
+    // ---------- V14 F2: what-if (simulasi tanpa satu filter) ----------
+    @Volatile private var whatIfCancelled = false
+
+    private fun confirmWhatIf(fid: String) {
+        val fname = FILTER_DEFS.find { it.id == fid }?.name ?: fid
+        val p = App.params
+        if (App.result == null || p == null || App.candles.isEmpty()) {
+            snack(this, "Data tidak cukup untuk simulasi — jalankan backtest dulu.")
+            return
+        }
+        if (!p.filters.any { it.name == fid && it.enabled }) {
+            snack(this, "Filter \"$fname\" tidak aktif pada konfigurasi saat ini — simulasi akan identik.")
+            return
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Simulasikan tanpa \"$fname\"?")
+            .setMessage("Backtest dijalankan ulang dengan data, pair, timeframe, periode, modal, " +
+                "biaya, dan aturan keluar yang SAMA — hanya filter \"$fname\" yang dinonaktifkan.\n\n" +
+                "Konfigurasi aktif TIDAK diubah. Hasil adalah simulasi historis, bukan jaminan kinerja masa depan.")
+            .setPositiveButton("Jalankan") { _, _ -> runWhatIf(fid) }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    private fun runWhatIf(fid: String) {
+        val fname = FILTER_DEFS.find { it.id == fid }?.name ?: fid
+        val p0 = App.params ?: return
+        val before = App.result ?: return
+        val candles0 = App.candles.toList()
+        whatIfCancelled = false
+        val prog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Simulasi what-if…")
+            .setMessage("Menjalankan ulang mesin backtest tanpa filter \"$fname\"…")
+            .setNegativeButton("Batal") { _, _ -> whatIfCancelled = true }
+            .setCancelable(false)
+            .show()
+        runBg {
+            try {
+                // Salinan parameter: hanya filter terpilih yang dimatikan. Aktif tak tersentuh.
+                val p2 = p0.copy(filters = p0.filters.map { if (it.name == fid) it.copy(enabled = false) else it })
+                if (whatIfCancelled) {
+                    runOnUiThread { try { prog.dismiss() } catch (e: Exception) { }; snack(this, "Simulasi dibatalkan.") }
+                    return@runBg
+                }
+                val raw = candles0.map {
+                    mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
+                }
+                val after = runBacktest(raw, p2)
+                runOnUiThread {
+                    try { prog.dismiss() } catch (e: Exception) { }
+                    if (whatIfCancelled) snack(this, "Simulasi dibatalkan.")
+                    else showWhatIfResult(fname, before, after)
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    try { prog.dismiss() } catch (e: Exception) { }
+                    snack(this, "Simulasi gagal: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /** Tabel berdampingan + selisih, definisi metrik sama di kedua kolom. */
+    private fun showWhatIfResult(fname: String, before: BacktestResult, after: BacktestResult) {
+        if (after.error != null) {
+            snack(this, "Simulasi error: ${after.error}")
+            return
+        }
+        fun row(label: String, a: String, b: String) = "$label\n  Awal: $a\n  Tanpa $fname: $b"
+        val dTr = after.totalTrades - before.totalTrades
+        val dNet = after.netProfit - before.netProfit
+        val msg = StringBuilder()
+        msg.append(row("Transaksi", "${before.totalTrades}", "${after.totalTrades}"))
+        msg.append("\n").append(row("Win rate", "${App.fmt(before.winRate, 1)}%", "${App.fmt(after.winRate, 1)}%"))
+        msg.append("\n").append(row("Profit factor", App.fmtD(before.profitFactor), App.fmtD(after.profitFactor)))
+        msg.append("\n").append(row("Net", App.fmtMoney(before.netProfit), App.fmtMoney(after.netProfit)))
+        msg.append("\n").append(row("Max DD", "${App.fmt(before.maxDrawdownPercent)}%", "${App.fmt(after.maxDrawdownPercent)}%"))
+        msg.append("\n\nSelisih: ${if (dTr >= 0) "+" else ""}$dTr transaksi · " +
+            "${if (dNet >= 0) "+" else ""}${App.fmtMoney(dNet)} net.")
+        msg.append("\n\nSimulasi historis atas data yang sama — bukan jaminan kinerja masa depan. " +
+            "Konfigurasi aktif tidak berubah.")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Hasil tanpa \"$fname\"")
+            .setMessage(msg.toString())
+            .setPositiveButton("Tutup", null)
+            .show()
+    }
+
+    // ---------- V14 F4: peta waktu ----------
+    private fun paintHeat(trades: List<Trade>) {
+        try {
+            val hm = buildTimeHeatmap(trades)
+            val sum = findViewById<TextView>(R.id.heatSummary)
+            val hoursBox = findViewById<android.widget.LinearLayout>(R.id.heatHours)
+            val daysBox = findViewById<android.widget.LinearLayout>(R.id.heatDays)
+            hoursBox.removeAllViews(); daysBox.removeAllViews()
+            if (hm.totalTrades == 0) {
+                sum.text = "Belum ada transaksi — peta waktu kosong."
+                return
+            }
+            val bh = bestBucket(hm.hours); val wh = worstBucket(hm.hours)
+            val bd = bestBucket(hm.days); val wd = worstBucket(hm.days)
+            sum.text = "Jam terbaik ${bh?.label ?: "—"} (${bh?.let { heatStat(it) } ?: ""}) · " +
+                "terburuk ${wh?.label ?: "—"} (${wh?.let { heatStat(it) } ?: ""})\n" +
+                "Hari terbaik ${bd?.label ?: "—"} (${bd?.let { heatStat(it) } ?: ""}) · " +
+                "terburuk ${wd?.label ?: "—"} (${wd?.let { heatStat(it) } ?: ""})"
+            val maxAbs = hm.hours.maxOf { abs(it.net) }.takeIf { it > 0 } ?: 1.0
+            for (row in 0 until 4) {
+                val lr = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+                for (c in 0 until 6) lr.addView(heatCell(hm.hours[row * 6 + c], maxAbs))
+                hoursBox.addView(lr)
+            }
+            val maxAbsD = hm.days.maxOf { abs(it.net) }.takeIf { it > 0 } ?: 1.0
+            for (b in hm.days) daysBox.addView(heatCell(b, maxAbsD))
+        } catch (e: Exception) { /* layout belum siap */ }
+    }
+
+    private fun heatStat(b: TimeBucket): String =
+        "${b.count} trade · ${App.fmtMoney(b.net)} · ${b.winRate?.let { App.fmt(it, 1) + "%" } ?: "—"}"
+
+    private fun heatCell(b: TimeBucket, maxAbs: Double): TextView {
+        val tv = TextView(this)
+        val lp = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        lp.setMargins(2, 2, 2, 2)
+        tv.layoutParams = lp
+        tv.gravity = android.view.Gravity.CENTER
+        tv.setPadding(2, 8, 2, 8)
+        tv.textSize = 10f
+        tv.text = "${b.label}\n${if (b.count == 0) "—" else App.fmtMoney(b.net)}"
+        tv.setTextColor(0xFFE8EDF2.toInt())
+        val intensity = if (b.count == 0 || maxAbs <= 0) 0
+        else ((abs(b.net) / maxAbs * 120).toInt() + 40).coerceIn(40, 160)
+        tv.setBackgroundColor(when {
+            b.count == 0 -> 0xFF171D26.toInt()
+            b.net > 0 -> (intensity shl 24) or 0x000ECB81
+            b.net < 0 -> (intensity shl 24) or 0x00F6465D
+            else -> 0xFF1C232E.toInt()
+        })
+        tv.setOnClickListener {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(if (b.label.length <= 2 && b.label.all { it.isDigit() }) "Jam ${b.label} (UTC)" else b.label)
+                .setMessage(if (b.count == 0) "Tidak ada transaksi keluar pada kelompok ini."
+                else "Transaksi: ${b.count}\nNet: ${App.fmtMoney(b.net)}\nWin: ${b.winRate?.let { App.fmt(it, 1) + "%" } ?: "—"}")
+                .setPositiveButton("Tutup", null)
+                .show()
+        }
+        return tv
+    }
+
+    // ---------- V14 F8: detail transaksi + catatan terkait ----------
+    private fun openTradeDetail(t: Trade) {
+        val key = tradeKeyOf(t)
+        val notes = notesForTrade(App.journal, key)
+        val msg = StringBuilder()
+        msg.append("${t.direction} ${t.asset}${if (t.timeframe.isNotEmpty()) " · ${t.timeframe}" else ""}\n")
+        msg.append("Masuk ${App.fmtT(t.entryTime)} @ ${App.fmt(t.entry, 4)}\n")
+        msg.append("Keluar ${App.fmtT(t.exitTime)} @ ${App.fmt(t.exit, 4)}\n")
+        msg.append("SL ${App.fmt(t.stopLoss, 4)} · TP ${App.fmt(t.takeProfit, 4)}\n")
+        msg.append("R ${App.fmt(t.rMultiple)} · ${t.result} · PnL ${App.fmtMoney(t.pnl)}\n\n")
+        if (notes.isEmpty()) {
+            msg.append("Belum ada catatan jurnal untuk transaksi ini.")
+        } else {
+            msg.append("Catatan jurnal (${notes.size}):\n")
+            for (n in notes.take(5)) {
+                msg.append("• ${(if (n.title.isNotEmpty()) n.title else "(tanpa judul)").take(60)}")
+                if (n.body.isNotEmpty()) msg.append(" — ${n.body.take(80)}")
+                msg.append("\n")
+            }
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Detail transaksi")
+            .setMessage(msg.toString())
+            .setPositiveButton("Tambah catatan") { _, _ -> openJournalPrefilled(t) }
+            .setNeutralButton("Buka Jurnal") { _, _ -> openJournalPrefilled(null) }
+            .setNegativeButton("Tutup", null)
+            .show()
+    }
+
+    private fun openJournalPrefilled(t: Trade?) {
+        val i = Intent(this, JournalActivity::class.java)
+        if (t != null) {
+            i.putExtra("prefill_pair", t.asset)
+            i.putExtra("prefill_tradeKey", tradeKeyOf(t))
+        }
+        startActivity(i)
     }
 
     private fun exportTrades() {

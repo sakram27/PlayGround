@@ -152,6 +152,21 @@
                     android:layout_height="wrap_content" android:text="Pilih hari"
                     style="@style/BtnGhost" android:layout_marginTop="6dp"
                     android:minHeight="44dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnQuietPresetWork" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Malam Hari Kerja" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnQuietPresetWeekend" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Akhir Pekan" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/quietPresetStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
                 <TextView android:id="@+id/quietStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />

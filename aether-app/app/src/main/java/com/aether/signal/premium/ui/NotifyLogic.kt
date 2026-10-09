@@ -48,7 +48,7 @@ fun quietActive(q: QuietHours, nowMinOfDay: Int, dayOfWeek: Int): Boolean {
 
 /** Validasi; null bila valid. */
 fun quietValidationError(q: QuietHours): String? = when {
-    q.startMin !in 0 until MINUTES_PER_DAY || q.endMin !in 0 until MINUTES_PER_DAY -> "Waktu tidak valid."
+    q.startMin !in 0 until MINUTES_PER_DAY || q.endMin !in 0..MINUTES_PER_DAY -> "Waktu tidak valid."
     q.startMin == q.endMin -> "Waktu mulai dan selesai tidak boleh sama."
     q.days.isEmpty() -> "Pilih minimal satu hari."
     else -> null
@@ -69,9 +69,42 @@ fun quietSummary(q: QuietHours): String {
     if (!q.enabled) return "Jam tenang NONAKTIF."
     if (q.days.isEmpty()) return "Jam tenang aktif, tetapi belum ada hari dipilih — tidak akan menahan notifikasi."
     if (q.startMin == q.endMin) return "Jam tenang aktif, tetapi jam mulai = selesai — dianggap tidak menahan."
+    if (q.startMin == 0 && q.endMin == MINUTES_PER_DAY) {
+        return "Jam tenang AKTIF · sepanjang hari · ${quietDaysLabel(q.days)}."
+    }
     val cross = q.endMin < q.startMin
     return "Jam tenang AKTIF · ${fmtMinuteOfDay(q.startMin)}–${fmtMinuteOfDay(q.endMin)}" +
         (if (cross) " (lewat tengah malam)" else "") + " · ${quietDaysLabel(q.days)}."
+}
+
+// ---------- Preset jadwal jam tenang (V13, sekali ketuk) ----------
+
+/** Preset 1: Malam Hari Kerja — Senin–Jumat 22:00→07:00 (lewat tengah malam). */
+val QUIET_PRESET_WORK = QuietHours(true, 22 * 60, 7 * 60, setOf(2, 3, 4, 5, 6))
+
+/**
+ * Preset 2: Akhir Pekan Penuh — Sabtu+Minggu sepanjang hari.
+ * Diwakili start=00:00 & end=1440 (tengah malam hari berikut = akhir hari).
+ */
+val QUIET_PRESET_WEEKEND = QuietHours(true, 0, MINUTES_PER_DAY, setOf(7, 1))
+
+/** Cocokkan jadwal ke preset ("work"/"weekend"); null = tidak cocok (Kustom). */
+fun matchQuietPreset(q: QuietHours): String? = when {
+    q.startMin == QUIET_PRESET_WORK.startMin && q.endMin == QUIET_PRESET_WORK.endMin &&
+        q.days == QUIET_PRESET_WORK.days -> "work"
+    q.startMin == QUIET_PRESET_WEEKEND.startMin && q.endMin == QUIET_PRESET_WEEKEND.endMin &&
+        q.days == QUIET_PRESET_WEEKEND.days -> "weekend"
+    else -> null
+}
+
+/** Label status jadwal: nama preset, "Kustom" bila manual tak cocok, "Nonaktif" bila mati. */
+fun quietPresetLabel(q: QuietHours): String {
+    if (!q.enabled) return "Nonaktif"
+    return when (matchQuietPreset(q)) {
+        "work" -> "Malam Hari Kerja"
+        "weekend" -> "Akhir Pekan"
+        else -> "Kustom"
+    }
 }
 
 fun encodeQuietDays(days: Set<Int>): String = days.sorted().joinToString(",")
@@ -143,4 +176,49 @@ fun parseNotifHistory(raw: String?): MutableList<NotifRec> {
     } catch (e: Exception) { /* data rusak → kosong, jangan crash */ }
     while (out.size > NOTIF_HISTORY_CAP) out.removeAt(out.size - 1)
     return out
+}
+
+// ---------- Ekspor CSV + pencarian/penyaringan riwayat (V13) ----------
+
+/**
+ * Bangun isi CSV dari catatan nyata apa adanya (tanpa fabrikasi, tanpa rahasia —
+ * NotifRec memang tidak menyimpan API key/token).
+ * Memakai csvCell + isoUtc yang sama dengan CSV riwayat trade (RFC4180 & UTC konsisten).
+ */
+fun buildNotifCsv(list: List<NotifRec>): String {
+    val sb = StringBuilder("n,waktu_utc,jenis,simbol,arah,timeframe,harga,status\n")
+    list.forEachIndexed { i, r ->
+        sb.append(listOf(
+            (i + 1).toString(), isoUtc(r.at), notifKindLabel(r.kind), r.pair,
+            r.dir, r.tf, r.price.toString(), notifStatusLabel(r.status)
+        ).joinToString(",") { csvCell(it) }).append("\n")
+    }
+    return sb.toString()
+}
+
+/**
+ * Saring riwayat aktual (urutan dipertahankan: terbaru dulu, seperti penyimpanan).
+ * - query: cocokkan simbol (tak peduli huruf besar/kecil); kosong = semua.
+ * - kind: "all" | "entry" | "tp" | "sl" (hanya jenis yang benar-benar dicatat).
+ * - status: "all" | "sent"(DIKIRIM) | "held"(DITAHAN) | "failed"(GAGAL/GAGAL_IZIN).
+ * Tidak menghapus/mengubah catatan maupun status.
+ */
+fun filterNotifHistory(
+    list: List<NotifRec>,
+    query: String,
+    kind: String,
+    status: String
+): List<NotifRec> {
+    val q = query.trim().lowercase()
+    return list.filter { r ->
+        (q.isEmpty() || r.pair.lowercase().contains(q)) &&
+            (kind == "all" || r.kind == kind) &&
+            when (status) {
+                "all" -> true
+                "sent" -> r.status == "DIKIRIM"
+                "held" -> r.status == "DITAHAN"
+                "failed" -> r.status == "GAGAL" || r.status == "GAGAL_IZIN"
+                else -> true
+            }
+    }
 }

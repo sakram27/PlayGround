@@ -1,9 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:fillViewport="true">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="CARI &amp; SARING" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Cari simbol, mis. BTC">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/histSearch" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="text"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Jenis peristiwa" android:textColor="@color/mut"
+                    android:textSize="11sp" android:layout_marginTop="8dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/histKindGroup" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histKindAll"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Semua" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histKindEntry"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Entry" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histKindTp"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="TP" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histKindSl"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="SL" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Status" android:textColor="@color/mut"
+                    android:textSize="11sp" android:layout_marginTop="8dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/histStatusGroup" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histStatusAll"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Semua" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histStatusSent"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Dikirim" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histStatusHeld"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Ditahan" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/histStatusFailed"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Gagal" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnHistClearFilter" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Hapus filter" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnHistExport" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Ekspor CSV" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/histCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card" android:layout_marginBottom="10dp">

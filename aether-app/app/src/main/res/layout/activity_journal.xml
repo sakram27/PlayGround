@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="CARI &amp; SARING" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Cari judul, isi, atau pair">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/jSearch" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="text"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Pair" app:endIconMode="dropdown_menu">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/jPair" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/jPeriodGroup" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/jPeriodAll"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Semua waktu" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/jPeriod7"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="7 hari" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/jPeriod30"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="30 hari" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <Button android:id="@+id/btnJAdd" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="＋ Catatan"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <TextView android:id="@+id/jCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="JURNAL" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/jList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/jEmpty" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="13sp" android:gravity="center" android:padding="16dp"
+                    android:text="Belum ada catatan." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

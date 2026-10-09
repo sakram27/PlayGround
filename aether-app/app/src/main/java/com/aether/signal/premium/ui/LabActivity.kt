@@ -17,6 +17,9 @@ class LabActivity : BaseActivity(R.id.nav_lab) {
         setBar("Strategy Lab", "Strategi · Hyperopt · riset")
         findViewById<MaterialButton>(R.id.btnBacktest).setOnClickListener { navKeep("backtest") }
         findViewById<MaterialButton>(R.id.btnAi).setOnClickListener { navKeep("ai") }
+        findViewById<MaterialButton>(R.id.btnJournal).setOnClickListener {
+            startActivity(android.content.Intent(this, JournalActivity::class.java))
+        }
         val lb = App.lastBt()
         findViewById<TextView>(R.id.lastBt).text =
             if (lb == null) "Belum ada backtest."

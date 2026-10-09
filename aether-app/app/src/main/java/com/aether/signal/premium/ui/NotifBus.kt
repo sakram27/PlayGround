@@ -70,7 +70,7 @@ object NotifBus {
         set(v) = prefs().edit().putInt("qh_start", v.coerceIn(0, 1439)).apply()
     var quietEndMin: Int
         get() = prefs().getInt("qh_end", 7 * 60)
-        set(v) = prefs().edit().putInt("qh_end", v.coerceIn(0, 1439)).apply()
+        set(v) = prefs().edit().putInt("qh_end", v.coerceIn(0, MINUTES_PER_DAY)).apply()
     var quietDays: Set<Int>
         get() = parseQuietDays(prefs().getString("qh_days", "1,2,3,4,5,6,7"))
         set(v) = prefs().edit().putString("qh_days", encodeQuietDays(v)).apply()

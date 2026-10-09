@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/backtestScroll"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:fillViewport="true">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -196,6 +197,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/filterCard"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card" android:layout_marginBottom="10dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -266,6 +268,10 @@
                 <TextView android:id="@+id/riskPresetStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/riskPreview" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:lineSpacingMultiplier="1.1"
+                    android:layout_marginTop="6dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <com.google.android.material.textfield.TextInputLayout
@@ -442,6 +448,21 @@
                         android:layout_height="wrap_content" android:textColor="@color/txt"
                         android:textSize="12sp" android:lineSpacingMultiplier="1.1"
                         android:layout_marginTop="6dp" />
+                    <Button android:id="@+id/btnWhyFilter" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Lihat Filter"
+                        style="@style/BtnGhost" android:layout_marginTop="8dp"
+                        android:minHeight="44dp" android:visibility="gone" />
+                    <Button android:id="@+id/btnWhatIf" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Simulasikan Tanpa Filter Ini"
+                        style="@style/BtnGhost" android:layout_marginTop="6dp"
+                        android:minHeight="44dp" android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnReplay" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶ Replay per Candle" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:visibility="gone" />
                 </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -493,6 +514,27 @@
                         android:layout_height="wrap_content" android:textColor="@color/mut"
                         android:textSize="12sp" android:layout_marginTop="6dp" />
                 </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PETA WAKTU (UTC)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Agregat laba/rugi transaksi per jam &amp; hari keluar (UTC). Hijau = bersih positif, merah = negatif."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <TextView android:id="@+id/heatSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/heatHours" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PER HARI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <LinearLayout android:id="@+id/heatDays" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

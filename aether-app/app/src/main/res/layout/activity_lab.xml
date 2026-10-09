@@ -22,6 +22,10 @@
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="AI Analysis →" style="@style/BtnGhost" />
                 </LinearLayout>
+                <Button android:id="@+id/btnJournal" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jurnal Trading →"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
                 <TextView android:id="@+id/lastBt" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/dim"
                     android:textSize="11sp" android:fontFamily="monospace"

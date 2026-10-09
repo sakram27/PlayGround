@@ -36,6 +36,10 @@
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ca.png"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_journal.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_journal.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdc.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdc.png"
     },
@@ -258,6 +262,10 @@
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_eu.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_eu.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_replay.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_replay.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_lab.xml.flat",

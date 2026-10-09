@@ -64,3 +64,38 @@ fun riskPresetSummary(p: RiskPreset): String =
 /** Label status: nama preset, atau "Kustom" bila tak ada yang cocok. */
 fun riskPresetLabel(riskPct: Double, leverage: Int, maxHolding: Int, slPct: Double, tpPct: Double): String =
     matchPreset(riskPct, leverage, maxHolding, slPct, tpPct)?.name ?: "Kustom"
+
+// ---------- Pratinjau nominal risiko (V13) ----------
+// Skala terverifikasi dari kode: App.riskPct disimpan dalam SATUAN PERSEN
+// (1.0 = 1%), dan mesin memakai riskPerTrade = riskPct/100 (lihat App.buildParams).
+// Rumus: nominal = modal × riskPct / 100.
+
+/**
+ * Hitung nominal risiko per transaksi. Null bila input tidak valid
+ * (non-finite atau negatif). Nol diizinkan (modal 0 / risiko 0% → 0.0).
+ */
+fun riskNominal(capital: Double, riskPct: Double): Double? {
+    if (!capital.isFinite() || !riskPct.isFinite()) return null
+    if (capital < 0 || riskPct < 0) return null
+    return capital * riskPct / 100.0
+}
+
+/** Format uang mengikuti konvensi tampilan aplikasi ("$" + grup id-ID, 2 desimal). */
+fun fmtRiskMoney(v: Double): String {
+    if (!v.isFinite()) return "—"
+    val grouped = String.format(Locale("id", "ID"), "%,.2f", kotlin.math.abs(v))
+    return (if (v < 0) "-" else "") + "$" + grouped
+}
+
+/**
+ * Teks pratinjau lengkap. Jujur: menyebut satuan mengikuti modal backtest dan
+ * menegaskan ini BUKAN janji kerugian aktual.
+ */
+fun riskPreviewText(capital: Double, riskPct: Double): String {
+    val nom = riskNominal(capital, riskPct)
+        ?: return "Modal atau risiko tidak valid — periksa nilai pada kolom."
+    return "Modal ${fmtRiskMoney(capital)} · Risiko ${trim(riskPct)}% per transaksi\n" +
+        "Estimasi nominal risiko: ${fmtRiskMoney(nom)} per transaksi.\n" +
+        "Satuan mengikuti modal backtest. Kerugian aktual dapat berbeda " +
+        "(slippage, fee, gap) — ini bukan janji hasil."
+}

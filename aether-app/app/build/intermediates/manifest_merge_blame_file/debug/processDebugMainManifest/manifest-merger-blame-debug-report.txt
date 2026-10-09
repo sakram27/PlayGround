@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="com.aether.signal.premium"
-4    android:versionCode="12"
-5    android:versionName="5.8" >
+4    android:versionCode="14"
+5    android:versionName="6.0" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="26"
@@ -42,7 +42,7 @@
 23-->[androidx.core:core:1.13.0] /home/runner/.gradle/caches/8.10.2/transforms/a50248687df4e782984616ffac92cfc2/transformed/core-1.13.0/AndroidManifest.xml:26:22-94
 24
 25    <application
-25-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:12:5-57:19
+25-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:12:5-59:19
 26        android:allowBackup="true"
 26-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:16:9-35
 27        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
@@ -124,123 +124,135 @@
 66-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:32:19-58
 67            android:exported="false" />
 67-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:32:59-83
-68
-69        <service
-69-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:33:9-40:19
-70            android:name="com.aether.signal.premium.ui.MonitorService"
-70-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:34:13-46
-71            android:exported="false"
-71-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:35:13-37
-72            android:foregroundServiceType="specialUse" >
-72-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:36:13-55
-73            <property
-73-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:37:13-39:121
-74                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-74-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:38:17-76
-75                android:value="Pemantauan pasar terjadwal untuk notifikasi sinyal entry, stop loss, dan take profit." />
-75-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:39:17-118
-76        </service>
-77
-78        <receiver
-78-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:41:9-49:20
-79            android:name="com.aether.signal.premium.ui.BootReceiver"
-79-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:42:13-44
-80            android:enabled="true"
-80-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:44:13-35
-81            android:exported="false" >
-81-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:43:13-37
-82            <intent-filter>
-82-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:45:13-48:29
-83                <action android:name="android.intent.action.BOOT_COMPLETED" />
-83-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:46:17-79
-83-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:46:25-76
-84                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-84-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:47:17-84
-84-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:47:25-81
-85            </intent-filter>
-86        </receiver>
-87
-88        <provider
-89            android:name="androidx.core.content.FileProvider"
-89-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:51:13-62
-90            android:authorities="com.aether.signal.premium.files"
-90-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:52:13-57
-91            android:exported="false"
-91-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:53:13-37
-92            android:grantUriPermissions="true" >
-92-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:54:13-47
-93            <meta-data
-93-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:55:13-107
-94                android:name="android.support.FILE_PROVIDER_PATHS"
-94-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:55:24-74
-95                android:resource="@xml/files" />
-95-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:55:75-104
-96        </provider>
-97        <provider
-97-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
-98            android:name="androidx.startup.InitializationProvider"
-98-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
-99            android:authorities="com.aether.signal.premium.androidx-startup"
-99-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
-100            android:exported="false" >
-100-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
-101            <meta-data
-101-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
-102                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-102-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
-103                android:value="androidx.startup" />
-103-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
-104            <meta-data
-104-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
-105                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-105-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
-106                android:value="androidx.startup" />
-106-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+68        <activity
+68-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:33:9-80
+69            android:name="com.aether.signal.premium.ui.ReplayActivity"
+69-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:33:19-52
+70            android:exported="false" />
+70-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:33:53-77
+71        <activity
+71-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:34:9-81
+72            android:name="com.aether.signal.premium.ui.JournalActivity"
+72-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:34:19-53
+73            android:exported="false" />
+73-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:34:54-78
+74
+75        <service
+75-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:35:9-42:19
+76            android:name="com.aether.signal.premium.ui.MonitorService"
+76-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:36:13-46
+77            android:exported="false"
+77-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:37:13-37
+78            android:foregroundServiceType="specialUse" >
+78-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:38:13-55
+79            <property
+79-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:39:13-41:121
+80                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+80-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:40:17-76
+81                android:value="Pemantauan pasar terjadwal untuk notifikasi sinyal entry, stop loss, dan take profit." />
+81-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:41:17-118
+82        </service>
+83
+84        <receiver
+84-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:43:9-51:20
+85            android:name="com.aether.signal.premium.ui.BootReceiver"
+85-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:44:13-44
+86            android:enabled="true"
+86-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:46:13-35
+87            android:exported="false" >
+87-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:45:13-37
+88            <intent-filter>
+88-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:47:13-50:29
+89                <action android:name="android.intent.action.BOOT_COMPLETED" />
+89-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:48:17-79
+89-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:48:25-76
+90                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+90-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:49:17-84
+90-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:49:25-81
+91            </intent-filter>
+92        </receiver>
+93
+94        <provider
+95            android:name="androidx.core.content.FileProvider"
+95-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:53:13-62
+96            android:authorities="com.aether.signal.premium.files"
+96-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:54:13-57
+97            android:exported="false"
+97-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:55:13-37
+98            android:grantUriPermissions="true" >
+98-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:56:13-47
+99            <meta-data
+99-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:57:13-107
+100                android:name="android.support.FILE_PROVIDER_PATHS"
+100-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:57:24-74
+101                android:resource="@xml/files" />
+101-->/home/runner/work/PlayGround/PlayGround/aether-app/app/src/main/AndroidManifest.xml:57:75-104
+102        </provider>
+103        <provider
+103-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+104            android:name="androidx.startup.InitializationProvider"
+104-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+105            android:authorities="com.aether.signal.premium.androidx-startup"
+105-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+106            android:exported="false" >
+106-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
 107            <meta-data
-107-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
-108                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-108-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+107-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+108                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+108-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
 109                android:value="androidx.startup" />
-109-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
-110        </provider>
-111
-112        <receiver
-112-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
-113            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-113-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
-114            android:directBootAware="false"
-114-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
-115            android:enabled="true"
-115-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
-116            android:exported="true"
-116-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
-117            android:permission="android.permission.DUMP" >
-117-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
-118            <intent-filter>
-118-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
-119                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-119-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
-119-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
-120            </intent-filter>
-121            <intent-filter>
-121-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
-122                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-122-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
-122-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
-123            </intent-filter>
+109-->[androidx.emoji2:emoji2:1.3.0] /home/runner/.gradle/caches/8.10.2/transforms/1fde280bca9acdad54c7c33dae5ae4d1/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+110            <meta-data
+110-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+111                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+111-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+112                android:value="androidx.startup" />
+112-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/runner/.gradle/caches/8.10.2/transforms/31bfdd7b012253a53b5b200405462416/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+113            <meta-data
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+114                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+115                android:value="androidx.startup" />
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+116        </provider>
+117
+118        <receiver
+118-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+119            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+119-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+120            android:directBootAware="false"
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+121            android:enabled="true"
+121-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+122            android:exported="true"
+122-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+123            android:permission="android.permission.DUMP" >
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
 124            <intent-filter>
-124-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
-125                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-125-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
-125-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+124-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+125                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
 126            </intent-filter>
 127            <intent-filter>
-127-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
-128                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-128-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
-128-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+127-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+128                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
 129            </intent-filter>
-130        </receiver>
-131    </application>
-132
-133</manifest>
+130            <intent-filter>
+130-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+131                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+132            </intent-filter>
+133            <intent-filter>
+133-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+134                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+134-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+134-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/runner/.gradle/caches/8.10.2/transforms/e2483079fb0c8043cc856a0a1adee009/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+135            </intent-filter>
+136        </receiver>
+137    </application>
+138
+139</manifest>

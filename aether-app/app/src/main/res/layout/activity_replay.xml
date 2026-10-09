@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:id="@+id/rpTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:fontFamily="monospace" />
+                <com.aether.signal.premium.ui.ReplayStripView
+                    android:id="@+id/rpStrip" android:layout_width="match_parent"
+                    android:layout_height="140dp" android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/rpBar" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="14sp"
+                    android:textStyle="bold" android:fontFamily="monospace"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/rpTime" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/rpOhlc" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/rpInd" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/rpDecision" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/amber"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/rpPosition" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnRpReset" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="⏮" style="@style/BtnGhost" android:minHeight="44dp" />
+                    <Button android:id="@+id/btnRpBack" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="◀" style="@style/BtnGhost" android:minHeight="44dp" />
+                    <Button android:id="@+id/btnRpPlay" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="2"
+                        android:text="▶ Putar" style="@style/BtnGhost" android:minHeight="44dp" />
+                    <Button android:id="@+id/btnRpStep" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶|" style="@style/BtnGhost" android:minHeight="44dp" />
+                </LinearLayout>
+                <TextView android:id="@+id/rpStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="JURNAL PERISTIWA" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/rpLog"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

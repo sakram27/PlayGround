@@ -99,7 +99,7 @@ object App {
         if (savedFilters != null) {
             for (id in FILTER_DEFS.map { it.id }) filterOn[id] = savedFilters.contains(id)
         }
-        loadSignals(); loadHist()
+        loadSignals(); loadHist(); loadJournal()
     }
 
     fun savePair() = prefs.edit().putString("pair", pair).apply()    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
@@ -250,6 +250,56 @@ object App {
 
     fun clearSignals() { signals = ArrayList(); prefs.edit().remove("signals").apply() }
     fun clearHist() { hist = ArrayList(); prefs.edit().remove("hist").apply() }
+
+    // ---------- jurnal trading lokal (F8, persist "journal_v1", kunci TERPISAH
+    // dari signals/hist/notifikasi → pembersihan riwayat tak menyentuhnya) ----------
+    var journal: ArrayList<JournalEntry> = ArrayList()
+
+    private fun saveJournal() {
+        try { prefs.edit().putString("journal_v1", encodeJournal(journal)).apply() } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun loadJournal() {
+        try { journal = ArrayList(parseJournal(prefs.getString("journal_v1", "[]"))) }
+        catch (e: Exception) { journal = ArrayList() }
+    }
+
+    /** Tambah entri baru (id unik bila kosong). Mengembalikan entri tersimpan. */
+    fun addJournal(e: JournalEntry): JournalEntry {
+        val withId = if (e.id.isBlank()) e.copy(id = "j${System.currentTimeMillis()}_${(0..9999).random()}") else e
+        val clean = sanitizeJournalEntry(withId) ?: withId
+        journal.add(0, clean)
+        while (journal.size > JOURNAL_CAP) journal.removeAt(journal.size - 1)
+        saveJournal()
+        return clean
+    }
+
+    /** Ubah entri by id (jaga createdAt & id). false bila id tak ditemukan. */
+    fun updateJournal(id: String, e: JournalEntry): Boolean {
+        val i = journal.indexOfFirst { it.id == id }
+        if (i < 0) return false
+        val old = journal[i]
+        val clean = sanitizeJournalEntry(e.copy(id = id, createdAt = old.createdAt,
+            updatedAt = System.currentTimeMillis())) ?: return false
+        journal[i] = clean
+        saveJournal()
+        return true
+    }
+
+    /** Hapus HANYA entri ber-id tersebut. false bila tak ditemukan. */
+    fun deleteJournal(id: String): Boolean {
+        val i = journal.indexOfFirst { it.id == id }
+        if (i < 0) return false
+        journal.removeAt(i)
+        saveJournal()
+        return true
+    }
+
+    /** Terapkan hasil merge impor (lokal menang atas duplikat — lihat mergeJournal). */
+    fun applyJournalMerge(merged: List<JournalEntry>) {
+        journal = ArrayList(merged.take(JOURNAL_CAP))
+        saveJournal()
+    }
 
     // ---------- snapshot terapan + backtest terakhir ----------
     fun saveApplied(origin: String, p: BacktestParams, pairs: List<String>, status: String, valid: Boolean) {

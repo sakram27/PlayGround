@@ -165,14 +165,47 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         findViewById<android.widget.Button>(R.id.btnQuietStart).setOnClickListener { pickQuietTime(true) }
         findViewById<android.widget.Button>(R.id.btnQuietEnd).setOnClickListener { pickQuietTime(false) }
         findViewById<android.widget.Button>(R.id.btnQuietDays).setOnClickListener { pickQuietDays() }
+        // V13 F5: preset sekali ketuk — langsung diterapkan saat diketuk, lalu ringkasan diperbarui.
+        findViewById<android.widget.Button>(R.id.btnQuietPresetWork).setOnClickListener {
+            applyQuietPreset(QUIET_PRESET_WORK, "Malam Hari Kerja")
+        }
+        findViewById<android.widget.Button>(R.id.btnQuietPresetWeekend).setOnClickListener {
+            applyQuietPreset(QUIET_PRESET_WEEKEND, "Akhir Pekan")
+        }
         paintQuietStatus()
+    }
+
+    /** Terapkan preset jam tenang (persist). Tak menyentuh sinyal/backtest/dedup. */
+    private fun applyQuietPreset(p: QuietHours, name: String) {
+        NotifBus.quietEnabled = true
+        NotifBus.quietStartMin = p.startMin
+        NotifBus.quietEndMin = p.endMin
+        NotifBus.quietDays = p.days
+        val sw = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swQuiet)
+        sw.setOnCheckedChangeListener(null)
+        sw.isChecked = true
+        sw.setOnCheckedChangeListener { _, on ->
+            val q = NotifBus.quietHours()
+            val err = quietValidationError(q.copy(enabled = on))
+            if (on && err != null) snack(this, "$err (atur jam & hari dulu).")
+            NotifBus.quietEnabled = on
+            paintQuietStatus()
+        }
+        paintQuietStatus()
+        snack(this, "Preset $name diterapkan: ${quietSummary(NotifBus.quietHours())}")
     }
 
     private fun paintQuietStatus() {
         val q = NotifBus.quietHours()
         findViewById<android.widget.Button>(R.id.btnQuietStart).text = "Mulai ${fmtMinuteOfDay(q.startMin)}"
-        findViewById<android.widget.Button>(R.id.btnQuietEnd).text = "Selesai ${fmtMinuteOfDay(q.endMin)}"
+        findViewById<android.widget.Button>(R.id.btnQuietEnd).text =
+            if (q.endMin == MINUTES_PER_DAY) "Selesai 24:00" else "Selesai ${fmtMinuteOfDay(q.endMin)}"
         findViewById<android.widget.Button>(R.id.btnQuietDays).text = "Hari: ${quietDaysLabel(q.days)}"
+        findViewById<TextView>(R.id.quietPresetStatus).text =
+            "Jadwal: ${quietPresetLabel(q)}" +
+                if (q.enabled && matchQuietPreset(q) == null)
+                    " (diubah manual, tidak sama dengan preset mana pun)."
+                else "."
         findViewById<TextView>(R.id.quietStatus).text = quietSummary(q) +
             "\nCatatan: jam tenang tidak menghentikan sinyal/backtest maupun notifikasi aplikasi lain, " +
             "dan sistem Android/OEM tetap dapat menunda notifikasi."
@@ -368,6 +401,13 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             val h = JSONArray()
             for (t in App.hist) h.put(JSONObject().put("asset", t.asset).put("pnl", t.pnl).put("result", t.result))
             o.put("signals", s).put("hist", h)
+            // F8: jurnal ikut diekspor level atas (data pengguna). Impor MENGGABUNG,
+            // bukan menimpa (lihat applyImport + mergeJournal).
+            val j = JSONArray()
+            for (e in App.journal) j.put(JSONObject().put("id", e.id).put("createdAt", e.createdAt)
+                .put("updatedAt", e.updatedAt).put("pair", e.pair).put("kind", e.kind)
+                .put("tradeKey", e.tradeKey).put("title", e.title).put("body", e.body))
+            o.put("journal", j)
             // P11: skema v2 terdokumentasi. Termasuk: provider, strategi, timeframe,
             // watchlist kustom, batas watchlist, pair engine, mode hemat, sakelar notifikasi.
             // TIDAK termasuk: sinyal/riwayat live (hanya arsip baca), kredensial
@@ -455,9 +495,17 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
                 NotifBus.quietEndMin = q.endMin
                 NotifBus.quietDays = q.days
             }
+            // F8: jurnal digabung (lokal menang atas id ganda) — tak pernah hapus
+            // jurnal lama tanpa persetujuan; persetujuan sudah diberikan via dialog.
+            var journalMsg = ""
+            if (plan.journal.isNotEmpty()) {
+                val (merged, added, skipped) = mergeJournal(App.journal, plan.journal)
+                App.applyJournalMerge(merged)
+                journalMsg = " Jurnal: $added baru digabung, $skipped duplikat dilewati."
+            }
             App.saveStrategy()
             App.prefs.edit().putString("provider", App.provider).putString("strategy", App.strategy).apply()
-            snack(this, "Konfigurasi dipulihkan. Sinyal/riwayat lama tetap dipertahankan.")
+            snack(this, "Konfigurasi dipulihkan. Sinyal/riwayat lama tetap dipertahankan.$journalMsg")
             recreate()
         } catch (e: Exception) { snack(this, "Gagal menerapkan: ${e.message}") }
     }

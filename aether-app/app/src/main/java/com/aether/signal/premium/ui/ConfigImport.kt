@@ -25,7 +25,8 @@ data class ImportPlan(
     val batterySaver: Boolean?,
     val notif: Map<String, Boolean>,
     val quiet: QuietHours?,
-    val warnings: List<String>
+    val warnings: List<String>,
+    val journal: List<JournalEntry> = emptyList()
 )
 
 /** Parse + validasi PENUH sebelum ada yang diterapkan. Gagal → exception, nol perubahan. */
@@ -86,12 +87,27 @@ fun parseConfigImport(txt: String): ImportPlan {
     }
     val quiet = cfg.optJSONObject("quiet")?.let { qo ->
         val start = qo.optInt("start", 22 * 60).coerceIn(0, MINUTES_PER_DAY - 1)
-        val end = qo.optInt("end", 7 * 60).coerceIn(0, MINUTES_PER_DAY - 1)
+        val end = qo.optInt("end", 7 * 60).coerceIn(0, MINUTES_PER_DAY)
         val days = parseQuietDays(qo.optString("days", ""))
         QuietHours(qo.optBoolean("enabled", false), start, end, days)
     }
+    // F8: jurnal di level atas (data pengguna, bukan config). Berkas lama tanpa
+    // kunci ini → kosong (kompatibel mundur, skema tetap v2).
+    val journal = ArrayList<JournalEntry>()
+    val ja = o.optJSONArray("journal")
+    if (ja != null) {
+        for (i in 0 until ja.length()) {
+            val jo = ja.optJSONObject(i) ?: continue
+            val e = sanitizeJournalEntry(JournalEntry(
+                jo.optString("id"), jo.optLong("createdAt", 0), jo.optLong("updatedAt", 0),
+                jo.optString("pair"), jo.optString("kind"), jo.optString("tradeKey"),
+                jo.optString("title"), jo.optString("body")))
+            if (e != null && journal.none { it.id == e.id }) journal.add(e)
+        }
+        if (journal.isEmpty()) warnings.add("Bagian jurnal kosong/tak valid: tidak ada yang digabung.")
+    }
     return ImportPlan(schema, provider, strategy, tf, customs, invalid,
-        watchLimit, engs, battery, notif, quiet, warnings)
+        watchLimit, engs, battery, notif, quiet, warnings, journal)
 }
 
 /** Ringkasan untuk dialog persetujuan (Bahasa Indonesia). */
@@ -108,6 +124,7 @@ fun importSummary(p: ImportPlan): String {
     b.append("• Hemat baterai: ${p.batterySaver?.let { if (it) "aktif" else "mati" } ?: "(tetap)"}\n")
     if (p.notif.isNotEmpty()) b.append("• Notifikasi: ${p.notif.entries.joinToString(", ") { "${it.key}=${if (it.value) "on" else "off"}" }}\n")
     p.quiet?.let { b.append("• Jam tenang: ${quietSummary(it)}\n") }
+    if (p.journal.isNotEmpty()) b.append("• Jurnal: ${p.journal.size} catatan akan DIGABUNG (duplikat id dilewati, jurnal lama tetap).\n")
     for (w in p.warnings) b.append("⚠ $w\n")
     b.append("Tidak dipulihkan: sinyal & riwayat live, cache harga, status kesehatan.")
     return b.toString()
