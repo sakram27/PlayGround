@@ -56,6 +56,98 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="NOTIFIKASI SINYAL" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Hanya dari kejadian live mesin (entry/SL/TP). Tanpa suara? Atur di bawah."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swNotifEntry" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Sinyal entry"
+                    android:textColor="@color/txt" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swNotifSl" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Stop loss tercapai"
+                    android:textColor="@color/txt" android:minHeight="48dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swNotifTp" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Take profit tercapai"
+                    android:textColor="@color/txt" android:minHeight="48dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swNotifSound" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Suara"
+                    android:textColor="@color/txt" android:minHeight="48dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swNotifVibrate" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Getaran"
+                    android:textColor="@color/txt" android:minHeight="48dp" />
+                <TextView android:id="@+id/notifStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <Button android:id="@+id/btnNotifPerm" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Aktifkan izin notifikasi"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="SELALU SIAGA" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Pantau pasar di latar belakang tiap 60 detik memakai provider aktif. Android dapat membatasi layanan saat hemat baterai."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swAlways" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Selalu Siaga"
+                    android:textColor="@color/txt" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <TextView android:id="@+id/alwaysStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="OPTIMASI BATERAI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:id="@+id/battStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btnBatt" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Minta pengecualian baterai"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PERANGKAT &amp; JARINGAN" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:id="@+id/oemGuide" android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="HP Xiaomi/Oppo/Vivo/dll dapat menghentikan aplikasi di latar. Bila pantauan sering mati: kunci Aether di Recent Apps, izinkan Autostart, dan matikan pembatasan latar belakang khusus merek HP Anda."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/netStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btnBattSys" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Buka pengaturan baterai"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="AI ANALYSIS" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"

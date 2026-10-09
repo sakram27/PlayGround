@@ -28,12 +28,25 @@ object BotEngine {
     private val exec = Executors.newSingleThreadScheduledExecutor()
     private val fctx = HashMap<String, FilterCtx>()
     var onTick: (() -> Unit)? = null
+    /** Telemetri jujur per tick (E): berapa pair berhasil diproses. Bukan logika sinyal. */
+    @Volatile var lastOkPairs: Int = 0
+    @Volatile var lastTotalPairs: Int = 0
+    /** True bila tick digerakkan MonitorService (hindari 2 scheduler ganda). */
+    var externallyDriven: Boolean = false
+        private set
+
+    fun setExternallyDriven(v: Boolean) { externallyDriven = v }
 
     fun start(): String {
         if (App.engPairs.isEmpty()) return "Pilih pair dulu."
         try { App.buildParams(App.engPairs.first()) } catch (e: Exception) { return "Config error: ${e.message}" }
         if (equity == null) equity = try { App.buildParams(App.engPairs.first()).initialCapital } catch (e: Exception) { 1000.0 }
         App.engRunning = true
+        if (MonitorService.running || externallyDriven) {
+            // Selalu Siaga sudah memantau: jangan buat scheduler kedua.
+            exec.execute { tick(true); onTick?.invoke() }
+            return "Dipantau Selalu Siaga."
+        }
         exec.execute { tick(true); onTick?.invoke() }
         sched?.cancel(false)
         sched = exec.scheduleAtFixedRate({ if (App.engRunning) { tick(false); onTick?.invoke() } }, 90, 90, TimeUnit.SECONDS)
@@ -61,12 +74,16 @@ object BotEngine {
         try { p = App.buildParams(App.engPairs.firstOrNull() ?: return) } catch (e: Exception) { lastScan = "Dry run error: ${e.message}"; return }
         if (equity == null) equity = p.initialCapital
         val tfMs = try { parseTimeframe(p.timeframe) * 60000L } catch (e: Exception) { 900000L }
-        for (sym in App.engPairs.toList()) {
+        var ok = 0
+        val syms = App.engPairs.toList()
+        lastTotalPairs = syms.size
+        for (sym in syms) {
             try {
                 val raw = getCandles(App.provider, sym, p.timeframe, 200).candles
                 val candles = normalizeCandles(raw.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? })
                 val cache = buildCache(candles)
                 val last = candles.last()
+                ok++
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
                     open.mark = last.c
@@ -91,7 +108,10 @@ object BotEngine {
                         val fx = fctx[sym] ?: FilterCtx()
                         fx.lastExitT = b.t; fx.tfMs = tfMs
                         fctx[sym] = fx
-                        App.pushSignal(Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t, "dryrun-" + if (win) "TP" else "SL", "d${b.t}${sym}"))
+                        val sig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t, "dryrun-" + if (win) "TP" else "SL", "d${b.t}${sym}")
+                        App.pushSignal(sig)
+                        // Notifikasi SL/TP NYATA (level tersentuh per definisi mesin) + dedup.
+                        try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                         break
                     }
                 } else {
@@ -116,10 +136,14 @@ object BotEngine {
                     if (qty * entry > maxNot) qty = maxNot / entry
                     if (!(qty > 0)) continue
                     positions.add(PaperPos(sym, dec.direction, entry, last.t, sl, tp, qty, last.c, 0.0))
-                    App.pushSignal(Sig(sym, p.timeframe, dec.direction, entry, sl, tp, last.t, "dryrun-entry", "e${last.t}${sym}"))
+                    val sig = Sig(sym, p.timeframe, dec.direction, entry, sl, tp, last.t, "dryrun-entry", "e${last.t}${sym}")
+                    App.pushSignal(sig)
+                    // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
+                    try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                 }
             } catch (e: Exception) { /* lanjut pair berikut */ }
         }
+        lastOkPairs = ok
         lastScan = "Jalan · equity $${App.fmt(equity ?: 0.0)} · ${java.util.Date()}"
     }
 

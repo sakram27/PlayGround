@@ -12,10 +12,12 @@
                 android:orientation="vertical">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:gravity="center_vertical">
+                    <ImageView android:id="@+id/pairIcon" android:layout_width="30dp"
+                        android:layout_height="30dp" android:layout_marginEnd="8dp" />
                     <TextView android:id="@+id/sym" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="—" android:textColor="@color/txt" android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
                     <TextView android:id="@+id/price" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="…" android:textColor="@color/txt"
                         android:textSize="20sp" android:fontFamily="monospace" android:textStyle="bold" />
@@ -28,25 +30,47 @@
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/segTf" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginBottom="10dp" app:singleSelection="true" app:selectionRequired="true">
-            <Button android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="15m" style="@style/BtnGhost" />
-            <Button android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="1h" style="@style/BtnGhost" />
-            <Button android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="4h" style="@style/BtnGhost" />
-            <Button android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:text="1d" style="@style/BtnGhost" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/segTfM5" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="M5" style="@style/BtnGhost" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/segTfM15" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="M15" style="@style/BtnGhost" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/segTfH1" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="H1" style="@style/BtnGhost" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/segTfH4" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="H4" style="@style/BtnGhost" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/segTfD1" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="D1" style="@style/BtnGhost" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
-                <com.github.mikephil.charting.charts.CandleStickChart
-                    android:id="@+id/chart" android:layout_width="match_parent"
-                    android:layout_height="380dp" />
+                <FrameLayout android:layout_width="match_parent"
+                    android:layout_height="380dp">
+                    <com.github.mikephil.charting.charts.CombinedChart
+                        android:id="@+id/chart" android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                    <LinearLayout android:id="@+id/chartOverlay"
+                        android:layout_width="match_parent" android:layout_height="match_parent"
+                        android:orientation="vertical" android:gravity="center"
+                        android:background="#A00B0E14" android:visibility="gone"
+                        android:padding="16dp">
+                        <ProgressBar android:id="@+id/chartLoading"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:visibility="gone" />
+                        <TextView android:id="@+id/chartMsg"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:textColor="@color/mut" android:textSize="13sp"
+                            android:gravity="center" android:visibility="gone" />
+                        <Button android:id="@+id/chartRetry"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Coba lagi" style="@style/BtnGhost"
+                            android:layout_marginTop="8dp" android:visibility="gone" />
+                    </LinearLayout>
+                </FrameLayout>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Sentuh = crosshair · Cubit = zoom · Geser = gulir"
+                    android:text="Sentuh = OHLC · Cubit = zoom · Geser = gulir"
                     android:textColor="@color/dim" android:textSize="11sp"
                     android:layout_marginTop="6dp" />
             </LinearLayout>

@@ -17,9 +17,9 @@
                     android:id="@+id/segDepth" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:layout_marginTop="8dp"
                     app:singleSelection="true" app:selectionRequired="true">
-                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/segDepthShort" android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:text="Ringkas" style="@style/BtnGhost" />
-                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                    <com.google.android.material.button.MaterialButton android:id="@+id/segDepthDeep" android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:text="Mendalam" style="@style/BtnGhost" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
                 <Button android:id="@+id/btnRun" android:layout_width="match_parent"

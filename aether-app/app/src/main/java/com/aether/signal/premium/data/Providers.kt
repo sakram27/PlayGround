@@ -17,7 +17,12 @@ data class FetchMeta(
 
 data class FetchResult(val candles: List<Candle>, val meta: FetchMeta)
 
-private val memCache = HashMap<String, List<Candle>>()
+private val memCache = HashMap<String, Pair<List<Candle>, Long>>()
+
+/** TTL cache memori (G5): tanpa ini harga membeku selamanya dalam satu proses.
+ *  60 dtk untuk semua TF — cukup segar untuk monitor 60-dtk, hemat untuk backtest
+ *  berulang. Bukan bagian rumus strategi. */
+const val MEMCACHE_TTL_MS = 60_000L
 val fetchHistory = ArrayList<FetchMeta>()
 
 private fun ck(p: String, s: String, t: String, l: Int) = "$p|$s|$t|$l"
@@ -48,6 +53,42 @@ private val YAHOO_INTERVAL = mapOf("1m" to "1m", "5m" to "5m", "15m" to "15m", "
 private val YAHOO_RANGE = mapOf("1m" to "5d", "5m" to "1mo", "15m" to "1mo", "30m" to "1mo", "1h" to "6mo", "4h" to "1y", "1d" to "2y", "1w" to "5y")
 private val BYBIT_TF = mapOf("1m" to "1", "3m" to "3", "5m" to "5", "15m" to "15", "30m" to "30", "1h" to "60", "2h" to "120", "4h" to "240", "6h" to "360", "12h" to "720", "1d" to "D", "1w" to "W")
 
+/** Timeframe yang didukung penuh oleh SELURUH provider (Market memakai daftar ini). */
+val MARKET_TIMEFRAMES = listOf("5m", "15m", "1h", "4h", "1d")
+val MARKET_TF_LABELS = listOf("M5", "M15", "H1", "H4", "D1")
+
+/** Provider nyata yang diimplementasikan (ditampilkan apa adanya, tanpa tambahan). */
+val PROVIDER_IDS = listOf("binance", "bybit", "yahoo", "demo")
+val PROVIDER_LABELS = listOf("Binance (Crypto)", "Bybit (Crypto)", "Yahoo (Forex & Metal)", "Demo (Offline)")
+
+private val FOREX_BASES = setOf(
+    "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "NZD", "IDR", "SGD", "MYR", "INR",
+    "CNY", "KRW", "TRY", "ZAR", "SEK", "NOK", "DKK", "PLN", "HKD", "MXN", "XAU", "XAG"
+)
+
+/** True bila simbol menyerupai forex/metal (mis. XAU/USD, XAUUSD, EURUSD), bukan crypto spot. */
+fun isForexLike(rawSymbol: String): Boolean {
+    val s = rawSymbol.trim().uppercase()
+    if (s.contains("/")) {
+        val base = s.split("/").firstOrNull()?.replace(Regex("[^A-Z]"), "") ?: ""
+        if (FOREX_BASES.contains(base)) return true
+    }
+    val flat = s.replace(Regex("[^A-Z]"), "")
+    if (flat.length == 6 && FOREX_BASES.any { flat.startsWith(it) || flat.endsWith(it) }) return true
+    if ((flat.startsWith("XAU") || flat.startsWith("XAG")) && flat.length >= 6) return true
+    return false
+}
+
+/** Nama ramah untuk simbol metal/forex pada pesan error. */
+private fun metalName(sym: String): String {
+    val f = sym.uppercase().replace(Regex("[^A-Z]"), "")
+    return when {
+        f.startsWith("XAU") -> "XAUUSD (emas)"
+        f.startsWith("XAG") -> "XAGUSD (perak)"
+        else -> sym.trim().uppercase()
+    }
+}
+
 private val BINANCE_HOSTS = listOf("https://api.binance.com", "https://data-api.binance.vision", "https://api.binance.us")
 private var binanceHost: String? = null
 
@@ -62,12 +103,12 @@ fun fetchText(url: String, timeoutMs: Int = 15000): String {
     } finally { c.disconnect() }
 }
 
-private fun binanceFetch(path: String): Pair<String, String> {
+private fun binanceFetch(path: String, timeoutMs: Int = 15000): Pair<String, String> {
     val hosts = listOfNotNull(binanceHost) + BINANCE_HOSTS.filter { it != binanceHost }
     var lastErr: Exception? = null
     for (h in hosts) {
         try {
-            val data = fetchText(h + path)
+            val data = fetchText(h + path, timeoutMs)
             binanceHost = h
             return h to data
         } catch (e: Exception) { lastErr = e }
@@ -127,22 +168,36 @@ private fun yahooCandles(symbol: String, timeframe: String, limit: Int): List<Ca
     throw RuntimeException("Yahoo gagal untuk $symbol ($ysym): ${lastErr?.message ?: "tidak diketahui"}. Coba lagi atau pakai Demo.")
 }
 
-fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timeframe: String = "15m", limit: Int = 500): FetchResult {
+fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timeframe: String = "15m", limit: Int = 500, timeoutMs: Int = 15000): FetchResult {
     val rawSymbol = symbol.trim()
     parseTimeframe(timeframe)
     val lim = minOf(1000, maxOf(60, limit))
     val key = ck(provider, rawSymbol.uppercase(), timeframe, lim)
-    memCache[key]?.let {
-        val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, it.size, "memory", provider)
-        fetchHistory.add(meta)
-        return FetchResult(it, meta)
+    memCache[key]?.let { (cached, at) ->
+        if (System.currentTimeMillis() - at < MEMCACHE_TTL_MS) {
+            val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, cached.size, "memory", provider)
+            fetchHistory.add(meta)
+            return FetchResult(cached, meta)
+        } else {
+            memCache.remove(key)
+        }
     }
     val sym = rawSymbol.uppercase().replace(Regex("[^A-Z0-9]"), "")
+    // XAUUSD/forex TIDAK tersedia di spot crypto. Gagal jujur di sini (jangan
+    // biarkan provider mengembalikan HTTP 400 yang membingungkan, dan jangan
+    // diam-diam memakai data demo sebagai pengganti).
+    if ((provider == "binance" || provider == "bybit") && isForexLike(rawSymbol)) {
+        val provName = if (provider == "binance") "Binance" else "Bybit"
+        throw RuntimeException(
+            "${metalName(rawSymbol)} tidak tersedia di $provName spot (khusus crypto). " +
+                "Pilih provider Yahoo (Forex & Metal) atau Demo untuk simbol ini."
+        )
+    }
     val candles: List<Candle> = when (provider) {
         "demo" -> genDemoCandles(symbol.length * 777 + timeframe.length * 131, lim, guessPrice(symbol), parseTimeframe(timeframe))
         "binance" -> {
             if (sym.isEmpty()) throw RuntimeException("Pilih pair dulu dari listview.")
-            val (_, txt) = binanceFetch("/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(timeframe, "UTF-8")}&limit=$lim")
+            val (_, txt) = binanceFetch("/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(timeframe, "UTF-8")}&limit=$lim", timeoutMs)
             val j = JSONArray(txt)
             if (j.length() == 0) throw RuntimeException("Binance mengembalikan data kosong untuk $sym $timeframe. Cek penulisan simbol.")
             List(j.length()) { k ->
@@ -154,7 +209,7 @@ fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timefra
             if (sym.isEmpty()) throw RuntimeException("Pilih pair dulu dari listview.")
             val tf = BYBIT_TF[timeframe.lowercase()] ?: throw RuntimeException("Bybit tidak mendukung timeframe $timeframe. Gunakan 1m/5m/15m/1h/4h/1d/1w.")
             val txt = try {
-                fetchText("https://api.bybit.com/v5/market/kline?category=spot&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(tf, "UTF-8")}&limit=$lim")
+                fetchText("https://api.bybit.com/v5/market/kline?category=spot&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(tf, "UTF-8")}&limit=$lim", timeoutMs)
             } catch (e: Exception) { throw RuntimeException("Bybit tak terjangkau (umum: diblokir wilayah/jaringan). Pakai Binance, Yahoo, atau Demo. [${e.message ?: "network"}]") }
             val list = JSONObject(txt).getJSONObject("result").getJSONArray("list")
             if (list.length() == 0) throw RuntimeException("Bybit mengembalikan data kosong untuk $sym. Pastikan simbol spot valid.")
@@ -168,7 +223,7 @@ fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timefra
     }
     val bad = candles.count { !(it.o.isFinite() && it.h.isFinite() && it.l.isFinite() && it.c.isFinite()) }
     if (bad > 0) throw RuntimeException("Provider mengembalikan $bad candle rusak. Coba refresh.")
-    memCache[key] = candles
+    memCache[key] = candles to System.currentTimeMillis()
     val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, candles.size, "none", provider)
     fetchHistory.add(meta)
     if (fetchHistory.size > 60) fetchHistory.removeAt(0)
@@ -206,31 +261,51 @@ fun parseCSV(text: String): List<Candle> {
     return out
 }
 
+/** Daftar darurat bila provider diblokir/tak terjangkau. BUKAN data pasar —
+ *  hanya simbol; harga tetap diambil live per pair (atau gagal jujur per baris). */
+val FALLBACK_PAIRS = listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT")
+
 fun topPairs(provider: String = "binance", limit: Int = 50): List<String> {
     if (provider == "demo") return listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT").take(limit)
     if (provider == "yahoo") return YAHOO_UNIVERSE.keys.toList().take(limit)
-    try {
-        if (provider == "bybit") {
-            val j = JSONObject(fetchText("https://api.bybit.com/v5/market/tickers?category=spot"))
-            val list = j.getJSONObject("result").getJSONArray("list")
-            val rows = ArrayList<Pair<String, Double>>()
-            for (k in 0 until list.length()) {
-                val o = list.getJSONObject(k)
-                val s = o.getString("symbol")
-                if (s.endsWith("USDT")) rows.add(s to o.optDouble("turnover24h", 0.0))
-            }
-            return rows.sortedByDescending { it.second }.take(limit).map { it.first }
-        }
-        val (_, txt) = binanceFetch("/api/v3/ticker/24hr")
-        val j = JSONArray(txt)
+    return try {
+        fetchTopPairs(provider, limit)
+    } catch (e: Exception) {
+        FALLBACK_PAIRS
+    }
+}
+
+private fun fetchTopPairs(provider: String, limit: Int): List<String> {
+    if (provider == "bybit") {
+        val j = JSONObject(fetchText("https://api.bybit.com/v5/market/tickers?category=spot"))
+        val list = j.getJSONObject("result").getJSONArray("list")
         val rows = ArrayList<Pair<String, Double>>()
-        for (k in 0 until j.length()) {
-            val o = j.getJSONObject(k)
+        for (k in 0 until list.length()) {
+            val o = list.getJSONObject(k)
             val s = o.getString("symbol")
-            if (s.endsWith("USDT")) rows.add(s to o.optDouble("quoteVolume", 0.0))
+            if (s.endsWith("USDT")) rows.add(s to o.optDouble("turnover24h", 0.0))
         }
         return rows.sortedByDescending { it.second }.take(limit).map { it.first }
+    }
+    val (_, txt) = binanceFetch("/api/v3/ticker/24hr")
+    val j = JSONArray(txt)
+    val rows = ArrayList<Pair<String, Double>>()
+    for (k in 0 until j.length()) {
+        val o = j.getJSONObject(k)
+        val s = o.getString("symbol")
+        if (s.endsWith("USDT")) rows.add(s to o.optDouble("quoteVolume", 0.0))
+    }
+    return rows.sortedByDescending { it.second }.take(limit).map { it.first }
+}
+
+/** Seperti topPairs, plus penanda apakah hasilnya daftar darurat.
+ *  @return Pair(daftarPair, isFallback) */
+fun topPairsWithSource(provider: String = "binance", limit: Int = 50): Pair<List<String>, Boolean> {
+    if (provider == "demo") return listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT").take(limit) to false
+    if (provider == "yahoo") return YAHOO_UNIVERSE.keys.toList().take(limit) to false
+    return try {
+        fetchTopPairs(provider, limit) to false
     } catch (e: Exception) {
-        return listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT")
+        FALLBACK_PAIRS to true
     }
 }

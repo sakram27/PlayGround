@@ -36,6 +36,10 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="STRATEGI · 25 BAWAAN" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Ketuk strategi = jadikan aktif. Tombol Combo = pilih gabungan."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" style="@style/Field" android:hint="Cari strategi…">
@@ -43,9 +47,20 @@
                         android:id="@+id/search" android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
                 </com.google.android.material.textfield.TextInputLayout>
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/stratList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
+                <ListView android:id="@+id/stratList" android:layout_width="match_parent"
+                    android:layout_height="300dp" android:layout_marginTop="8dp"
+                    android:choiceMode="singleChoice" android:fastScrollEnabled="true"
+                    android:divider="@color/line" android:dividerHeight="1dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnCombo" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Combo…" style="@style/BtnGhost" />
+                    <TextView android:id="@+id/comboCount" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/mut" android:textSize="12sp"
+                        android:gravity="center_vertical|end" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView

@@ -6,8 +6,10 @@ import com.aether.signal.premium.R
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 
-class SignalsActivity : BaseActivity(R.id.nav_signals) {
+class SignalsActivity : BaseActivity(0) {
     override val contentLayout = R.layout.activity_signals
+    // Dibuka langsung (bukan tab): tombol kembali toolbar aktif agar bisa pulang.
+    override val showBack = true
     private var mode = 0
 
     override fun build() {
@@ -42,7 +44,7 @@ class SignalsActivity : BaseActivity(R.id.nav_signals) {
                 bSecond.text = "Ke Markets"
                 bSecond.setOnClickListener { navTo("markets") }
                 val items = App.signals.take(150).map {
-                    SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src} · SL ${App.fmt(it.sl, 4)} TP ${App.fmt(it.tp, 4)}", App.fmt(it.price, 4))
+                    SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src} · SL ${App.fmt(it.sl, 4)} TP ${App.fmt(it.tp, 4)}", App.fmt(it.price, 4), it.pair)
                 }
                 list().adapter = SigAdapter(items)
                 if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {
@@ -69,13 +71,13 @@ class SignalsActivity : BaseActivity(R.id.nav_signals) {
                 if (BotEngine.positions.isNotEmpty()) {
                     items.add(SigItem("···", "Terbuka · ${BotEngine.positions.size}", "", ""))
                     BotEngine.positions.forEach { o ->
-                        items.add(SigItem(o.dir, "${o.pair} @ ${App.fmt(o.entry, 4)}", "mark ${App.fmt(o.mark, 4)} · SL ${App.fmt(o.sl, 4)} TP ${App.fmt(o.tp, 4)}", App.fmtMoney(o.upl)))
+                        items.add(SigItem(o.dir, "${o.pair} @ ${App.fmt(o.entry, 4)}", "mark ${App.fmt(o.mark, 4)} · SL ${App.fmt(o.sl, 4)} TP ${App.fmt(o.tp, 4)}", App.fmtMoney(o.upl), o.pair))
                     }
                 }
                 if (BotEngine.closed.isNotEmpty()) {
                     items.add(SigItem("···", "Tertutup · ${BotEngine.closed.size}", "", ""))
                     BotEngine.closed.take(120).forEach { t ->
-                        items.add(SigItem(t.dir, "${t.pair}  ${t.result}", App.fmtDate(t.exitT), App.fmtMoney(t.pnl)))
+                        items.add(SigItem(t.dir, "${t.pair}  ${t.result}", App.fmtDate(t.exitT), App.fmtMoney(t.pnl), t.pair))
                     }
                 }
                 list().adapter = SigAdapter(items)
@@ -95,7 +97,7 @@ class SignalsActivity : BaseActivity(R.id.nav_signals) {
                 bSecond.text = "Ke Lab"
                 bSecond.setOnClickListener { navTo("lab") }
                 val items = App.hist.take(150).map {
-                    SigItem(it.direction, "${it.asset}  ${it.result}", App.fmtDate(it.exitTime), App.fmtMoney(it.pnl))
+                    SigItem(it.direction, "${it.asset}  ${it.result}", App.fmtDate(it.exitTime), App.fmtMoney(it.pnl), it.asset)
                 }
                 list().adapter = SigAdapter(items)
                 if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {

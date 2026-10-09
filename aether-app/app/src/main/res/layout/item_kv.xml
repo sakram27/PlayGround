@@ -6,5 +6,5 @@
         android:layout_weight="1" android:textColor="@color/mut" android:textSize="13sp" />
     <TextView android:id="@+id/v" android:layout_width="0dp" android:layout_height="wrap_content"
         android:layout_weight="1" android:gravity="end" android:textColor="@color/txt"
-        android:textSize="13sp" android:fontFamily="monospace" />
+        android:textSize="13sp" android:fontFamily="monospace" android:maxLines="2" android:ellipsize="end" />
 </LinearLayout>

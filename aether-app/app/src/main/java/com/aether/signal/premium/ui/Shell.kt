@@ -12,7 +12,7 @@ import com.google.android.material.snackbar.Snackbar
 
 // Shell Material: Toolbar + konten + BottomNavigationView 5 tab. Tanpa WebView.
 
-abstract class BaseActivity(val tabItem: Int = R.id.nav_home) : AppCompatActivity() {
+abstract class BaseActivity(val tabItem: Int = 0) : AppCompatActivity() {
     abstract val contentLayout: Int
     protected lateinit var toolbar: MaterialToolbar
     open val showBack: Boolean = false
@@ -20,6 +20,7 @@ abstract class BaseActivity(val tabItem: Int = R.id.nav_home) : AppCompatActivit
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         App.init(this)
+        NotifBus.init(this)
         setContentView(R.layout.shell)
         toolbar = findViewById(R.id.toolbar)
         if (showBack) {
@@ -33,16 +34,20 @@ abstract class BaseActivity(val tabItem: Int = R.id.nav_home) : AppCompatActivit
         }
         LayoutInflater.from(this).inflate(contentLayout, findViewById<FrameLayout>(R.id.content), true)
         val nav = findViewById<BottomNavigationView>(R.id.bottomnav)
-        nav.selectedItemId = tabItem
+        // Tab Signal dihapus dari navigasi (K) — SignalsActivity dibuka langsung.
+        // Hanya tandai tab bila id-nya benar-benar ada di menu (hindari crash).
+        try {
+            if (tabItem != 0 && nav.menu.findItem(tabItem) != null) nav.selectedItemId = tabItem
+        } catch (e: Exception) { /* abaikan */ }
         nav.setOnItemSelectedListener {
             val k = when (it.itemId) {
                 R.id.nav_home -> "home"; R.id.nav_markets -> "markets"
-                R.id.nav_signals -> "signals"; R.id.nav_lab -> "lab"
+                R.id.nav_lab -> "lab"
                 else -> "settings"
             }
             val cur = when (tabItem) {
                 R.id.nav_home -> "home"; R.id.nav_markets -> "markets"
-                R.id.nav_signals -> "signals"; R.id.nav_lab -> "lab"
+                R.id.nav_lab -> "lab"
                 else -> "settings"
             }
             if (k != cur) navTo(k)
@@ -82,6 +87,12 @@ abstract class BaseActivity(val tabItem: Int = R.id.nav_home) : AppCompatActivit
             else -> LabActivity::class.java
         }
         startActivity(Intent(this, cls))
+        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.fade_out)
+    }
+
+    /** Buka daftar sinyal tanpa menutup layar asal (tombol Back kembali). */
+    fun openSignals() {
+        startActivity(Intent(this, SignalsActivity::class.java))
         overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.fade_out)
     }
 

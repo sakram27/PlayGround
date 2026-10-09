@@ -14,9 +14,9 @@ class AiActivity : BaseActivity(R.id.nav_lab) {
     override fun build() {
         setBar("AI Analysis", "Interpreter lokal · bukan ramalan")
         val seg = findViewById<MaterialButtonToggleGroup>(R.id.segDepth)
-        seg.check(seg.getChildAt(0).id)
+        seg.check(if (depth == 1) R.id.segDepthDeep else R.id.segDepthShort)
         seg.addOnButtonCheckedListener { _, id, checked ->
-            if (checked) depth = if (id == seg.getChildAt(1).id) 1 else 0
+            if (checked) depth = if (id == R.id.segDepthDeep) 1 else 0
         }
         findViewById<View>(R.id.btnRun).setOnClickListener { analyze() }
     }
@@ -36,7 +36,7 @@ class AiActivity : BaseActivity(R.id.nav_lab) {
                     flat.add(SigItem("§", b.title, "", ""))
                     for ((tag, txt) in b.items) flat.add(SigItem(tag, txt, "", ""))
                 }
-                list.adapter = SigAdapter(flat)
+                list.adapter = SigAdapter(flat, wrapMain = true)
                 findViewById<TextView>(R.id.status).text =
                     "Selesai — ${App.signals.size} sinyal, ${App.hist.size} trade dibaca."
             }

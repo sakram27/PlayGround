@@ -1,10 +1,7 @@
 package com.aether.signal.premium.ui
 
-import android.content.Intent
 import android.view.View
 import com.aether.signal.premium.R
-import com.aether.signal.premium.data.getCandles
-import com.aether.signal.premium.data.topPairs
 import com.google.android.material.button.MaterialButton
 
 class DashboardActivity : BaseActivity(R.id.nav_home) {
@@ -18,12 +15,15 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             BotEngine.onTick = { runOnUiThread { paintHero() } }
             paintHero()
         }
-        findViewById<MaterialButton>(R.id.btnAllMkt).setOnClickListener { navTo("markets") }
-        findViewById<MaterialButton>(R.id.btnAllSig).setOnClickListener { navTo("signals") }
+        findViewById<MaterialButton>(R.id.btnAllSig).setOnClickListener { openSignals() }
         findViewById<MaterialButton>(R.id.btnLab).setOnClickListener { navTo("lab") }
         paintSignals()
         paintCfg()
-        loadMarket()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try { paintHero() } catch (e: Exception) { /* layout belum siap */ }
     }
 
     private fun paintHero() {
@@ -39,15 +39,18 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             if (App.hist.isNotEmpty()) App.fmt(wins.toDouble() / App.hist.size * 100, 1) + "%" else "—"
         findViewById<android.widget.TextView>(R.id.kPos).text = BotEngine.positions.size.toString()
         findViewById<MaterialButton>(R.id.btnEngine).text = if (App.engRunning) "Stop Engine" else "Start Engine"
-        findViewById<android.widget.TextView>(R.id.engStatus).text =
-            if (App.engRunning) "RUN · ${BotEngine.lastScan}" else "Engine berhenti."
+        findViewById<android.widget.TextView>(R.id.engStatus).text = when {
+            MonitorService.running -> "Selalu Siaga · ${MonitorService.statusText()}"
+            App.engRunning -> "RUN · ${BotEngine.lastScan}"
+            else -> "Engine berhenti."
+        }
     }
 
     private fun paintSignals() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.sigList)
         list.vertical(this)
         val items = App.signals.take(4).map {
-            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}", App.fmt(it.price, 4))
+            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}", App.fmt(it.price, 4), it.pair)
         }
         list.adapter = SigAdapter(items)
         findViewById<android.widget.TextView>(R.id.sigEmpty).apply {
@@ -65,49 +68,5 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         findViewById<android.widget.TextView>(R.id.cfgLast).text =
             if (lb == null) "Backtest terakhir: belum ada."
             else "Backtest: ${lb.mode} · ${lb.pairs.joinToString(",")} · ${lb.trades} trade · ${lb.status}"
-    }
-
-    private fun loadMarket() {
-        val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.mktList)
-        list.vertical(this)
-        val load = findViewById<View>(R.id.mktLoad)
-        val msg = findViewById<android.widget.TextView>(R.id.mktMsg)
-        load.visibility = View.VISIBLE
-        msg.visibility = View.GONE
-        runBg {
-            try {
-                var prov: String
-                val pairs = try {
-                    prov = App.provider
-                    topPairs(App.provider, 5)
-                } catch (e: Exception) {
-                    prov = "demo"
-                    topPairs("demo", 5)
-                }
-                val rows = ArrayList<WatchItem>()
-                for (s in pairs) {
-                    try {
-                        val cs = getCandles(prov, s, "1h", 60).candles
-                        val last = cs.last(); val ref = cs[maxOf(0, cs.size - 25)]
-                        rows.add(WatchItem(s, App.fmt(last.c, if (last.c > 1000) 2 else 4), (last.c - ref.c) / ref.c * 100, "", null))
-                    } catch (e: Exception) {
-                        rows.add(WatchItem(s, "—", null, "NO DATA", e.message))
-                    }
-                }
-                runOnUiThread {
-                    load.visibility = View.GONE
-                    list.adapter = WatchAdapter(rows) {
-                        App.pair = it.sym; App.savePair()
-                        startActivity(Intent(this, MarketActivity::class.java))
-                    }
-                }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    load.visibility = View.GONE
-                    msg.visibility = View.VISIBLE
-                    msg.text = "Pasar gagal dimuat: ${e.message}"
-                }
-            }
-        }
     }
 }

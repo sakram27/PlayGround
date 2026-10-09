@@ -77,13 +77,22 @@ object App {
         strategy = prefs.getString("strategy", "ema_trend") ?: "ema_trend"
         provider = prefs.getString("provider", "binance") ?: "binance"
         engPairs = LinkedHashSet(prefs.getStringSet("engpairs", setOf("BTCUSDT", "ETHUSDT")) ?: emptySet())
+        comboExtra = LinkedHashSet(prefs.getStringSet("comboextra", emptySet()) ?: emptySet())
+        val savedFilters = prefs.getStringSet("filteron", null)
+        if (savedFilters != null) {
+            for (id in FILTER_DEFS.map { it.id }) filterOn[id] = savedFilters.contains(id)
+        }
         loadSignals(); loadHist()
     }
 
-    fun savePair() = prefs.edit().putString("pair", pair).apply()
-    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
+    fun savePair() = prefs.edit().putString("pair", pair).apply()    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
     fun saveStrategy() = prefs.edit().putString("strategy", strategy).apply()
     fun saveEngPairs() = prefs.edit().putStringSet("engpairs", LinkedHashSet(engPairs)).apply()
+    fun saveCombo() = prefs.edit().putStringSet("comboextra", LinkedHashSet(comboExtra)).apply()
+    fun saveFilters() = prefs.edit().putStringSet(
+        "filteron",
+        FILTER_DEFS.map { it.id }.filter { filterOn[it] == true }.toSet()
+    ).apply()
 
     fun secOpen(key: String, def: Boolean): Boolean = prefs.getBoolean("labsec_$key", def)
     fun setSecOpen(key: String, open: Boolean) = prefs.edit().putBoolean("labsec_$key", open).apply()
@@ -260,4 +269,8 @@ object App {
         s = s.trimEnd('0').trimEnd('.')
         return s
     }
+
+    /** Validasi murni rentang tanggal backtest (I5/I6): 0 = tak dibatasi. */
+    fun isDateRangeValid(from: Long, to: Long): Boolean =
+        from <= 0 || to <= 0 || from <= to
 }

@@ -82,32 +82,6 @@
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:gravity="center_vertical">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Pasar" android:textColor="@color/txt"
-                        android:textSize="17sp" android:textStyle="bold" />
-                    <Button android:id="@+id/btnAllMkt" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Semua →"
-                        style="@style/BtnGhost" android:minHeight="38dp" />
-                </LinearLayout>
-                <ProgressBar android:id="@+id/mktLoad" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:layout_gravity="center"
-                    android:layout_margin="12dp" />
-                <TextView android:id="@+id/mktMsg" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:gravity="center" android:visibility="gone" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/mktList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:gravity="center_vertical">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:text="Sinyal terbaru" android:textColor="@color/txt"
                         android:textSize="17sp" android:textStyle="bold" />
                     <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"

@@ -2,12 +2,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="wrap_content"
     android:orientation="vertical" android:padding="20dp">
-    <TextView android:id="@+id/sym" android:layout_width="wrap_content"
-        android:layout_height="wrap_content" android:text="—" android:textColor="@color/txt"
-        android:textSize="20sp" android:textStyle="bold" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <ImageView android:id="@+id/icon" android:layout_width="34dp"
+            android:layout_height="34dp" android:layout_marginEnd="10dp" />
+        <TextView android:id="@+id/sym" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="—" android:textColor="@color/txt"
+            android:textSize="20sp" android:textStyle="bold"
+            android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
     <TextView android:id="@+id/meta" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:textColor="@color/mut"
         android:textSize="12sp" android:fontFamily="monospace" android:layout_marginTop="4dp" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="TREN 60 CANDLE" android:textColor="@color/dim"
+        android:textSize="10sp" android:textStyle="bold" android:layout_marginTop="10dp" />
+    <com.aether.signal.premium.ui.SparkView android:id="@+id/spark"
+        android:layout_width="match_parent" android:layout_height="64dp"
+        android:layout_marginTop="4dp" />
     <Button android:id="@+id/btnBacktest" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="Pakai di Backtest"
         style="@style/BtnPrimary" android:layout_marginTop="12dp" />

@@ -1,7 +1,19 @@
 [
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_ai.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/activity_ai.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_xrp.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_xrp.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_wbtc.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_wbtc.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_sheet_checklist.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/sheet_checklist.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_nz.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_nz.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_search.xml.flat",
@@ -12,16 +24,128 @@
         "source": "com.aether.signal.premium.app-main-34:/layout/sheet_multi.xml"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/menu_topbar.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/menu/topbar.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_doge.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_doge.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ca.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ca.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdc.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdc.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_signals.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_signals.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ch.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ch.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_link.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_link.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eur.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eur.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_settings.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_settings.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_kr.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_kr.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_home.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_home.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_matic.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_matic.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_markets.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_markets.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usd.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usd.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_za.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_za.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_au.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_au.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdt.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdt.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_sg.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_sg.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_btc.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_btc.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/xml/files.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_atom.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_atom.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/color_nav_tint.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/color/nav_tint.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_signals.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_signals.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_lab.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bnb.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bnb.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_market.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_market.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_gb.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_gb.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_cn.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_cn.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_ai.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_ai.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_dashboard.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_dashboard.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/mipmap-xxxhdpi_ic_launcher.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/mipmap-xxxhdpi/ic_launcher.png"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/menu_topbar.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/menu/topbar.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_sheet_pair.xml.flat",
@@ -32,8 +156,28 @@
         "source": "com.aether.signal.premium.app-main-34:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_signals.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_signals.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_silver.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_silver.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ada.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ada.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_uni.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_uni.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ltc.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ltc.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_etc.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_etc.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_id.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_id.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_item_watch.xml.flat",
@@ -48,28 +192,28 @@
         "source": "com.aether.signal.premium.app-main-34:/layout/marker_ohlc.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_forex.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_forex.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_us.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_us.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_backtest.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_backtest.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_settings.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_settings.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_home.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_home.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_in.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_in.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_graph.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_graph.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_markets.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_markets.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_notif.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_notif.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dai.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dai.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_settings.xml.flat",
@@ -80,12 +224,32 @@
         "source": "com.aether.signal.premium.app-main-34:/mipmap-hdpi/ic_launcher.png"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bch.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bch.png"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_item_sig.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/item_sig.xml"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_coin_generic.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_coin_generic.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_checkpair.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/item_checkpair.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_gold.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_gold.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/mipmap-xhdpi_ic_launcher.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_eu.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_eu.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_lab.xml.flat",
@@ -96,51 +260,55 @@
         "source": "com.aether.signal.premium.app-main-34:/menu/bottom_nav.xml"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fil.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fil.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_tr.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_tr.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eth.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eth.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_avax.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_avax.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dot.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dot.png"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/mipmap-xxhdpi_ic_launcher.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_paircheck.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/item_paircheck.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sol.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sol.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_calendar.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_calendar.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_my.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_my.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_trx.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_trx.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable_bg_pill.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable/bg_pill.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/xml/files.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/color_nav_tint.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/color/nav_tint.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_signals.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/activity_signals.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_coin.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_coin.xml"
-    },
-    {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_shell.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/shell.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/activity_lab.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_market.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/activity_market.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_strat.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/layout/item_strat.xml"
-    },
-    {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_ic_metal.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/ic_metal.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_jp.png.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_jp.png"
     }
 ]

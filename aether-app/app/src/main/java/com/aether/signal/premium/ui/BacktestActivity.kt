@@ -2,7 +2,9 @@ package com.aether.signal.premium.ui
 
 import android.content.Intent
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ListView
 import android.widget.TextView
 import androidx.core.content.FileProvider
 import androidx.core.widget.addTextChangedListener
@@ -43,31 +45,40 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
 
     // ---------- wiring statis (sekali) ----------
     private fun wireStatic() {
-        toggle(R.id.segMode, if (App.mode == "multi") 1 else 0) {
+        toggle(R.id.segMode, listOf(R.id.segSingle, R.id.segMulti), if (App.mode == "multi") 1 else 0) {
             App.mode = if (it == 1) "multi" else "single"; refreshAll()
         }
         findViewById<View>(R.id.btnRun).setOnClickListener { if (App.mode == "multi") doMulti() else doSingle() }
         findViewById<View>(R.id.btnCancel).setOnClickListener { cancelled = true }
-        toggle(R.id.segPreset, if (App.presetCustom) 1 else 0) {
+        toggle(R.id.segPreset, listOf(R.id.segPresetDefault, R.id.segPresetCustom), if (App.presetCustom) 1 else 0) {
             App.presetCustom = it == 1; refreshAll()
         }
-        toggle(R.id.segCombo, comboIdx()) {
+        toggle(R.id.segCombo, listOf(R.id.segComboSingle, R.id.segComboOr, R.id.segComboAnd, R.id.segComboMaj), comboIdx()) {
             App.comboMode = listOf("", "OR", "AND", "MAJORITY")[it]; refreshAll()
         }
-        toggle(R.id.segChart, 0) { showEquity(it == 1) }
+        toggle(R.id.segChart, listOf(R.id.segChartPrice, R.id.segChartEquity), 0) { showEquity(it == 1) }
         val lims = listOf(200, 500, 1000)
+        val limIds = listOf(R.id.segLimit200, R.id.segLimit500, R.id.segLimit1000)
         val segL = findViewById<MaterialButtonToggleGroup>(R.id.segLimit)
-        segL.check(segL.getChildAt(lims.indexOf(App.limit).coerceAtLeast(0)).id)
+        segL.check(limIds[lims.indexOf(App.limit).coerceAtLeast(0)])
         segL.addOnButtonCheckedListener { _, id, checked ->
-            if (checked) for (i in lims.indices) if (segL.getChildAt(i).id == id) App.limit = lims[i]
+            if (checked) {
+                val i = limIds.indexOf(id)
+                if (i >= 0) App.limit = lims[i]
+            }
         }
         findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inFrom).apply {
-            setText(if (App.fromDate > 0) dateStr(App.fromDate) else "")
-            setOnFocusChangeListener { _, has -> if (!has) App.fromDate = parseDate(text.toString()) }
+            setText(if (App.fromDate > 0) dateDisplay(App.fromDate) else "")
+            setOnClickListener { openDatePicker(true) }
         }
         findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inTo).apply {
-            setText(if (App.toDate > 0) dateStr(App.toDate) else "")
-            setOnFocusChangeListener { _, has -> if (!has) App.toDate = parseDate(text.toString()) }
+            setText(if (App.toDate > 0) dateDisplay(App.toDate) else "")
+            setOnClickListener { openDatePicker(false) }
+        }
+        findViewById<View>(R.id.btnDateClear).setOnClickListener {
+            App.fromDate = 0; App.toDate = 0
+            paintDates()
+            snack(this, "Rentang tanggal dibersihkan (memakai seluruh data).")
         }
         findViewById<TextView>(R.id.csvStatus).text =
             if (App.csv != null) "CSV aktif (${App.csv!!.size}c) — single-pair saja." else "CSV tidak aktif."
@@ -88,9 +99,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<View>(R.id.btnPair).setOnClickListener { pickSinglePair() }
         findViewById<View>(R.id.btnSelect).setOnClickListener { openMultiSheet() }
         findViewById<View>(R.id.btnReload).setOnClickListener { reloadUniverse { refreshAll() } }
-        findViewById<View>(R.id.presetLoose).setOnClickListener { applyPreset(listOf("trend", "volume")); refreshAll() }
-        findViewById<View>(R.id.presetBal).setOnClickListener { applyPreset(listOf("trend", "htf", "volume", "adx", "rsi", "cooldown")); refreshAll() }
-        findViewById<View>(R.id.presetStrict).setOnClickListener { applyPreset(FILTER_DEFS.map { it.id }); refreshAll() }
+        findViewById<View>(R.id.presetLoose).setOnClickListener { applyPreset(listOf("trend", "volume")); paintFilters() }
+        findViewById<View>(R.id.presetBal).setOnClickListener { applyPreset(listOf("trend", "htf", "volume", "adx", "rsi", "cooldown")); paintFilters() }
+        findViewById<View>(R.id.presetStrict).setOnClickListener { applyPreset(FILTER_DEFS.map { it.id }); paintFilters() }
+        findViewById<View>(R.id.btnFilterAll).setOnClickListener { applyPreset(FILTER_DEFS.map { it.id }); paintFilters() }
+        findViewById<View>(R.id.btnFilterClear).setOnClickListener { applyPreset(emptyList()); paintFilters() }
         findViewById<View>(R.id.tradePrev).setOnClickListener { tradePage = maxOf(0, tradePage - 1); paintTrades() }
         findViewById<View>(R.id.tradeNext).setOnClickListener { tradePage++; paintTrades() }
         findViewById<View>(R.id.tradeCsv).setOnClickListener { exportTrades() }
@@ -102,15 +115,17 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             isChecked = App.useAtr
             setOnCheckedChangeListener { _, on -> App.useAtr = on }
         }
+        findViewById<View>(R.id.btnRiskReset).setOnClickListener { resetRisk(); paintConfig() }
         setupCharts()
     }
 
-    private fun toggle(id: Int, sel: Int, onPick: (Int) -> Unit) {
+    private fun toggle(id: Int, ids: List<Int>, sel: Int, onPick: (Int) -> Unit) {
         val g = findViewById<MaterialButtonToggleGroup>(id)
-        g.check(g.getChildAt(sel.coerceIn(0, g.childCount - 1)).id)
+        g.check(ids[sel.coerceIn(ids.indices)])
         g.addOnButtonCheckedListener { _, checkedId, checked ->
             if (checked) {
-                for (i in 0 until g.childCount) if (g.getChildAt(i).id == checkedId) onPick(i)
+                val i = ids.indexOf(checkedId)
+                if (i >= 0) onPick(i)
             }
         }
     }
@@ -126,6 +141,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<MaterialAutoCompleteTextView>(id).apply {
             setSimpleItems(opts.toTypedArray())
             setText(opts[sel.coerceIn(opts.indices)], false)
+            // Penjamin sentuhan: ketuk selalu membuka daftar + ikon panah pada layout.
+            setOnClickListener { showDropDown() }
             setOnItemClickListener { _, _, pos, _ -> onPick(pos) }
         }
     }
@@ -138,6 +155,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun comboIdx() = when (App.comboMode) { "OR" -> 1; "AND" -> 2; "MAJORITY" -> 3; else -> 0 }
+
+    /** Kembalikan parameter risiko & biaya ke bawaan (tanpa menyentuh strategi/filter/pair). */
+    private fun resetRisk() {
+        App.capital = 1000.0; App.riskPct = 1.0; App.leverage = 1
+        App.feePct = 0.05; App.slipPct = 0.02; App.maxHolding = 100
+        App.slPct = 1.5; App.tpPct = 3.0; App.useAtr = false
+        snack(this, "Parameter risiko dikembalikan ke bawaan.")
+    }
 
     // ---------- refresh tampilan ----------
     private fun refreshAll() {
@@ -170,53 +195,78 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val c = Chip(this).apply {
                 text = s
                 isCloseIconVisible = true
+                try {
+                    chipIcon = PairIcons.iconFor(this@BacktestActivity, s)
+                    chipIconSize = 20 * resources.displayMetrics.density
+                } catch (e: Exception) { /* ikon opsional */ }
                 setOnCloseIconClickListener { App.multiSel.remove(s); App.saveMulti(); paintConfig() }
             }
             chips.addView(c)
         }
-        // combo list
-        val cl = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.comboList)
-        cl.vertical(this)
-        cl.adapter = PairCheckAdapter(
-            strategyList().filter { it.id != App.strategy }
-                .map { PairCheckItem("${it.name} (${it.id})", App.comboExtra.contains(it.id), "") },
-            onToggle = { item, on ->
-                val id = item.sym.substringAfter("(").removeSuffix(")")
-                if (on) App.comboExtra.add(id) else App.comboExtra.remove(id)
-            })
+        // combo list: ListView native multi-pilih + Pilih/Hapus Semua + count
+        val cl = findViewById<ListView>(R.id.comboList)
+        cl.fixScrollConflict()
+        val comboIds = strategyList().filter { it.id != App.strategy }.map { it.id }
+        val comboLabels = comboIds.map { id ->
+            val m = strategyList().find { it.id == id }!!
+            "${m.name} (${m.id})"
+        }
+        bindMultiChoice(cl, comboLabels,
+            BooleanArray(comboIds.size) { App.comboExtra.contains(comboIds[it]) }) { pos, on ->
+            val id = comboIds[pos]
+            if (on) App.comboExtra.add(id) else App.comboExtra.remove(id)
+            App.saveCombo()
+            paintComboCount()
+        }
+        paintComboCount()
+        findViewById<View>(R.id.btnComboAll).setOnClickListener {
+            App.comboExtra.addAll(comboIds); App.saveCombo(); paintConfig()
+        }
+        findViewById<View>(R.id.btnComboClear).setOnClickListener {
+            App.comboExtra.clear(); App.saveCombo(); paintConfig()
+        }
         findViewById<TextInputEditText>(R.id.inCapital).setText(App.capital.toString())
         findViewById<TextInputEditText>(R.id.inRisk).setText(App.riskPct.toString())
         findViewById<TextInputEditText>(R.id.inSl).setText(App.slPct.toString())
         findViewById<TextInputEditText>(R.id.inTp).setText(App.tpPct.toString())
     }
 
+    private fun paintComboCount() {
+        findViewById<TextView>(R.id.comboCount).text = "${App.comboExtra.size} dipilih"
+    }
+
+    private var filterRefresh: (() -> Unit)? = null
+
     private fun paintFilters() {
-        val groups = listOf(
+        val rows = ArrayList<CheckRow>()
+        for ((g, ids) in listOf(
             "Structure" to listOf("ms", "sr"), "Liquidity" to listOf("liq"),
             "Order Flow" to listOf("cooldown", "dup"), "Trend" to listOf("trend", "ema", "htf"),
             "Momentum" to listOf("adx", "rsi"), "Volume" to listOf("volume", "atr_vol", "min_vol", "max_vol"),
             "Risk" to listOf("session")
-        )
-        val flat = ArrayList<PairCheckItem>()
-        for ((g, ids) in groups) {
-            flat.add(PairCheckItem("── $g ──", false, ""))
-            for (id in ids) flat.add(PairCheckItem(
-                FILTER_DEFS.find { it.id == id }?.name ?: id,
-                App.filterOn[id] == true, id))
+        )) {
+            rows.add(CheckRow.Header(g))
+            for (id in ids) rows.add(CheckRow.Item(id, FILTER_DEFS.find { it.id == id }?.name ?: id))
         }
-        val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.filterList)
-        list.vertical(this)
-        list.adapter = PairCheckAdapter(flat, onToggle = { item, on ->
-            if (!item.sym.startsWith("──")) {
-                App.filterOn[item.state] = on
-                findViewById<TextView>(R.id.filterHead).text = "FILTER · ${App.filterOn.count { it.value }} aktif"
-            }
-        })
-        findViewById<TextView>(R.id.filterHead).text = "FILTER · ${App.filterOn.count { it.value }} aktif"
+        val list = findViewById<ListView>(R.id.filterList)
+        list.fixScrollConflict()
+        filterRefresh = bindGroupedMulti(list, rows, { App.filterOn[it] == true }) { key, on ->
+            App.filterOn[key] = on
+            App.saveFilters()
+            paintFilterCount()
+        }
+        paintFilterCount()
+    }
+
+    private fun paintFilterCount() {
+        val n = App.filterOn.count { it.value }
+        findViewById<TextView>(R.id.filterHead).text = "FILTER · $n aktif"
+        findViewById<TextView>(R.id.filterCount).text = "$n dipilih"
     }
 
     private fun applyPreset(ids: List<String>) {
         for (id in FILTER_DEFS.map { it.id }) App.filterOn[id] = ids.contains(id)
+        App.saveFilters()
     }
 
     // ---------- pair pickers ----------
@@ -230,14 +280,17 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 val sh = com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.SheetTheme)
                 val v = layoutInflater.inflate(R.layout.sheet_pair, null)
                 v.findViewById<TextView>(R.id.sym).text = "Pilih Pair"
-                v.findViewById<TextView>(R.id.meta).text = "${pairs.size} tersedia · ${App.provider}"
+                v.findViewById<TextView>(R.id.meta).text = "${pairs.size} tersedia · ${App.provider} · ketuk = pakai"
                 v.findViewById<View>(R.id.btnBacktest).visibility = View.GONE
                 v.findViewById<View>(R.id.btnChart).visibility = View.GONE
-                val list = androidx.recyclerview.widget.RecyclerView(this)
-                list.vertical(this)
+                val list = ListView(this)
+                list.choiceMode = ListView.CHOICE_MODE_SINGLE
                 (v as android.view.ViewGroup).addView(list)
-                list.adapter = PairCheckAdapter(pairs.take(60).map { PairCheckItem(it, it == App.pair, "") }) { item, _ ->
-                    App.pair = item.sym; App.savePair(); sh.dismiss(); paintConfig(); paintQuick()
+                val shown = pairs.take(60)
+                list.adapter = IconCheckAdapter(this, shown, true)
+                list.setItemChecked(shown.indexOf(App.pair).coerceAtLeast(0), true)
+                list.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
+                    App.pair = shown[pos]; App.savePair(); sh.dismiss(); paintConfig(); paintQuick()
                 }
                 sh.setContentView(v)
                 sh.show()
@@ -264,16 +317,22 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val sh = BottomSheetDialog(this, R.style.SheetTheme)
             val root = layoutInflater.inflate(R.layout.sheet_multi, null)
             val search = root.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.search)
-            val list = root.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-            list.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+            val list = root.findViewById<ListView>(R.id.list)
+            list.fixScrollConflict()
+            list.choiceMode = ListView.CHOICE_MODE_MULTIPLE
             val cnt = root.findViewById<TextView>(R.id.count)
             fun render() {
                 val q = search.text.toString().uppercase()
                 val vis = App.universe.filter { q.isEmpty() || it.contains(q) }
-                list.adapter = PairCheckAdapter(vis.map { PairCheckItem(it, staged.contains(it), "") }) { item, on ->
-                    if (on) staged.add(item.sym) else staged.remove(item.sym)
-                    cnt.text = "${staged.size} pairs selected"
-                }
+                list.adapter = IconCheckAdapter(this, vis, false)
+                vis.forEachIndexed { i, s -> list.setItemChecked(i, staged.contains(s)) }
+                cnt.text = "${staged.size} pairs selected"
+            }
+            list.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
+                val q = search.text.toString().uppercase()
+                val vis = App.universe.filter { q.isEmpty() || it.contains(q) }
+                val s = vis.getOrNull(pos) ?: return@OnItemClickListener
+                if (list.isItemChecked(pos)) staged.add(s) else staged.remove(s)
                 cnt.text = "${staged.size} pairs selected"
             }
             search.addTextChangedListener { render() }
@@ -313,19 +372,52 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
     }
 
-    private fun parseDate(s: String): Long {
-        val t = s.trim()
-        if (t.isEmpty()) return 0
-        return try {
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.parse(t)!!.time
-        } catch (e: Exception) { snack(this, "Format tanggal salah."); 0 }
+    /** Pemilih tanggal native (I): kalender dialog, bukan ketikan manual. */
+    private fun openDatePicker(isFrom: Boolean) {
+        val cur = if (isFrom) App.fromDate else App.toDate
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        if (cur > 0) cal.timeInMillis = cur
+        android.app.DatePickerDialog(this, { _, y, m, d ->
+            cal.set(y, m, d, 0, 0, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            val picked = cal.timeInMillis
+            val other = if (isFrom) App.toDate else App.fromDate
+            // Validasi rentang (I5): tolak diam-diam dilarang — beri pesan jelas.
+            if (other > 0 && ((isFrom && picked > other) || (!isFrom && picked < other))) {
+                snack(this, "Rentang tidak valid: tanggal mulai tidak boleh melewati tanggal akhir.")
+                return@DatePickerDialog
+            }
+            if (isFrom) App.fromDate = picked else App.toDate = picked
+            paintDates()
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
+
+    private fun paintDates() {
+        findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inFrom)
+            .setText(if (App.fromDate > 0) dateDisplay(App.fromDate) else "")
+        findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inTo)
+            .setText(if (App.toDate > 0) dateDisplay(App.toDate) else "")
+    }
+
+    private fun dateDisplay(ts: Long): String =
+        SimpleDateFormat("dd MMM yyyy", Locale("id")).format(Date(ts))
 
     private fun dateStr(ts: Long): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date(ts))
 
+    /** Penjaga lapis kedua saat Run: rentang invalid tidak boleh lolos diam-diam. */
+    private fun dateRangeOk(): Boolean {
+        if (!App.isDateRangeValid(App.fromDate, App.toDate)) {
+            setStatus("Rentang tanggal tidak valid: tanggal mulai melewati tanggal akhir.", true)
+            return false
+        }
+        return true
+    }
+
     private fun doSingle() {
+        if (!dateRangeOk()) return
         cancelled = false
+        ChartPaint.overlay(chartRoot(), loading = true, msg = "Menyiapkan backtest…", showRetry = false)
         setStatus("Menyiapkan…")
         runBg {
             val tAll = System.nanoTime()
@@ -371,10 +463,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun doMulti() {
+        if (!dateRangeOk()) return
         if (App.universe.isEmpty()) { reloadUniverse { doMulti() }; return }
         val sel = App.universe.filter { App.multiSel.contains(it) } + App.multiSel.filter { !App.universe.contains(it) }
         if (sel.isEmpty()) { setStatus("Please select at least one pair.", true); return }
         cancelled = false
+        ChartPaint.overlay(chartRoot(), loading = true, msg = "Menyiapkan multi-pair…", showRetry = false)
         runBg {
             val tAll = System.nanoTime()
             val p: BacktestParams
@@ -437,26 +531,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun setupCharts() {
-        findViewById<CombinedChart>(R.id.chart).apply {
-            description.isEnabled = false
-            setBackgroundColor(0xFF0B0E14.toInt())
-            setDrawGridBackground(false)
-            setPinchZoom(true)
-            isDragEnabled = true
-            setScaleEnabled(true)
-            setAutoScaleMinMaxEnabled(true)
-            legend.isEnabled = false
-            axisLeft.isEnabled = false
-            axisRight.apply {
-                setDrawGridLines(true); gridColor = 0xFF232B36.toInt()
-                textColor = 0xFF8B95A5.toInt(); setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
-            }
-            xAxis.apply {
-                position = XAxis.XAxisPosition.BOTTOM; setDrawGridLines(false)
-                textColor = 0xFF8B95A5.toInt(); setAvoidFirstLastClipping(true)
-            }
-            marker = OhlcMarker(this@BacktestActivity, emptyList())
-        }
+        ChartPaint.setup(findViewById(R.id.chart), OhlcMarker(this@BacktestActivity, emptyList()))
         findViewById<LineChart>(R.id.equity).apply {
             description.isEnabled = false
             setBackgroundColor(0xFF0B0E14.toInt())
@@ -465,82 +540,29 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             axisRight.textColor = 0xFF8B95A5.toInt()
             xAxis.isEnabled = false
         }
+        ChartPaint.overlay(findViewById<View>(R.id.chartOverlay)?.parent as View,
+            loading = false, msg = "Belum ada data — tekan Run Backtest.", showRetry = false)
     }
+
+    private fun chartRoot(): View = findViewById<View>(R.id.chartOverlay)?.parent as View
 
     private fun paintChart() {
         val c = findViewById<CombinedChart>(R.id.chart)
         val candles = App.candles
-        if (candles.isEmpty()) { c.clear(); c.invalidate(); return }
-        val cd = CombinedData()
-        val ce = ArrayList<CandleEntry>()
-        candles.forEachIndexed { i, k -> ce.add(CandleEntry(i.toFloat(), k.h.toFloat(), k.l.toFloat(), k.o.toFloat(), k.c.toFloat())) }
-        val cs = CandleDataSet(ce, "OHLC").apply {
-            setDrawValues(false)
-            shadowColor = 0xFF8B95A5.toInt()
-            decreasingColor = 0xFFF6465D.toInt()
-            decreasingPaintStyle = android.graphics.Paint.Style.FILL
-            increasingColor = 0xFF0ECB81.toInt()
-            increasingPaintStyle = android.graphics.Paint.Style.FILL
-            neutralColor = 0xFF8B95A5.toInt()
-            axisDependency = YAxis.AxisDependency.RIGHT
-        }
-        cd.setData(CandleData(cs))
-        var mv = 0.0
-        for (k in candles) mv = maxOf(mv, k.v)
-        if (mv > 0) {
-            val be = ArrayList<BarEntry>()
-            candles.forEachIndexed { i, k -> be.add(BarEntry(i.toFloat(), (k.v / mv * 15).toFloat())) }
-            val bs = BarDataSet(be, "Vol").apply {
-                setDrawValues(false)
-                colors = candles.map { if (it.c >= it.o) 0x550ECB81.toInt() else 0x55F6465D.toInt() }
-                axisDependency = YAxis.AxisDependency.RIGHT
-            }
-            cd.setData(BarData(bs).apply { barWidth = 0.7f })
-        }
         val r = App.result
-        if (r != null && r.error == null && r.trades.isNotEmpty()) {
-            val sc = ArrayList<com.github.mikephil.charting.data.Entry>()
-            for (t in r.trades.takeLast(120)) {
-                val ei = candles.indexOfFirst { it.t == t.entryTime }
-                val xi = candles.indexOfFirst { it.t == t.exitTime }
-                if (ei >= 0) sc.add(com.github.mikephil.charting.data.Entry(ei.toFloat(), (if (t.direction == "LONG") candles[ei].l else candles[ei].h).toFloat()))
-                if (xi >= 0) sc.add(com.github.mikephil.charting.data.Entry(xi.toFloat(), candles[xi].h.toFloat()))
-            }
-            val ss = ScatterDataSet(sc, "Trades").apply {
-                setDrawValues(false)
-                setScatterShape(com.github.mikephil.charting.charts.ScatterChart.ScatterShape.CIRCLE)
-                color = 0xFF4C8DFF.toInt(); scatterShapeSize = 14f
-                axisDependency = YAxis.AxisDependency.RIGHT
-            }
-            cd.setData(ScatterData(ss))
-            val lr = r.trades.last()
-            c.axisRight.removeAllLimitLines()
-            c.axisRight.addLimitLine(LimitLine(lr.stopLoss.toFloat(), "SL").apply {
-                lineColor = 0xFFF6465D.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
-                textColor = 0xFFF6465D.toInt(); textSize = 10f
-            })
-            c.axisRight.addLimitLine(LimitLine(lr.takeProfit.toFloat(), "TP").apply {
-                lineColor = 0xFF0ECB81.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
-                textColor = 0xFF0ECB81.toInt(); textSize = 10f
-            })
+        val drawn = ChartPaint.paint(c, candles,
+            if (r != null && r.error == null) r.trades else null) { OhlcMarker(this, it) }
+        if (!drawn) {
+            ChartPaint.overlay(chartRoot(), loading = false,
+                msg = if (r?.error != null) "${classifyResult(r)}: ${r.error}" else "Belum ada data — tekan Run Backtest.",
+                showRetry = false)
+        } else {
+            refreshChartOverlay()
         }
-        val span = if (candles.size > 1) candles.last().t - candles.first().t else 0L
-        val f = if (span > 86400000L * 2) SimpleDateFormat("dd/MM", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
-        else SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
-        val step = maxOf(1, candles.size / 5)
-        val labels = ArrayList<String>()
-        for (i in candles.indices) labels.add(if (i % step == 0) f.format(Date(candles[i].t)) else "")
-        c.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
-        c.xAxis.granularity = 1f
-        c.marker = OhlcMarker(this, candles)
-        c.data = cd
-        c.setVisibleXRangeMaximum(120f)
-        c.moveViewToX((candles.size - 1).toFloat())
-        c.animateX(400)
-        c.invalidate()
-        val last = candles.last()
-        findViewById<TextView>(R.id.chartMeta).text =
+        val last = candles.lastOrNull()
+        findViewById<TextView>(R.id.chartMeta).text = if (last != null)
             "${App.params?.asset} · ${App.params?.timeframe} · ${candles.size}c · ${App.fmt(last.c, if (last.c > 1000) 2 else 4)}"
+        else ""
         // equity
         if (App.multiRows.isNotEmpty()) {
             val cmb = buildCombinedEquity(App.multiRows, App.params?.initialCapital ?: 1000.0)
@@ -554,9 +576,19 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun paintEquity(values: List<Double>, cap: String) {
         findViewById<TextView>(R.id.equityCap).text = cap.ifEmpty { "Equity — NO TRADES" }
         val v = findViewById<LineChart>(R.id.equity)
-        if (values.isEmpty()) { v.clear(); v.invalidate(); return }
+        val clean = values.filter { it.isFinite() }
+        if (clean.isEmpty()) { v.clear(); v.invalidate(); return }
+        // Ruang atas-bawah 15% + penjaga rentang nol (F1): garis tak menempel/potong.
+        val (lo, hi) = equityPlotRange(clean)
+        v.axisRight.apply {
+            axisMinimum = lo
+            axisMaximum = hi
+            setDrawGridLines(true)
+            gridColor = 0xFF232B36.toInt()
+            setLabelCount(4, false)
+        }
         val e = ArrayList<com.github.mikephil.charting.data.Entry>()
-        values.forEachIndexed { i, x -> e.add(com.github.mikephil.charting.data.Entry(i.toFloat(), x.toFloat())) }
+        clean.forEachIndexed { i, x -> e.add(com.github.mikephil.charting.data.Entry(i.toFloat(), x.toFloat())) }
         val ds = LineDataSet(e, "Equity").apply {
             setDrawValues(false); setDrawCircles(false)
             color = 0xFF0ECB81.toInt(); lineWidth = 2.5f
@@ -565,6 +597,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             axisDependency = YAxis.AxisDependency.RIGHT
         }
         v.data = com.github.mikephil.charting.data.LineData(ds)
+        v.notifyDataSetChanged()
         v.animateX(400)
         v.invalidate()
     }
@@ -572,6 +605,22 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun showEquity(show: Boolean) {
         findViewById<CombinedChart>(R.id.chart).visibility = if (show) View.GONE else View.VISIBLE
         findViewById<LineChart>(R.id.equity).visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            ChartPaint.overlay(chartRoot(), loading = false, msg = null, showRetry = false)
+        } else {
+            refreshChartOverlay()
+        }
+    }
+
+    /** Status overlay grafik harga sesuai data saat ini (tanpa menggambar ulang). */
+    private fun refreshChartOverlay() {
+        val r = App.result
+        val hasData = App.candles.isNotEmpty()
+        ChartPaint.overlay(chartRoot(), loading = false,
+            msg = if (hasData) null
+            else if (r?.error != null) "${classifyResult(r)}: ${r.error}"
+            else "Belum ada data — tekan Run Backtest.",
+            showRetry = false)
     }
 
     private fun paintResult() {
@@ -639,16 +688,16 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 if (row.res?.error == null && row.err == null)
                     "Net ${App.fmtMoney(row.res!!.netProfit)} · ${if (row.res.totalTrades > 0) App.fmt(row.res.winRate, 1) + "%" else "NO TRADES"} · ${row.res.totalTrades} tr — klik"
                 else (row.err ?: row.res?.error ?: "").take(60),
-                ""))
+                "", row.sym))
         }
-        list.adapter = SigAdapter(items) { pos ->
+        list.adapter = SigAdapter(items, onClick = { pos ->
             if (pos == 0) return@SigAdapter
             val row = rows[pos - 1]
             val hit = App.multiCache[row.sym] ?: return@SigAdapter
             if (row.res?.error != null) return@SigAdapter
             App.candles = hit.first; App.params = App.params?.copy(asset = row.sym); App.result = hit.second
             paintChart(); paintResult()
-        }
+        })
     }
 
     private fun paintTrades() {
@@ -661,7 +710,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             adapter = SigAdapter(tradeRows.drop(tradePage * per).take(per).mapIndexed { k, t ->
                 SigItem(t.direction, "${tradePage * per + k + 1}. ${t.asset}",
                     "${App.fmtT(t.exitTime)} · in ${App.fmt(t.entry, 4)} out ${App.fmt(t.exit, 4)} · R ${App.fmt(t.rMultiple)} · ${t.result}",
-                    App.fmtMoney(t.pnl))
+                    App.fmtMoney(t.pnl), t.asset)
             })
         }
     }
