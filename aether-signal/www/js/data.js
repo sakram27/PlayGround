@@ -7,6 +7,13 @@ import { parseTimeframe } from './core.js';
 const cache = new Map();
 function ck(provider, symbol, tf, limit) { return provider + '|' + symbol + '|' + tf + '|' + limit; }
 
+/* Riwayat fetch diagnostik (tanpa credential): provider, symbol, TF, limit, hasil, cache. */
+export const fetchHistory = [];
+function logFetch(entry) {
+  fetchHistory.push({ t: Date.now(), ...entry });
+  if (fetchHistory.length > 60) fetchHistory.splice(0, fetchHistory.length - 60);
+}
+
 export const PROVIDERS = [
   { id: 'binance', name: 'Binance (Crypto)', spot: true },
   { id: 'bybit', name: 'Bybit (Crypto)', spot: true },
@@ -130,7 +137,12 @@ export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', tim
   parseTimeframe(timeframe);
   limit = Math.min(1000, Math.max(60, Math.round(limit) || 500));
   const key = ck(provider, rawSymbol.toUpperCase(), timeframe, limit);
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) {
+    const hit = cache.get(key);
+    logFetch({ provider, symbol: rawSymbol.toUpperCase(), timeframe, limitRequested: limit, received: hit.length, cacheUsed: 'memory', source: provider });
+    return hit;
+  }
+  let cacheHitLocal = false;
   try {
     const ls = localStorage.getItem('aether_cache_' + key);
     if (ls) {
@@ -141,6 +153,7 @@ export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', tim
       const at = Array.isArray(parsed) ? 0 : (parsed?._at || 0);
       if (Array.isArray(cc) && cc.length >= 60 && (Date.now() - at < 5 * 60 * 1000)) {
         cache.set(key, cc);
+        logFetch({ provider, symbol: rawSymbol.toUpperCase(), timeframe, limitRequested: limit, received: cc.length, cacheUsed: 'localStorage', source: provider });
         return cc;
       }
     }
@@ -175,6 +188,7 @@ export async function getCandles({ provider = 'binance', symbol = 'BTCUSDT', tim
   if (bad.length) throw new Error('Provider mengembalikan ' + bad.length + ' candle rusak. Coba refresh.');
   cache.set(key, candles);
   try { localStorage.setItem('aether_cache_' + key, JSON.stringify({ _at: Date.now(), candles })); } catch { /* abaikan */ }
+  logFetch({ provider, symbol: rawSymbol.toUpperCase(), timeframe, limitRequested: limit, received: candles.length, cacheUsed: 'none', source: provider });
   return candles;
 }
 

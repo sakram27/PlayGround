@@ -664,11 +664,22 @@ export function calcRiskLevels(entry, direction, cache, idx, params) {
 /* ---------- backtest utama ---------- */
 export function runBacktest(rawCandles, rawParams) {
   const params = sanitizeParams(rawParams);
+  const diag = {
+    rawCount: Array.isArray(rawCandles) ? rawCandles.length : 0,
+    normalizedCount: 0, dateFilteredCount: 0,
+    warmup: WARMUP, startIdx: Math.max(WARMUP, 2),
+    evaluatedBars: 0, signalsRaw: 0, filteredOut: 0,
+    skippedNoLevel: 0, skippedBadEntry: 0, skippedBadQty: 0, skippedBadPnl: 0,
+    filterReasons: {},
+    evalFrom: 0, evalTo: 0,
+  };
   let candles = normalizeCandles(rawCandles);
+  diag.normalizedCount = candles.length;
   candles = filterByDate(candles, params.startDate, params.endDate);
+  diag.dateFilteredCount = candles.length;
   if (candles.length < MIN_CANDLES) {
     return errorResult(params, 'Butuh minimal ' + MIN_CANDLES + ' candle (dapat ' + candles.length + '). ' +
-      (params.startDate || params.endDate ? 'Coba perlebar rentang tanggal. ' : '') + 'Minta 1000 candle dari provider.');
+      (params.startDate || params.endDate ? 'Coba perlebar rentang tanggal. ' : '') + 'Minta 1000 candle dari provider.', diag);
   }
   const cache = buildCache(candles);
   const trades = [];
@@ -679,33 +690,45 @@ export function runBacktest(rawCandles, rawParams) {
   equityCurve.push({ t: candles[0].t, equity });
 
   const startIdx = Math.max(WARMUP, 2);
+  diag.startIdx = startIdx;
+  diag.evalFrom = candles[startIdx] ? candles[startIdx].t : 0;
+  diag.evalTo = candles[candles.length - 2] ? candles[candles.length - 2].t : 0;
   const activeFilters = (params.filters || []).filter((f) => f && f.enabled !== false);
   const fctx = { lastExit: -1e9, lastSig: null };
   let filtered = 0;
   for (let i = startIdx; i < candles.length - 1; i++) {
+    diag.evaluatedBars++;
     const dec = decideAt(candles, i, cache, params);
     if (!dec.passed) continue;
+    diag.signalsRaw++;
     // Filter ala APK (FilterEngine.evaluate): sinyal yang gagal filter dilewati & dihitung
     if (activeFilters.length) {
       const fr = applyFilters(candles, i, cache, dec.direction, activeFilters, fctx);
       fctx.lastSig = { dir: dec.direction, idx: i };
-      if (!fr.passed) { filtered++; continue; }
+      if (!fr.passed) {
+        filtered++;
+        for (const w of (fr.failed || [])) {
+          const k = String(w).slice(0, 60);
+          diag.filterReasons[k] = (diag.filterReasons[k] || 0) + 1;
+        }
+        continue;
+      }
     }
     // Eksekusi di OPEN candle berikutnya (tanpa lookahead) + slippage merugikan
     const next = candles[i + 1];
     let entry = next.o;
     entry = dec.direction === 'LONG' ? entry * (1 + params.slippagePercent) : entry * (1 - params.slippagePercent);
-    if (!Number.isFinite(entry) || entry <= 0) continue;
+    if (!Number.isFinite(entry) || entry <= 0) { diag.skippedBadEntry++; continue; }
     const lv = calcRiskLevels(entry, dec.direction, cache, i, params);
-    if (!lv) continue;
+    if (!lv) { diag.skippedNoLevel++; continue; }
     // Sizing: risiko tetap per trade, clamp notional ke equity*leverage
     const riskAmount = equity * params.riskPerTrade;
     let qty = riskAmount / lv.riskDist;
     const maxNotional = equity * params.leverage;
     const notional = qty * entry;
-    if (!Number.isFinite(qty) || qty <= 0) continue;
+    if (!Number.isFinite(qty) || qty <= 0) { diag.skippedBadQty++; continue; }
     if (notional > maxNotional) qty = maxNotional / entry;
-    if (!(qty > 0) || !Number.isFinite(qty)) continue;
+    if (!(qty > 0) || !Number.isFinite(qty)) { diag.skippedBadQty++; continue; }
 
     // Scan ke depan: SL/TP intrabar, konservatif (SL dulu bila keduanya tersentuh)
     let exit = null, exitIdx = -1, result = 'EXPIRED';
@@ -736,7 +759,7 @@ export function runBacktest(rawCandles, rawParams) {
     const gross = (dec.direction === 'LONG' ? exit - entry : entry - exit) * qty;
     const fees = (entry * qty + exit * qty) * params.feePercent; // FIX: fee 2 sisi
     const pnl = gross - fees;
-    if (!Number.isFinite(pnl)) continue;
+    if (!Number.isFinite(pnl)) { diag.skippedBadPnl++; continue; }
     const rMult = riskAmount > 0 ? pnl / riskAmount : 0;
     equity += pnl;
     if (!Number.isFinite(equity)) equity = params.initialCapital;
@@ -756,10 +779,12 @@ export function runBacktest(rawCandles, rawParams) {
     fctx.lastExit = exitIdx;
   }
 
-  return buildResult(params, candles, trades, equityCurve, maxDD, filtered);
+  diag.filteredOut = filtered;
+  diag.skippedInPosition = Math.max(0, ((candles.length - 1) - startIdx) - diag.evaluatedBars);
+  return buildResult(params, candles, trades, equityCurve, maxDD, filtered, diag);
 }
 
-function errorResult(params, message) {
+function errorResult(params, message, diag) {
   return {
     error: message, asset: params.asset, timeframe: params.timeframe,
     totalTrades: 0, wins: 0, losses: 0, expired: 0, winRate: 0, lossRate: 0,
@@ -769,10 +794,11 @@ function errorResult(params, message) {
     avgHolding: 0, longestWinStreak: 0, longestLossStreak: 0, filtered: 0,
     initialCapital: params.initialCapital, finalCapital: params.initialCapital,
     trades: [], equityCurve: [],
+    diag: diag || { rawCount: 0, normalizedCount: 0, dateFilteredCount: 0, evaluatedBars: 0, signalsRaw: 0, filteredOut: 0, note: 'NOT MEASURED: engine berhenti sebelum evaluasi (data < minimum).' },
   };
 }
 
-function buildResult(params, candles, trades, equityCurve, maxDD, filtered = 0) {
+function buildResult(params, candles, trades, equityCurve, maxDD, filtered = 0, diag = null) {
   const wins = trades.filter((t) => t.result === 'WIN');
   const losses = trades.filter((t) => t.result === 'LOSS');
   const expired = trades.filter((t) => t.result === 'EXPIRED');
@@ -827,6 +853,7 @@ function buildResult(params, candles, trades, equityCurve, maxDD, filtered = 0) 
     avgHolding: total ? totalHolding / total : 0,
     longestWinStreak: lw, longestLossStreak: ll, filtered,
     trades, equityCurve,
+    diag: diag || { note: 'NOT MEASURED' },
   };
 }
 function finite(v) { return Number.isFinite(v) ? v : 0; }

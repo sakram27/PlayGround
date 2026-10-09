@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="20dp">
+    <TextView android:id="@+id/sym" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:text="—" android:textColor="@color/txt"
+        android:textSize="20sp" android:textStyle="bold" />
+    <TextView android:id="@+id/meta" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:textColor="@color/mut"
+        android:textSize="12sp" android:fontFamily="monospace" android:layout_marginTop="4dp" />
+    <Button android:id="@+id/btnBacktest" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Pakai di Backtest"
+        style="@style/BtnPrimary" android:layout_marginTop="12dp" />
+    <Button android:id="@+id/btnChart" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Buka Grafik"
+        style="@style/BtnGhost" android:layout_marginTop="8dp" />
+</LinearLayout>

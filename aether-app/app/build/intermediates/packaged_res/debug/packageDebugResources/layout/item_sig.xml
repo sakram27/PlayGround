@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="horizontal" android:gravity="center_vertical"
+    android:padding="12dp">
+    <TextView android:id="@+id/dir" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:textSize="10sp" android:textStyle="bold" android:background="@drawable/bg_pill"
+        android:padding="6dp" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:orientation="vertical" android:layout_marginStart="10dp">
+        <TextView android:id="@+id/main" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="@color/txt" android:textSize="14sp" android:textStyle="bold" />
+        <TextView android:id="@+id/sub" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="@color/dim" android:textSize="11sp" android:fontFamily="monospace" />
+    </LinearLayout>
+    <TextView android:id="@+id/right" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:textColor="@color/txt" android:textSize="13sp" android:fontFamily="monospace" />
+</LinearLayout>

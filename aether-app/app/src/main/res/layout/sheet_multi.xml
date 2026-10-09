@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Field" android:hint="Search pair…">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/search" android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="8dp">
+            <Button android:id="@+id/btnAll" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="All" style="@style/BtnGhost" android:minHeight="38dp" />
+            <Button android:id="@+id/btnClear" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Clear" style="@style/BtnGhost" android:minHeight="38dp" />
+            <Button android:id="@+id/btnTop5" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Top 5" style="@style/BtnGhost" android:minHeight="38dp" />
+        </LinearLayout>
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/list"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false" android:layout_marginTop="8dp" />
+        <TextView android:id="@+id/count" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="@color/mut"
+            android:textSize="12sp" android:layout_marginTop="8dp" />
+        <Button android:id="@+id/btnApply" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="APPLY"
+            style="@style/BtnPrimary" android:layout_marginTop="8dp" />
+    </LinearLayout>
+</ScrollView>

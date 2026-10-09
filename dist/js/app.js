@@ -4,7 +4,7 @@
  */
 'use strict';
 import { runBacktest, strategyList, filterList, applyFilters, parseTimeframe, buildCache, normalizeCandles, decideAt } from './core.js';
-import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV, binanceActiveHost } from './data.js';
+import { getCandles, topPairs, YAHOO_UNIVERSE, parseCSV, binanceActiveHost, fetchHistory } from './data.js';
 import { pairIcon } from './icons.js';
 import { renderMain, renderEquity } from './charts.js';
 
@@ -225,9 +225,82 @@ function readParams() {
   };
 }
 async function loadData(params) {
-  if (state.csv?.length >= 60) return { candles: state.csv, source: 'CSV (' + state.csv.length + 'c)' };
+  if (state.csv?.length >= 60) return { candles: state.csv, source: 'CSV (' + state.csv.length + 'c)', fetchMeta: { provider: 'csv', symbol: params.asset, timeframe: params.timeframe, limitRequested: +$('limit').value, received: state.csv.length, cacheUsed: 'csv-file', source: 'CSV' } };
+  const before = fetchHistory.length;
   const candles = await getCandles({ provider: $('provider').value, symbol: params.asset, timeframe: params.timeframe, limit: +$('limit').value });
-  return { candles, source: $('provider').value + ' · ' + params.asset + ' ' + params.timeframe };
+  const fh = fetchHistory[fetchHistory.length - 1] || { provider: $('provider').value, symbol: params.asset, timeframe: params.timeframe, limitRequested: +$('limit').value, received: candles.length, cacheUsed: 'NOT MEASURED', source: $('provider').value };
+  void before;
+  return { candles, source: $('provider').value + ' · ' + params.asset + ' ' + params.timeframe, fetchMeta: fh };
+}
+
+// ---------- STATUS hasil (SUCCESS / NO TRADES / NO DATA / PARTIAL / FAILED) ----------
+function classifyResult(res) {
+  if (!res) return 'FAILED';
+  if (res.error) return /minimal|min|candle|data kosong|tidak tersedia|gagal/i.test(res.error) ? 'NO DATA' : 'FAILED';
+  if (!(res.totalTrades > 0)) return 'NO TRADES';
+  return 'SUCCESS';
+}
+function fmtT(ts) { try { return ts ? new Date(ts).toISOString().slice(0, 16).replace('T', ' ') + 'Z' : '—'; } catch { return '—'; } }
+// Snapshot konfigurasi TERAPAN (sumber kebenaran = params yang benar-benar masuk engine saat RUN)
+function saveAppliedSnapshot(origin, params, extra) {
+  try {
+    const flt = FLTS.length ? FLTS : [];
+    const activeIds = (params.filters || []).filter((f) => f && f.enabled !== false).map((f) => f.name);
+    const allIds = flt.map((f) => f.id);
+    const snap = {
+      origin, at: new Date().toISOString(),
+      strategy: params.strategy, combo: params.combo || null,
+      strategyMode: params.combo?.strategies?.length ? ('Combined Strategy (' + (params.combo.mode || 'OR') + ')') : 'Single Strategy',
+      activeFilters: activeIds, disabledFilters: allIds.filter((id) => !activeIds.includes(id)),
+      riskPerTrade: params.riskPerTrade, leverage: params.leverage,
+      feePercent: params.feePercent, slippagePercent: params.slippagePercent,
+      slPercent: params.slPercent, tpPercent: params.tpPercent, useAtr: !!params.useAtr,
+      rr: (params.slPercent > 0 && params.tpPercent > 0) ? ('1:' + (params.tpPercent / params.slPercent).toFixed(2).replace(/\.?0+$/, '')) : 'NOT MEASURED',
+      slLabel: params.useAtr ? ('ATR 14 × ' + params.atrSlMult + ' / × ' + params.atrTpMult) : ((params.slPercent * 100).toFixed(2).replace(/\.?0+$/, '') + '%'),
+      tpLabel: params.useAtr ? ('ATR 14 × ' + params.atrTpMult) : ((params.tpPercent * 100).toFixed(2).replace(/\.?0+$/, '') + '%'),
+      timeframe: params.timeframe, pairs: extra?.pairs || [params.asset],
+      startDate: params.startDate || 0, endDate: params.endDate || 0,
+      status: extra?.status || 'NOT APPLIED', valid: extra?.valid !== false,
+    };
+    store.set('aether_applied_cfg', snap);
+    try { renderActiveCfg(); } catch {}
+    return snap;
+  } catch { return null; }
+}
+function diagRows(d) {
+  if (!d) return [['diag', 'NOT MEASURED']];
+  const topF = d.filterReasons && Object.keys(d.filterReasons).length
+    ? Object.entries(d.filterReasons).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => k + ' ×' + v).join('; ')
+    : '—';
+  return [
+    ['Candle diminta', d.limitRequested ?? 'NOT MEASURED'],
+    ['Candle dimuat', d.received ?? 'NOT MEASURED'],
+    [' dinormalisasi', (d.rawCount ?? d.normalizedCount ?? '—') + ' → ' + (d.normalizedCount ?? '—')],
+    ['Setelah filter tanggal', d.dateFilteredCount ?? 'NOT MEASURED'],
+    ['Candle dievaluasi', d.evaluatedBars ?? 'NOT MEASURED'],
+    ['Dilewati (posisi terbuka)', d.skippedInPosition ?? 'NOT MEASURED'],
+    ['Signal mentah', d.signalsRaw ?? 'NOT MEASURED'],
+    ['Ditolak filter', (d.filteredOut ?? '—') + (topF !== '—' ? ' (' + topF + ')' : '')],
+    ['Gagal level SL/TP', d.skippedNoLevel ?? 0],
+    ['Entry/qty/PnL invalid', [d.skippedBadEntry ?? 0, d.skippedBadQty ?? 0, d.skippedBadPnl ?? 0].join(' / ')],
+    ['Sumber data', d.source ?? '—'],
+    ['Cache', d.cacheUsed ?? 'NOT MEASURED'],
+    ['Rentang evaluasi', (d.evalFrom ? fmtT(d.evalFrom) : '—') + ' → ' + (d.evalTo ? fmtT(d.evalTo) : '—')],
+  ];
+}
+function paintDiag(res, meta) {
+  try {
+    const d = { ...(res.diag || {}), limitRequested: meta?.limitRequested, received: meta?.received, source: meta?.source || res.diag?.source, cacheUsed: meta?.cacheUsed };
+    const rows = [
+      ['Status', meta?.status || classifyResult(res)],
+      ['Durasi engine', meta?.engineMs != null ? meta.engineMs.toFixed(1) + ' ms' : 'NOT MEASURED'],
+      ['Durasi total (fetch+engine)', meta?.totalMs != null ? meta.totalMs.toFixed(1) + ' ms' : 'NOT MEASURED'],
+      ['Strategi', res.strategy || meta?.strategy || '—'],
+      ...diagRows(d),
+    ];
+    if ($('techOut')) $('techOut').innerHTML = '<div class="scrollx"><table class="tbl"><tbody>' +
+      rows.map(([a, b]) => '<tr><td>' + esc(a) + '</td><td>' + esc(b) + '</td></tr>').join('') + '</tbody></table></div>';
+  } catch {}
 }
 function paintChart(res) {
   try {
@@ -265,18 +338,18 @@ function startCountdown() {
   tick();
   state.timerInt = setInterval(tick, 1000);
 }
-function paintResult(res, source) {
+function paintResult(res, source, diagMeta) {
   state.result = res;
   try { paintQuick(res); } catch {}
   if (res.error) {
-    const kind = /minimal|min|candle/i.test(res.error) ? 'NO DATA' : 'BACKTEST FAILED';
+    const kind = classifyResult(res);
     $('summaryLine').innerHTML = '<b>' + esc(res.asset) + '</b> · <span class="stat-err">' + kind + '</span> · ' + esc(res.error);
     $('kpis').innerHTML = ''; $('tblPair').querySelector('tbody').innerHTML = ''; $('tblAdv').querySelector('tbody').innerHTML = '';
     lab.tradeRows = []; lab.tradePage = 0; paintTradePage(); $('tradeCount').textContent = '0';
-    try { if ($('techOut')) $('techOut').textContent = kind + ' · ' + (source || '') + ' · ' + res.error; } catch {}
+    try { paintDiag(res, { ...(diagMeta || {}), status: kind }); } catch {}
     try { if ($('equityCap')) $('equityCap').textContent = ''; } catch {}
     renderEquity($('equity'), []);
-    return;
+    return kind;
   }
   const noTrades = !(res.totalTrades > 0);
   const winTxt = noTrades ? 'NO TRADES' : ('Win ' + fmt(res.winRate, 1) + '%');
@@ -299,7 +372,7 @@ function paintResult(res, source) {
   try { refreshTradeFilter([res.asset]); } catch {}
   paintTradePage();
   try { if ($('equityCap')) $('equityCap').textContent = res.asset + ' equity (single)'; } catch {}
-  try { if ($('techOut')) $('techOut').textContent = res.asset + ' · ' + res.timeframe + ' · ' + res.strategy + ' · ' + source + ' · ' + res.totalTrades + ' trades · filtered ' + (res.filtered ?? 0); } catch {}
+  try { paintDiag(res, { ...(diagMeta || {}), status: classifyResult(res) }); } catch {}
   // simpan ke riwayat lokal (dedup by kunci alami) + auto-signal dari trade terakhir
   const seen = new Set(state.hist.map((t) => t.asset + '|' + t.entryTime + '|' + t.exitTime + '|' + t.direction));
   const fresh = res.trades.filter((t) => {
@@ -313,6 +386,7 @@ function paintResult(res, source) {
   renderHist();
   const lt = res.trades[res.trades.length - 1];
   if (lt) pushSignal({ pair: res.asset, tf: res.timeframe, dir: lt.direction, price: lt.entry, sl: lt.stopLoss, tp: lt.takeProfit, t: lt.entryTime, src: 'backtest' });
+  return classifyResult(res);
 }
 
 // ---------- COLLAPSIBLE SECTIONS (satu pola konsisten + ingat state) ----------
@@ -638,6 +712,57 @@ function renderDashboard() {
     const s = state.signals[0];
     $('lastSignal').innerHTML = s ? '<div class="sigcard" data-sig="' + s.id + '"><span class="paircell">' + pairIcon(s.pair) + '<b>' + esc(s.dir) + ' ' + esc(s.pair) + ' ' + esc(s.tf || '') + '</b></span><br><small style="color:var(--mut)">' + new Date(s.t).toLocaleString('id-ID') + ' · entry ' + fmt(s.price, 4) + ' · SL ' + fmt(s.sl, 4) + ' · TP ' + fmt(s.tp, 4) + '</small></div>' : '<p class="sub">Belum ada sinyal.</p>';
   } catch (e) { console.warn('dash:', e); }
+  try { renderActiveCfg(); } catch {}
+}
+
+// ---------- ACTIVE STRATEGY CONFIGURATION (Dashboard, sumber = config TERAPAN engine) ----------
+function renderActiveCfg() {
+  try {
+    const cfg = store.get('aether_applied_cfg', null);
+    const last = store.get('aether_last_backtest', null);
+    const badge = $('cfgBadge'), origin = $('cfgOrigin'), tb = $('tblActiveCfg')?.querySelector('tbody');
+    if (!cfg) {
+      if (badge) badge.textContent = 'NOT APPLIED';
+      if (origin) origin.textContent = 'Belum ada konfigurasi yang diterapkan engine.';
+      if (tb) tb.innerHTML = '<tr><td colspan="2" class="empty-cell">Jalankan backtest atau Start engine untuk menerapkan konfigurasi.</td></tr>';
+    } else {
+      const st = cfg.valid === false ? 'INVALID' : (cfg.status || 'ACTIVE');
+      if (badge) badge.textContent = st;
+      if (origin) origin.textContent = 'Sumber: ' + (cfg.origin === 'live-engine' ? 'Live Engine (Bot/Dry-Run)' : cfg.origin === 'backtest-multi' ? 'Backtest Multi-Pair terakhir' : 'Backtest Single terakhir') + ' · ' + new Date(cfg.at).toLocaleString('id-ID');
+      const stratName = (() => { try { const f = STRS.find((x) => x.id === cfg.strategy); return f ? f.name + ' (' + cfg.strategy + ')' : cfg.strategy; } catch { return cfg.strategy; } })();
+      const rows = [
+        ['Strategy', esc(stratName)],
+        ['Combo', cfg.combo?.strategies?.length ? esc(cfg.combo.strategies.join(' + ') + ' [' + (cfg.combo.mode || 'OR') + ']') : '—'],
+        ['Strategy Mode', esc(cfg.strategyMode || '—')],
+        ['Active Filters', cfg.activeFilters?.length ? esc(cfg.activeFilters.join(', ')) : '<span class="stat-mut">tidak ada (semua mati)</span>'],
+        ['Disabled Filters', cfg.disabledFilters?.length ? esc(cfg.disabledFilters.join(', ')) : '—'],
+        ['Risk/Reward', esc(cfg.rr || '—')],
+        ['Stop Loss', esc(cfg.slLabel || '—')],
+        ['Take Profit', esc(cfg.tpLabel || '—')],
+        ['Timeframe', esc(cfg.timeframe || '—')],
+        ['Active Pairs', esc((cfg.pairs || []).join(', ') || '—')],
+        ['Configuration Status', esc(st)],
+      ];
+      if (tb) tb.innerHTML = rows.map(([a, b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join('');
+    }
+    const lb = $('lastBtSummary');
+    if (lb) {
+      if (!last) lb.textContent = 'Belum ada backtest.';
+      else {
+        const parts = [
+          'Mode: ' + (last.mode || '—'),
+          'Pair: ' + (last.pairs || []).join(', '),
+          'TF: ' + (last.params?.timeframe || '—'),
+          'Periode: ' + (last.params?.startDate ? fmtT(last.params.startDate) : 'awal') + ' → ' + (last.params?.endDate ? fmtT(last.params.endDate) : 'akhir'),
+          'Candle: minta ' + (last.params?.limit ?? '—') + ' → proses ' + (last.res?.diag?.dateFilteredCount ?? last.rows?.[0]?.res?.diag?.dateFilteredCount ?? '—'),
+          'Trade: ' + (last.res?.totalTrades ?? last.rows?.reduce((s, r) => s + (r.res?.totalTrades || 0), 0) ?? 0),
+          'Durasi: engine ' + (last.engineMs != null ? last.engineMs.toFixed(0) + 'ms' : '—') + ' / total ' + (last.totalMs != null ? last.totalMs.toFixed(0) + 'ms' : '—'),
+          'Status: ' + (last.status || '—'),
+        ];
+        lb.textContent = parts.join(' · ') + '. (Snapshot saat RUN — bukan config terbaru.)';
+      }
+    }
+  } catch (e) { console.warn('activecfg:', e); }
 }
 
 // ---------- DETAIL modal ----------
@@ -748,27 +873,47 @@ function init() {
     catch (err) { state.csv = null; setStatus('CSV error: ' + err.message, true); }
   });
 
-  // run (single) — dipicu tombol Run utama / quickRun
+  // run (single) — dipicu tombol Run utama / quickRun. Bukti diagnostik penuh (Bag 3).
   async function doSingleRun() {
     state.cancelled = false; $('quickRun').disabled = true; $('cancel').disabled = false; $('cancel').classList.remove('hidden');
+    const tStart = performance.now();
     try {
       state.params = readParams();
+      const limitReq = +$('limit').value;
       setStatus('Mengambil data ' + state.params.asset + '…', false);
-      const { candles, source } = await loadData(state.params);
+      const { candles, source, fetchMeta } = await loadData(state.params);
       if (state.cancelled) return;
       state.candles = candles;
       setStatus('Backtest ' + candles.length + 'c…', false);
       await new Promise((r) => setTimeout(r, 30));
       const t0 = performance.now();
       const res = runBacktest(candles, state.params);
+      const engineMs = performance.now() - t0;
       if (state.cancelled) return;
-      paintChart(res); paintResult(res, source);
-      setStatus(res.error ? ('Error: ' + res.error) : ('Selesai ' + Math.round(performance.now() - t0) + 'ms · ' + res.totalTrades + ' trade · Net ' + fmt$(res.netProfit) + ' · ' + source), !!res.error);
+      paintChart(res);
+      const status = paintResult(res, source, { ...fetchMeta, engineMs, totalMs: performance.now() - tStart, strategy: res.strategy });
+      saveAppliedSnapshot('backtest-single', state.params, { pairs: [state.params.asset], status, valid: !res.error });
+      saveLastBacktest({ mode: 'single', pairs: [state.params.asset], params: snapshotParams(state.params, limitReq), fetchMeta, res, engineMs, totalMs: performance.now() - tStart, status, at: new Date().toISOString() });
+      setStatus(res.error ? (status + ': ' + res.error) : ('Selesai ' + Math.round(engineMs) + 'ms engine · ' + res.totalTrades + ' trade · Net ' + fmt$(res.netProfit) + ' · ' + source + ' · ' + (fetchMeta?.cacheUsed ? ('cache:' + fetchMeta.cacheUsed) : '')), !!res.error);
     } catch (err) {
       $('chartEmpty').style.display = 'flex';
       $('chartEmpty').textContent = 'Gagal: ' + err.message + ' — coba Demo (offline).';
-      setStatus('Error: ' + err.message, true);
+      setStatus('FAILED: ' + err.message, true);
+      try { saveLastBacktest({ mode: 'single', pairs: [state.params?.asset || '?'], params: state.params ? snapshotParams(state.params, +$('limit').value) : null, fetchMeta: null, res: null, engineMs: 0, totalMs: performance.now() - tStart, status: 'FAILED', error: err.message, at: new Date().toISOString() }); } catch {}
     } finally { $('quickRun').disabled = false; $('cancel').disabled = true; $('cancel').classList.add('hidden'); }
+  }
+  function snapshotParams(p, limitReq) {
+    try {
+      return { strategy: p.strategy, combo: p.combo || null, filters: (p.filters || []).map((f) => f.name), riskPerTrade: p.riskPerTrade, leverage: p.leverage, feePercent: p.feePercent, slippagePercent: p.slippagePercent, slPercent: p.slPercent, tpPercent: p.tpPercent, useAtr: !!p.useAtr, atrSlMult: p.atrSlMult, atrTpMult: p.atrTpMult, timeframe: p.timeframe, limit: limitReq, startDate: p.startDate || 0, endDate: p.endDate || 0, initialCapital: p.initialCapital, maxHolding: p.maxHolding };
+    } catch { return null; }
+  }
+  function saveLastBacktest(entry) {
+    try {
+      const slim = (r) => (!r ? null : { asset: r.asset, timeframe: r.timeframe, strategy: r.strategy, totalTrades: r.totalTrades, wins: r.wins, losses: r.losses, expired: r.expired, winRate: r.winRate, profitFactor: r.profitFactor, netProfit: r.netProfit, maxDrawdownPercent: r.maxDrawdownPercent, averageWin: r.averageWin, averageLoss: r.averageLoss, error: r.error || null, diag: r.diag || null });
+      const clean = { ...entry, res: slim(entry.res), rows: (entry.rows || []).map((x) => ({ sym: x.sym, err: x.err || null, res: slim(x.res) })) };
+      store.set('aether_last_backtest', clean);
+      try { renderActiveCfg(); } catch {}
+    } catch {}
   }
   try { $('run')?.addEventListener('click', doSingleRun); } catch {}
   try { $('quickRun').addEventListener('click', () => { if (labMode() === 'multi') doMultiRun(); else doSingleRun(); }); } catch {}
@@ -820,7 +965,11 @@ function init() {
   }
   async function runRanking(pairs) {
     const p = readParams();
-    const list = pairs.slice(0, 10);
+    const limitReq = +$('limit').value;
+    // AUDIT FIX: jangan potong diam-diam (slice 0,10 lama membuang pair tanpa jejak).
+    // Proses SELURUH pair terpilih; progres menampilkan semuanya.
+    const list = pairs.slice();
+    const tAll = performance.now();
     console.log('[multi] Backtest started. Selected pairs: [' + list.join(', ') + ']');
     const items = list.map((sym) => ({ sym, st: 'wait', note: 'waiting' }));
     const rows = [];
@@ -835,15 +984,20 @@ function init() {
       setStatus('Backtest ' + it.sym + '… (' + (done + 1) + '/' + items.length + ')', false);
       paintProgress(items, done);
       console.log('[multi] Pair started: ' + it.sym);
+      const tPair = performance.now();
       try {
         // CSV guard: jangan pakai CSV 1-pair untuk multi. Setiap pair: data → indikator
         // (buildCache di dalam runBacktest) → sinyal → trade → result, independen penuh.
-        const candles = await getCandles({ provider: $('provider').value, symbol: it.sym, timeframe: p.timeframe, limit: +$('limit').value });
-        console.log('[multi] ' + it.sym + ' — Data loaded: ' + candles.length + ' candles');
+        const candles = await getCandles({ provider: $('provider').value, symbol: it.sym, timeframe: p.timeframe, limit: limitReq });
+        const fh = fetchHistory[fetchHistory.length - 1] || { provider: $('provider').value, symbol: it.sym, timeframe: p.timeframe, limitRequested: limitReq, received: candles.length, cacheUsed: 'NOT MEASURED', source: $('provider').value };
+        console.log('[multi] ' + it.sym + ' — Data loaded: ' + candles.length + ' candles (minta ' + limitReq + ', cache:' + fh.cacheUsed + ')');
+        const t0 = performance.now();
         const res = runBacktest(candles, { ...p, asset: it.sym });
-        console.log('[multi] ' + it.sym + ' — Signals filtered: ' + (res.filtered ?? 0) + ', Trades generated: ' + (res.totalTrades ?? 0));
+        const engineMs = performance.now() - t0;
+        console.log('[multi] ' + it.sym + ' — Signals: raw ' + (res.diag?.signalsRaw ?? 'NM') + ', filtered ' + (res.filtered ?? 0) + ', Trades: ' + (res.totalTrades ?? 0) + ', engine ' + engineMs.toFixed(1) + 'ms');
+        res.diag = { ...(res.diag || {}), limitRequested: limitReq, received: fh.received, source: fh.source || $('provider').value, cacheUsed: fh.cacheUsed, engineMs };
         lab.multiCache.set(it.sym, { candles, res });
-        rows.push({ sym: it.sym, res });
+        rows.push({ sym: it.sym, res, fetchMeta: fh, engineMs });
         const st = pairStatusOf({ res });
         it.st = st.key === 'ok' || st.key === 'notrades' ? 'done-ok' : 'done-bad';
         it.note = st.label + (res && !res.error ? (' · ' + res.totalTrades + ' tr') : '');
@@ -883,8 +1037,21 @@ function init() {
       } catch {}
     } catch {}
     const okN = rows.filter((r) => r.res && !r.res.error).length;
-    setStatus(okN + ' of ' + rows.length + ' pairs processed successfully' + (state.cancelled ? ' (dibatalkan).' : '.'), okN === 0);
-    console.log('[multi] Done: ' + okN + ' of ' + rows.length + ' pairs processed successfully');
+    const failN = rows.length - okN;
+    const overallStatus = okN === rows.length ? (rows.every((r) => (r.res?.totalTrades || 0) > 0) ? 'SUCCESS' : (rows.every((r) => !((r.res?.totalTrades || 0) > 0)) && okN > 0 ? 'SUCCESS (NO TRADES)' : 'SUCCESS')) : (okN > 0 ? 'PARTIAL SUCCESS' : 'FAILED');
+    setStatus(overallStatus + ': ' + okN + ' of ' + rows.length + ' pairs processed successfully' + (state.cancelled ? ' (dibatalkan).' : '.'), okN === 0);
+    console.log('[multi] Done: ' + okN + ' of ' + rows.length + ' pairs processed successfully (' + overallStatus + ')');
+    try { saveAppliedSnapshot('backtest-multi', p, { pairs: list.slice(), status: overallStatus, valid: okN > 0 }); } catch {}
+    try {
+      saveLastBacktest({
+        mode: 'multi', pairs: list.slice(), params: snapshotParams(p, limitReq),
+        res: null, rows,
+        engineMs: rows.reduce((s, r) => s + (r.engineMs || 0), 0),
+        totalMs: performance.now() - tAll,
+        status: overallStatus,
+        at: new Date().toISOString(),
+      });
+    } catch {}
     try { $('labProgressCount').textContent = done + ' / ' + items.length + ' completed'; } catch {}
     return rows;
   }
@@ -1003,9 +1170,11 @@ function init() {
     try { engCfg(); } catch (err) {
       $('dryStatus').textContent = 'Config error: ' + err.message;
       try { $('botStatus').textContent = 'Config error: ' + err.message; } catch {}
+      try { saveAppliedSnapshot('live-engine', readParams(), { pairs: [...state.engPairs], status: 'INVALID', valid: false }); } catch {}
       return;
     }
     try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch { /* abaikan */ }
+    try { saveAppliedSnapshot('live-engine', engCfg(), { pairs: [...state.engPairs], status: state.eng.running ? 'ACTIVE' : 'ACTIVE', valid: true }); } catch {}
     state.eng.running = true;
     syncEngButtons();
     await engTick(true);

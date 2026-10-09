@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATA &amp; PROVIDER" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Provider default">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spProv" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnSave" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Simpan" style="@style/BtnPrimary" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnExport" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Export JSON" style="@style/BtnGhost" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="KONEKSI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <Button android:id="@+id/btnTest" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Tes Koneksi"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/connList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="AI ANALYSIS" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Interpreter lokal atas data engine (tanpa API key, tanpa endpoint eksternal)."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="TENTANG" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Aether Signal 5.0 (debug) · com.aether.signal.premium · Android Native Kotlin + Material · Sinyal edukasi, bukan nasihat keuangan."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

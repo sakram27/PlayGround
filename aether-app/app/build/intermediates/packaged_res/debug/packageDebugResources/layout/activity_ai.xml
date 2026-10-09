@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="ASISTEN ANALIS" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segDepth" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Ringkas" style="@style/BtnGhost" />
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Mendalam" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <Button android:id="@+id/btnRun" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jalankan Analisis"
+                    style="@style/BtnPrimary" android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Siap."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/context" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/dim"
+                    android:textSize="11sp" android:layout_marginTop="4dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/blocks"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

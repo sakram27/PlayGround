@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aether.signal.premium"
+    android:versionCode="3"
+    android:versionName="4.1-native">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:label="Aether Signal"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/AppTheme"
+        android:allowBackup="true"
+        android:hardwareAccelerated="true">
+        <activity android:name=".ui.DashboardActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ui.MarketActivity" android:exported="false" />
+        <activity android:name=".ui.SignalsActivity" android:exported="false" />
+        <activity android:name=".ui.LabActivity" android:exported="false" />
+        <activity android:name=".ui.BacktestActivity" android:exported="false" />
+        <activity android:name=".ui.AiActivity" android:exported="false" />
+        <activity android:name=".ui.SettingsActivity" android:exported="false" />
+    </application>
+</manifest>

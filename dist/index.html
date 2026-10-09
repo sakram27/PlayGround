@@ -77,6 +77,16 @@
       <div class="kpis" id="dashKpis"></div>
     </div>
 
+    <div class="panel" id="activeCfgPanel">
+      <div class="panel-h"><h3>Active Strategy Configuration</h3><span class="badge" id="cfgBadge">NOT APPLIED</span></div>
+      <p class="desc" id="cfgOrigin">Belum ada konfigurasi yang diterapkan engine.</p>
+      <div class="scrollx"><table class="tbl" id="tblActiveCfg"><tbody><tr><td colspan="2" class="empty-cell">Jalankan backtest atau Start engine untuk menerapkan konfigurasi.</td></tr></tbody></table></div>
+      <div class="panel inset" id="lastBtPanel">
+        <b class="mini-h">Last Backtest</b>
+        <div class="muted" id="lastBtSummary" style="font-size:12px">Belum ada backtest.</div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-h"><h3>Recent Signals</h3><button class="linkbtn" data-goto="sinyal">Lihat semua</button></div>
       <div id="recentSig" class="rows"></div>

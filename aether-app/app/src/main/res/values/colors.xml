@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="graphite_900">#0B0E13</color>
+    <color name="graphite_800">#12161D</color>
+    <color name="card">#171D26</color>
+    <color name="inset">#1C232E</color>
+    <color name="line">#232B36</color>
+    <color name="txt">#E8EDF2</color>
+    <color name="mut">#8B95A5</color>
+    <color name="dim">#5B6572</color>
+    <color name="green">#0ECB81</color>
+    <color name="green_ink">#06110D</color>
+    <color name="green_soft">#0A2E22</color>
+    <color name="red">#F6465D</color>
+    <color name="red_soft">#3A1E22</color>
+    <color name="amber">#FFB800</color>
+    <color name="blue">#4C8DFF</color>
+</resources>

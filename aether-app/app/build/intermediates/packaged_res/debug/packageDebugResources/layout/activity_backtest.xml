@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="BACKTEST CONSOLE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/quickMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segMode" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <Button android:id="@+id/segSingle" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Single Pair" style="@style/BtnGhost" />
+                    <Button android:id="@+id/segMulti" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Multi Pair" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnRun" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶  Run Backtest" style="@style/BtnPrimary" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnCancel" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Batal"
+                        style="@style/BtnGhost" />
+                </LinearLayout>
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Siap."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/progCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/progList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="STRATEGI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Strategi utama">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spStrategy" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segPreset" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Default" style="@style/BtnGhost" />
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Custom" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:id="@+id/comboBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="MODE COMBO" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/segCombo" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        app:singleSelection="true" app:selectionRequired="true">
+                        <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Single" style="@style/BtnGhost" />
+                        <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="OR" style="@style/BtnGhost" />
+                        <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="AND" style="@style/BtnGhost" />
+                        <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="MAJ" style="@style/BtnGhost" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/comboList"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Modal USDT">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inCapital" android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Risiko %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inRisk" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATA &amp; PASANGAN" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:id="@+id/singleBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical">
+                    <Button android:id="@+id/btnPair" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" style="@style/BtnGhost"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/multiBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/multiCount" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="8dp" />
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chips" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <Button android:id="@+id/btnSelect" android:layout_width="0dp"
+                            android:layout_height="wrap_content" android:layout_weight="1"
+                            android:text="Select Pairs" style="@style/BtnPrimary" />
+                        <Space android:layout_width="8dp" android:layout_height="1dp" />
+                        <Button android:id="@+id/btnReload" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:text="Reload"
+                            style="@style/BtnGhost" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Provider">
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/spProv" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Timeframe">
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/spTf" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:id="@+id/filterHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="FILTER"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/presetLoose" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Longgar" style="@style/BtnGhost" android:minHeight="38dp" />
+                    <Button android:id="@+id/presetBal" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Seimbang" style="@style/BtnGhost" android:minHeight="38dp" />
+                    <Button android:id="@+id/presetStrict" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Ketat" style="@style/BtnGhost" android:minHeight="38dp" />
+                </LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/filterList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RISIKO &amp; BIAYA" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="SL %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inSl" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swAtr" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Level ATR-14"
+                    android:textColor="@color/txt" android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RENTANG DATA &amp; CSV" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segLimit" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="200" style="@style/BtnGhost" />
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="500" style="@style/BtnGhost" />
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="1000" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Dari yyyy-MM-dd">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inFrom" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Sampai yyyy-MM-dd">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTo" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnCsv" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Import CSV" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnCsvClear" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Hapus" style="@style/BtnGhost" />
+                </LinearLayout>
+                <TextView android:id="@+id/csvStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp"
+                    android:text="CSV tidak aktif." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="GRAFIK" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/chartMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/dim"
+                    android:textSize="11sp" android:fontFamily="monospace" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segChart" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Price" style="@style/BtnGhost" />
+                    <Button android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="Equity" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <com.github.mikephil.charting.charts.CombinedChart
+                    android:id="@+id/chart" android:layout_width="match_parent"
+                    android:layout_height="360dp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/equityCap" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="11sp" android:layout_marginTop="4dp" />
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/equity" android:layout_width="match_parent"
+                    android:layout_height="200dp" android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="HASIL" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="24sp"
+                    android:fontFamily="monospace" android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/heroSub" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/sumLine" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <TextView android:id="@+id/pairsHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="PER PAIR"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/pairsList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
+                    <Button android:id="@+id/tradePrev" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="‹" style="@style/BtnGhost" />
+                    <TextView android:id="@+id/tradePage" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:textColor="@color/mut"
+                        android:textSize="12sp" android:fontFamily="monospace" />
+                    <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
+                    <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnGhost" />
+                </LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="DIAGNOSTIK"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" android:layout_marginTop="8dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

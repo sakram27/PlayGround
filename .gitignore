@@ -16,3 +16,6 @@ screenshots/
 .opencode-web/
 
 node_modules/
+
+# debug signing key (jangan commit)
+aether-signal/build-tools/

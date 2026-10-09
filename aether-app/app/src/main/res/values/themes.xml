@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorOnPrimary">@color/green_ink</item>
+        <item name="colorPrimaryContainer">@color/green_soft</item>
+        <item name="colorSecondary">@color/green</item>
+        <item name="colorSurface">@color/graphite_800</item>
+        <item name="colorOnSurface">@color/txt</item>
+        <item name="colorSurfaceVariant">@color/card</item>
+        <item name="colorOnSurfaceVariant">@color/mut</item>
+        <item name="colorError">@color/red</item>
+        <item name="android:colorBackground">@color/graphite_900</item>
+        <item name="android:windowBackground">@color/graphite_900</item>
+        <item name="android:textColorPrimary">@color/txt</item>
+        <item name="android:textColorSecondary">@color/mut</item>
+        <item name="bottomNavigationStyle">@style/AppBottomNav</item>
+    </style>
+    <style name="AppBottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/nav_tint</item>
+        <item name="itemTextColor">@color/nav_tint</item>
+        <item name="backgroundTint">@color/graphite_800</item>
+    </style>
+    <style name="Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/card</item>
+        <item name="cardCornerRadius">10dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/line</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="contentPadding">14dp</item>
+    </style>
+    <style name="BtnPrimary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/green</item>
+        <item name="android:textColor">@color/green_ink</item>
+        <item name="cornerRadius">9dp</item>
+    </style>
+    <style name="BtnGhost" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/line</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="cornerRadius">9dp</item>
+    </style>
+    <style name="Field" parent="Widget.Material3.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/line</item>
+        <item name="boxBackgroundColor">@color/inset</item>
+        <item name="hintTextColor">@color/mut</item>
+        <item name="android:textColorHint">@color/mut</item>
+    </style>
+</resources>
