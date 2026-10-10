@@ -8,6 +8,7 @@
     <CheckedTextView android:id="@+id/check" android:layout_width="0dp"
         android:layout_height="wrap_content" android:layout_weight="1"
         android:textColor="@color/txt" android:textSize="14sp"
-        android:fontFamily="monospace" android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+        android:fontFamily="monospace" android:checkMark="@drawable/check_mark"
+        android:checkMarkTintMode="src_in"
         android:maxLines="1" android:ellipsize="end" />
 </LinearLayout>

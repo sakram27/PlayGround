@@ -5,7 +5,13 @@ import com.aether.signal.premium.engine.Trade
 // Port interpreter deskriptif ui-premium.js aiAnalyze (bukan mesin AI eksternal):
 // agregat DATA → ANALYSIS/OPINION berlabel. Tanpa logika trading.
 
-data class Sig(val pair: String, val tf: String, val dir: String, val price: Double, val sl: Double, val tp: Double, val t: Long, val src: String, val id: String)
+data class Sig(val pair: String, val tf: String, val dir: String, val price: Double, val sl: Double, val tp: Double, val t: Long, val src: String, val id: String,
+    // V16 F1/F2: jejak keputusan + skor, diisi saat sinyal dibuat. Default kosong
+    // → sinyal lama tetap terbaca ("tidak tersedia"), migrasi aman.
+    val strategy: String = "", val confidence: Double = 0.0,
+    val reasons: List<String> = emptyList(), val passedFilters: List<String> = emptyList(),
+    val failedFilters: List<String> = emptyList(), val decidedAt: Long = 0L,
+    val score: Double = -1.0, val scoreDetail: String = "")
 data class AiBlock(val title: String, val items: List<Pair<String, String>>) // tag to html-ish text
 
 fun aiAnalyze(sigs: List<Sig>, hist: List<Trade>, summaryLine: String, deep: Boolean): List<AiBlock> {

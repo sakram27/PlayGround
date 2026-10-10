@@ -55,19 +55,42 @@ fun calcRiskLevels(entry: Double, direction: String, cache: Cache, idx: Int, par
 fun errorResult(params: BacktestParams, message: String, diag: BacktestDiag = BacktestDiag(note = "NOT MEASURED: engine berhenti sebelum evaluasi (data < minimum).")): BacktestResult =
     BacktestResult(error = message, asset = params.asset, timeframe = params.timeframe, initialCapital = params.initialCapital, finalCapital = params.initialCapital, diag = diag)
 
-fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams): BacktestResult {
+// V22: tahap mesin untuk Backtest Process Monitor. Aditif — callback opsional,
+// nol perubahan logika saat null. Dipanggil dari thread pemanggil (bg).
+sealed interface EngineStage {
+    data class Validated(val normalized: Int, val inRange: Int) : EngineStage
+    object IndicatorsDone : EngineStage
+    data class Evaluating(val done: Int, val total: Int, val sigRaw: Int, val filtered: Int, val trades: Int) : EngineStage
+    object MetricsDone : EngineStage
+}
+
+fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams, onStage: ((EngineStage) -> Unit)? = null): BacktestResult {
     val params = sanitizeParams(rawParams)
     var diag = BacktestDiag(rawCount = rawCandles.size)
-    var candles = normalizeCandles(rawCandles)
-    diag = diag.copy(normalizedCount = candles.size)
-    candles = filterByDate(candles, params.startDate, params.endDate)
-    diag = diag.copy(dateFilteredCount = candles.size)
-    if (candles.size < MIN_CANDLES) {
-        return errorResult(params, "Butuh minimal $MIN_CANDLES candle (dapat ${candles.size}). " +
+    // V21: batas 2 tahun ditegakkan MESIN (bukan hanya UI) — tolak sebelum unduh/proses.
+    if (exceedsTwoYears(params.startDate, params.endDate)) {
+        diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+        return errorResult(params, "Rentang melebihi 2 tahun kalender. Pilih periode maksimal 2 tahun.", diag)
+    }
+    val full = normalizeCandles(rawCandles)
+    diag = diag.copy(normalizedCount = full.size)
+    // V17: data pemanasan (pra-startDate, tanpa transaksi) dipisah dari rentang
+    // transaksi [startDate, endDate]. Evaluasi mulai pada bar WARMUP rentang
+    // transaksi — set bar yang SAMA seperti sebelumnya, hanya riwayat indikator
+    // lebih panjang bila data pra-start tersedia. Aturan strategi/filter/entry/
+    // exit/slippage/fee tak berubah.
+    val (prefix, inRange) = splitWarmup(full, params.startDate, params.endDate)
+    diag = diag.copy(dateFilteredCount = inRange.size, warmupPrefix = prefix.size)
+    try { onStage?.invoke(EngineStage.Validated(full.size, inRange.size)) } catch (e: Exception) { /* monitor tak boleh matikan mesin */ }
+    if (inRange.size < MIN_CANDLES) {
+        diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+        return errorResult(params, "Butuh minimal $MIN_CANDLES candle (dapat ${inRange.size}). " +
             (if (params.startDate != 0L || params.endDate != 0L) "Coba perlebar rentang tanggal. " else "") +
             "Minta 1000 candle dari provider.", diag)
     }
+    val candles = prefix + inRange
     val cache = buildCache(candles)
+    try { onStage?.invoke(EngineStage.IndicatorsDone) } catch (e: Exception) { /* abaikan */ }
     val trades = ArrayList<Trade>()
     val equityCurve = ArrayList<EquityPoint>()
     var equity = params.initialCapital
@@ -75,22 +98,42 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams): BacktestResu
     var maxDD = 0.0
     equityCurve.add(EquityPoint(candles[0].t, equity))
 
-    val startIdx = maxOf(WARMUP, 2)
+    val startIdx = maxOf(prefix.size + WARMUP, 2)
+    // Batas tepat-60: butuh ≥1 bar untuk evaluasi setelah pemanasan.
+    if (startIdx > candles.size - 2) {
+        diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+        return errorResult(params, "Data tidak cukup untuk evaluasi setelah pemanasan " +
+            "(rentang ${inRange.size} candle). Perlebar rentang tanggal.", diag)
+    }
     diag = diag.copy(startIdx = startIdx, evalFrom = candles[startIdx].t, evalTo = candles[candles.size - 2].t)
     val activeFilters = params.filters.filter { it.enabled }
     val fctx = FilterCtx(lastExit = -1000000000)
     var filtered = 0
+    val passed = HashMap<String, Int>()
     var evaluated = 0; var sigRaw = 0
     var noLevel = 0; var badEntry = 0; var badQty = 0; var badPnl = 0
     val reasons = HashMap<String, Int>()
     var i = startIdx
+    val totalSlots = (candles.size - 1) - startIdx
+    val emitStep = maxOf(1, totalSlots / 20)
+    var lastTradesEmitted = -1
+    fun emitEval(force: Boolean = false) {
+        val cb = onStage ?: return
+        if (!force && evaluated % emitStep != 0 && trades.size == lastTradesEmitted) return
+        lastTradesEmitted = trades.size
+        try {
+            cb(EngineStage.Evaluating(evaluated, totalSlots, sigRaw, filtered, trades.size))
+        } catch (e: Exception) { /* monitor tak boleh matikan mesin */ }
+    }
     while (i < candles.size - 1) {
         evaluated++
+        emitEval()
         val dec = decideAt(candles, i, cache, params)
         if (!dec.passed) { i++; continue }
         sigRaw++
         if (activeFilters.isNotEmpty()) {
             val fr = applyFilters(candles, i, cache, dec.direction, activeFilters, fctx)
+            if (fr.passed) for (f in activeFilters) passed[f.name] = (passed[f.name] ?: 0) + 1
             fctx.lastSigDir = dec.direction; fctx.lastSigIdx = i
             if (!fr.passed) {
                 filtered++
@@ -157,18 +200,22 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams): BacktestResu
             strategy = dec.strategy, confidence = dec.confidence, reasons = dec.reasons,
             qty = qty, riskAmount = riskAmount, fees = fees, pnl = pnl,
             pnlPercent = if (entry > 0) ((if (dec.direction == "LONG") ex - entry else entry - ex) / entry) * 100 * params.leverage else 0.0,
-            rMultiple = rMult, result = result, holding = exitIdx - (i + 1) + 1
+            rMultiple = rMult, result = result, holding = exitIdx - (i + 1) + 1,
+            uid = "${params.asset}|${dec.direction}|${next.t}|${candles[exitIdx].t}"
         ))
         i = exitIdx + 1 // cermin JS: i = exitIdx lalu i++ oleh for → lanjut di exitIdx+1
         fctx.lastExit = exitIdx
     }
+    emitEval(force = true)
 
     val skipped = maxOf(0, ((candles.size - 1) - startIdx) - evaluated)
     diag = diag.copy(
         evaluatedBars = evaluated, skippedInPosition = skipped, signalsRaw = sigRaw,
         filteredOut = filtered, skippedNoLevel = noLevel, skippedBadEntry = badEntry,
-        skippedBadQty = badQty, skippedBadPnl = badPnl, filterReasons = reasons
+        skippedBadQty = badQty, skippedBadPnl = badPnl, filterReasons = reasons, filterPassed = passed,
+        runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis()
     )
+    try { onStage?.invoke(EngineStage.MetricsDone) } catch (e: Exception) { /* abaikan */ }
     return buildResult(params, candles, trades, equityCurve, maxDD, filtered, diag)
 }
 

@@ -114,6 +114,35 @@ object NotifBus {
         prefs().edit().remove("seen").apply()
     }
 
+    // ---------- digest per jam (V16 F8, default MATI) ----------
+    // Hanya sinyal ENTRY yang digabung; SL/TP tetap langsung (keluar posisi kritis).
+    var digestOn: Boolean
+        get() = prefs().getBoolean("digest_on", false)
+        set(v) = prefs().edit().putBoolean("digest_on", v).apply()
+
+    private fun digestBucket(): DigestBucket? {
+        val k = prefs().getString("digest_key", null) ?: return null
+        val c = prefs().getInt("digest_count", 0)
+        if (c <= 0) return null
+        val lines = (prefs().getString("digest_lines", "") ?: "").split("\n").filter { it.isNotEmpty() }
+        val label = prefs().getString("digest_label", "") ?: ""
+        return DigestBucket(k, label, c, lines)
+    }
+
+    private fun saveDigestBucket(b: DigestBucket) {
+        prefs().edit().putString("digest_key", b.key).putInt("digest_count", b.count)
+            .putString("digest_lines", b.lines.joinToString("\n"))
+            .putString("digest_label", b.hourLabel).apply()
+    }
+
+    private fun currentBucketKey(): Pair<String, String> {
+        val cal = Calendar.getInstance()
+        val key = digestBucketKey(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.HOUR_OF_DAY))
+        val label = String.format("%02d.00", cal.get(Calendar.HOUR_OF_DAY))
+        return key to label
+    }
+
     fun dedupCount(): Int = seenIds().size
 
     fun systemEnabled(): Boolean {
@@ -191,7 +220,15 @@ object NotifBus {
      * Urutan gerbang: jam tenang → izin sistem → posting. Setiap gerbang mencatat
      * status apa adanya; "DIKIRIM" berarti perintah tampil diterima Android tanpa error.
      */
+    private fun strategyNames(): Map<String, String> = try {
+        com.aether.signal.premium.engine.strategyList().associate { it.id to it.name }
+    } catch (e: Exception) { emptyMap() }
     private fun dispatch(kind: String, channel: String, id: Int, title: String, text: String, s: Sig) {
+        // V18 #1: BigText kaya dari jejak tersimpan (sumber sama dengan Bagikan).
+        val big = try {
+            val names = try { strategyNames() } catch (e: Exception) { emptyMap<String, String>() }
+            buildRichSignal(s, names).body
+        } catch (e: Exception) { text }
         val c = appCtx ?: return
         val rec = NotifRec(System.currentTimeMillis(), kind, s.pair, s.tf, s.dir, s.price, "DIKIRIM")
         if (quietNow()) {
@@ -202,17 +239,54 @@ object NotifBus {
             addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
             return
         }
+        // V16 F8: mode digest — ENTRY digabung per jam kalender lokal (satu id
+        // notifikasi per bucket + onlyAlertOnce = satu bunyi per jam). Tiap sinyal
+        // tetap dicatat individual di riwayat; jam tenang di atas tetap berlaku.
+        if (digestOn && kind == "entry") {
+            dispatchDigest(c, s, rec)
+            return
+        }
         ensureChannels(c)
         val b = NotificationCompat.Builder(c, channel)
             .setSmallIcon(R.drawable.ic_notif)
             .setContentTitle(title)
             .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(big))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
         tapIntent()?.let { b.setContentIntent(it) }
         try {
             NotificationManagerCompat.from(c).notify(id, b.build())
+            addNotifRec(history(), rec); persistHistory()
+        } catch (e: SecurityException) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
+        }
+    }
+
+    /**
+     * V16 F8: posting ringkasan digest. Bucket & riwayat individual dicatat;
+     * tidak ada pengiriman ulang (satu id per bucket, update menimpa).
+     */
+    private fun dispatchDigest(c: Context, s: Sig, rec: NotifRec) {
+        val (key, label) = try { currentBucketKey() } catch (e: Exception) { return }
+        val line = "${s.pair} ${s.dir} ${s.tf}"
+        val bucket = digestAdd(digestBucket(), key, label, line)
+        saveDigestBucket(bucket)
+        ensureChannels(c)
+        val text = digestSummary(bucket)
+        val b = NotificationCompat.Builder(c, CH_ENTRY)
+            .setSmallIcon(R.drawable.ic_notif)
+            .setContentTitle("Ringkasan sinyal sejam")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+        tapIntent()?.let { b.setContentIntent(it) }
+        try {
+            NotificationManagerCompat.from(c).notify(key.hashCode(), b.build())
             addNotifRec(history(), rec); persistHistory()
         } catch (e: SecurityException) {
             addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()

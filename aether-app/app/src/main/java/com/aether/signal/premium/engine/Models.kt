@@ -57,7 +57,9 @@ data class Trade(
     val entryTime: Long, val exitTime: Long, val strategy: String,
     val confidence: Double, val reasons: List<String>,
     val qty: Double, val riskAmount: Double, val fees: Double, val pnl: Double,
-    val pnlPercent: Double, val rMultiple: Double, val result: String, val holding: Int
+    val pnlPercent: Double, val rMultiple: Double, val result: String, val holding: Int,
+    // V18: identitas unik stabil untuk audit ("aset|arah|entryTime|exitTime").
+    val uid: String = ""
 )
 
 data class EquityPoint(val t: Long, val equity: Double)
@@ -70,10 +72,16 @@ data class BacktestDiag(
     val skippedNoLevel: Int = 0, val skippedBadEntry: Int = 0,
     val skippedBadQty: Int = 0, val skippedBadPnl: Int = 0,
     val filterReasons: Map<String, Int> = emptyMap(),
+    // V22: hitung lolos per filter aktif (diagnostik; tanpa ubah keputusan).
+    val filterPassed: Map<String, Int> = emptyMap(),
     val evalFrom: Long = 0, val evalTo: Long = 0,
     val limitRequested: Int? = null, val received: Int? = null,
     val source: String? = null, val cacheUsed: String? = null,
-    val note: String? = null
+    val note: String? = null,
+    // V17 (forensik periode): identitas & cakupan run. Data, bukan aturan.
+    val warmupPrefix: Int = 0,
+    val runId: String = "",
+    val finishedAt: Long = 0L
 )
 
 data class BacktestResult(
@@ -116,6 +124,32 @@ fun parseTimeframe(tf: String): Int {
     if (minutes <= 0) throw IllegalArgumentException("Timeframe tidak valid: \"$tf\".")
     return minutes
 }
+
+// ---------- V21: batas 2 tahun kalender (UTC, kabisat benar) ----------
+
+/**
+ * True bila (from, to] melebihi 2 tahun kalender. Tepat 2 tahun = diizinkan.
+ * Batas hanya berlaku bila kedua ujung > 0.
+ */
+fun exceedsTwoYears(fromMs: Long, toMs: Long): Boolean {
+    if (fromMs <= 0 || toMs <= 0 || toMs <= fromMs) return false
+    return try {
+        val c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+        c.timeInMillis = fromMs
+        c.add(java.util.Calendar.YEAR, 2)
+        toMs > c.timeInMillis
+    } catch (e: Exception) {
+        // Fallback konservatif: 730 hari.
+        toMs - fromMs > 730L * 86400000L
+    }
+}
+
+/** Jumlah candle yang diharapkan pada [from, to] untuk interval TF (inklusif). */
+fun expectedCandles(fromMs: Long, toMs: Long, tfMinutes: Int): Long {
+    if (fromMs <= 0 || toMs <= fromMs || tfMinutes <= 0) return 0L
+    return (toMs - fromMs) / (tfMinutes.toLong() * 60000L) + 1
+}
+
 
 fun utcHour(t: Long): Int = ((t / 3600000L) % 24L).toInt()
 fun epochDay(t: Long): Long = Math.floorDiv(t, 86400000L)
@@ -178,5 +212,20 @@ private fun toD(v: Any?, dflt: Double = Double.NaN): Double {
 
 fun filterByDate(candles: List<Candle>, startDate: Long, endDate: Long): List<Candle> =
     candles.filter { (!startDate.isPositive() || it.t >= startDate) && (!endDate.isPositive() || it.t <= endDate) }
+
+/**
+ * V17 (forensik periode): pisahkan data PEMANASAN indikator dari rentang TRANSAKSI.
+ * Mengembalikan (prefix, inRange): hingga WARMUP candle sebelum startDate hanya
+ * untuk riwayat indikator (tanpa transaksi); inRange = [startDate, endDate].
+ * Tanpa startDate (>0): prefix kosong (perilaku lama). Aturan strategi/filter/
+ * entry/exit tak berubah — hanya persiapan data.
+ */
+fun splitWarmup(full: List<Candle>, startDate: Long, endDate: Long, warmup: Int = WARMUP): Pair<List<Candle>, List<Candle>> {
+    val inRange = filterByDate(full, startDate, endDate)
+    if (!startDate.isPositive()) return emptyList<Candle>() to inRange
+    val firstIn = full.indexOfFirst { it.t >= startDate }
+    if (firstIn <= 0) return emptyList<Candle>() to inRange
+    return full.subList(maxOf(0, firstIn - warmup), firstIn).toList() to inRange
+}
 
 private fun Long.isPositive(): Boolean = this > 0

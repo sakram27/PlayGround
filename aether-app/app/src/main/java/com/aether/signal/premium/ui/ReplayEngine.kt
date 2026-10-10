@@ -83,10 +83,19 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
         }
         var cs = normalizeCandles(maps)
-        cs = filterByDate(cs, params.startDate, params.endDate)
+        // V17: persiapan data IDENTIK dengan runBacktest (prefix pemanasan + rentang).
+        val (prefix, inRange) = splitWarmup(cs, params.startDate, params.endDate)
+        cs = prefix + inRange
         candles = cs
-        if (cs.size < MIN_CANDLES) {
-            error = "Butuh minimal $MIN_CANDLES candle (dapat ${cs.size})."
+        val sIdx = maxOf(prefix.size + WARMUP, 2)
+        if (inRange.size < MIN_CANDLES) {
+            error = "Butuh minimal $MIN_CANDLES candle (dapat ${inRange.size})."
+            cache = null
+            activeFilters = emptyList()
+            startIdx = 0; totalSteps = 0; cursor = 0
+            equity = params.initialCapital; peak = equity; maxDD = 0.0
+        } else if (sIdx > cs.size - 2) {
+            error = "Data tidak cukup untuk evaluasi setelah pemanasan."
             cache = null
             activeFilters = emptyList()
             startIdx = 0; totalSteps = 0; cursor = 0
@@ -95,7 +104,7 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             error = null
             cache = buildCache(cs)
             activeFilters = params.filters.filter { it.enabled }
-            startIdx = maxOf(WARMUP, 2)
+            startIdx = sIdx
             totalSteps = (cs.size - 1) - startIdx
             cursor = startIdx
             equity = params.initialCapital; peak = equity; maxDD = 0.0
@@ -285,7 +294,8 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             strategy = params.strategy, confidence = 0.0, reasons = emptyList(),
             qty = op.qty, riskAmount = op.riskAmount, fees = fees, pnl = pnl,
             pnlPercent = if (op.entry > 0) ((if (op.dir == "LONG") ex - op.entry else op.entry - ex) / op.entry) * 100 * params.leverage else 0.0,
-            rMultiple = rMult, result = result, holding = i - op.entryIdx + 1
+            rMultiple = rMult, result = result, holding = i - op.entryIdx + 1,
+            uid = "${params.asset}|${op.dir}|${cs[op.entryIdx].t}|${cs[i].t}"
         )
         trades.add(t)
         open = null

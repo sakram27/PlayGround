@@ -90,5 +90,31 @@
                     android:nestedScrollingEnabled="false" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginTop="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RISET LANJUT (GRATIS)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Analisis profesional tanpa langganan, tanpa server. Semua berjalan di perangkat."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btnArchive" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Arsip Data Historis →"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <Button android:id="@+id/btnCost" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Biaya &amp; Funding →"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="44dp" />
+                <Button android:id="@+id/btnXVal" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Validasi Silang Data →"
+                    style="@style/BtnGhost" android:layout_marginTop="6dp"
+                    android:minHeight="44dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </ScrollView>

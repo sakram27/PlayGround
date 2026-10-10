@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="SENSITIVITAS BIAYA (16 SKENARIO + KUSTOM)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Fee % kustom">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inCostFee" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Slip % kustom">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inCostSlip" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <Button android:id="@+id/btnCostRun" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jalankan"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <TextView android:id="@+id/costStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/costList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="FUNDING RATE (LAPORAN SAJA)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Endpoint publik gratis (tanpa kunci). Hanya derivatif Binance/Bybit; spot &amp; Yahoo tak punya funding. Backtest tersimpan tidak diubah."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swDeriv" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Posisi derivatif (funding berlaku)"
+                    android:textColor="@color/txt" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Mati = asumsi spot (funding tidak diterapkan)."
+                    android:textColor="@color/dim" android:textSize="11sp" />
+                <Button android:id="@+id/btnFundFetch" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Ambil funding aktual"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnFund001" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Est 0,01%" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <Button android:id="@+id/btnFund005" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Est 0,05%" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <Button android:id="@+id/btnFund01" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Est 0,1%" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/fundStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

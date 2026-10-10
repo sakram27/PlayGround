@@ -19,11 +19,13 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         findViewById<MaterialButton>(R.id.btnLab).setOnClickListener { navTo("lab") }
         paintSignals()
         paintCfg()
+        paintRegime()
     }
 
     override fun onResume() {
         super.onResume()
         try { paintHero() } catch (e: Exception) { /* layout belum siap */ }
+        try { paintRegime() } catch (e: Exception) { /* abaikan */ }
     }
 
     private fun paintHero() {
@@ -49,18 +51,41 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
     private fun paintSignals() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.sigList)
         list.vertical(this)
-        val items = App.signals.take(4).map {
-            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}", App.fmt(it.price, 4), it.pair)
+        val vis = App.signals.take(4)
+        val items = vis.map {
+            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
         }
-        list.adapter = SigAdapter(items)
+        list.adapter = SigAdapter(items, onClick = { pos ->
+            vis.getOrNull(pos)?.let { openSignalDetail(it.id) }
+        })
         findViewById<android.widget.TextView>(R.id.sigEmpty).apply {
             visibility = if (App.signals.isEmpty()) View.VISIBLE else View.GONE
             text = "Belum ada sinyal — Start engine atau jalankan backtest."
         }
     }
 
-    private fun paintCfg() {
-        val c = App.appliedCfg()
+    /** V16 F7: label regime dari cache engine (tanpa request). Umur dinyatakan jujur. */
+    private fun paintRegime() {
+        try {
+            val tv = findViewById<android.widget.TextView>(R.id.regimeList)
+            if (App.engPairs.isEmpty()) {
+                tv.text = "Pilih pair engine dulu."
+                return
+            }
+            val now = System.currentTimeMillis()
+            tv.text = App.engPairs.take(8).joinToString("\n") { sym ->
+                val r = App.regime[sym]
+                if (r == null || r.label.isEmpty()) "$sym: Data tidak cukup"
+                else {
+                    val ageMin = ((now - r.at).coerceAtLeast(0) / 60000)
+                    val stale = if (ageMin > 30) " · data ${ageMin} mnt (mungkin basi)" else ""
+                    "$sym: ${regimeText(r)}$stale"
+                }
+            }
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun paintCfg() {        val c = App.appliedCfg()
         findViewById<android.widget.TextView>(R.id.cfgMain).text =
             if (c == null) "NOT APPLIED — jalankan backtest atau Start engine."
             else "${c.strategyMode}: ${c.strategy}${if (c.combo.isNotEmpty()) " + " + c.combo.joinToString("+") else ""} · ${c.timeframe} · RR ${c.rr}"

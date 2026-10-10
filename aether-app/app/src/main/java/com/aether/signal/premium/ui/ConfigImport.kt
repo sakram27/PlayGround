@@ -26,7 +26,8 @@ data class ImportPlan(
     val notif: Map<String, Boolean>,
     val quiet: QuietHours?,
     val warnings: List<String>,
-    val journal: List<JournalEntry> = emptyList()
+    val journal: List<JournalEntry> = emptyList(),
+    val trail: Pair<Boolean, Double>? = null
 )
 
 /** Parse + validasi PENUH sebelum ada yang diterapkan. Gagal → exception, nol perubahan. */
@@ -81,9 +82,13 @@ fun parseConfigImport(txt: String): ImportPlan {
     val notif = HashMap<String, Boolean>()
     val nj = cfg.optJSONObject("notif")
     if (nj != null) {
-        for (k in listOf("entry", "sl", "tp", "sound", "vibrate")) {
+        for (k in listOf("entry", "sl", "tp", "sound", "vibrate", "digest")) {
             if (nj.has(k)) notif[k] = nj.optBoolean(k)
         }
+    }
+    // V16: trailing paper (opsional; berkas lama → null = pertahankan aktif).
+    val trail = cfg.optJSONObject("trail")?.let { to ->
+        Pair(to.optBoolean("on", false), to.optDouble("lockPct", 50.0))
     }
     val quiet = cfg.optJSONObject("quiet")?.let { qo ->
         val start = qo.optInt("start", 22 * 60).coerceIn(0, MINUTES_PER_DAY - 1)
@@ -107,7 +112,7 @@ fun parseConfigImport(txt: String): ImportPlan {
         if (journal.isEmpty()) warnings.add("Bagian jurnal kosong/tak valid: tidak ada yang digabung.")
     }
     return ImportPlan(schema, provider, strategy, tf, customs, invalid,
-        watchLimit, engs, battery, notif, quiet, warnings, journal)
+        watchLimit, engs, battery, notif, quiet, warnings, journal, trail)
 }
 
 /** Ringkasan untuk dialog persetujuan (Bahasa Indonesia). */
@@ -124,6 +129,7 @@ fun importSummary(p: ImportPlan): String {
     b.append("• Hemat baterai: ${p.batterySaver?.let { if (it) "aktif" else "mati" } ?: "(tetap)"}\n")
     if (p.notif.isNotEmpty()) b.append("• Notifikasi: ${p.notif.entries.joinToString(", ") { "${it.key}=${if (it.value) "on" else "off"}" }}\n")
     p.quiet?.let { b.append("• Jam tenang: ${quietSummary(it)}\n") }
+    p.trail?.let { b.append("• Trailing virtual: ${if (it.first) "aktif" else "mati"} · kunci ${it.second}%\n") }
     if (p.journal.isNotEmpty()) b.append("• Jurnal: ${p.journal.size} catatan akan DIGABUNG (duplikat id dilewati, jurnal lama tetap).\n")
     for (w in p.warnings) b.append("⚠ $w\n")
     b.append("Tidak dipulihkan: sinyal & riwayat live, cache harga, status kesehatan.")

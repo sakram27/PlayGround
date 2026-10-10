@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="ANALISIS DAMPAK FILTER" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/ablStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <Button android:id="@+id/btnAblRun" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jalankan"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnSortTrades" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Δ Transaksi" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <Button android:id="@+id/btnSortNet" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Δ Net" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                    <Button android:id="@+id/btnSortDd" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Δ DD" style="@style/BtnGhost"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </LinearLayout>
+                <TextView android:id="@+id/ablCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/ablList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Filter lebih banyak transaksi belum tentu lebih baik. Konfigurasi aktif tidak diubah."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

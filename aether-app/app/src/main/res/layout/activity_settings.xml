@@ -117,6 +117,42 @@
                     android:layout_height="wrap_content" android:text="Riwayat notifikasi"
                     style="@style/BtnGhost" android:layout_marginTop="6dp"
                     android:minHeight="48dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swDigest" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Digest per jam (gabung entry)"
+                    android:textColor="@color/txt" android:layout_marginTop="6dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Digest: sinyal entry digabung jadi satu ringkasan per jam (satu bunyi). SL/TP tetap langsung. Riwayat individual tetap tersimpan. Jam tenang tetap berlaku."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="TRAILING STOP VIRTUAL (PAPER SAJA)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swTrail" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Aktifkan trailing stop virtual"
+                    android:textColor="@color/txt" android:layout_marginTop="4dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Hanya posisi paper. LONG: stop naik saja; SHORT: turun saja; tak pernah di bawah/di atas SL awal. Keluar pada level stop. Default mati."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp"
+                    android:gravity="center_vertical">
+                    <Button android:id="@+id/btnTrailMinus" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="−"
+                        style="@style/BtnGhost" android:minHeight="44dp" />
+                    <TextView android:id="@+id/trailLockTxt" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:textColor="@color/txt"
+                        android:textSize="13sp" android:fontFamily="monospace" />
+                    <Button android:id="@+id/btnTrailPlus" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="+"
+                        style="@style/BtnGhost" android:minHeight="44dp" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView

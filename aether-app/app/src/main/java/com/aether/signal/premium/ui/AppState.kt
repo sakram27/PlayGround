@@ -73,6 +73,11 @@ object App {
     var candles: List<Candle> = emptyList()
     var params: BacktestParams? = null
     var result: BacktestResult? = null
+    // V17: snapshot meta fetch milik run terakhir (provider/symbol/TF/limit/sumber
+    // saat data diambil — bukan nilai dropdown saat ini yang bisa sudah berubah).
+    var lastFetchMeta: FetchMeta? = null
+    // V21: waktu pengambilan run terakhir (untuk panel validasi).
+    var lastFetchAt: Long = 0L
     var csv: List<Candle>? = null
     var multiCache: Map<String, Pair<List<Candle>, BacktestResult>> = emptyMap()
     var multiRows: List<PairRow> = emptyList()
@@ -99,7 +104,7 @@ object App {
         if (savedFilters != null) {
             for (id in FILTER_DEFS.map { it.id }) filterOn[id] = savedFilters.contains(id)
         }
-        loadSignals(); loadHist(); loadJournal()
+        loadSignals(); loadHist(); loadJournal(); loadRegime()
     }
 
     fun savePair() = prefs.edit().putString("pair", pair).apply()    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
@@ -207,7 +212,12 @@ object App {
     private fun saveSignals() {
         val a = JSONArray()
         for (s in signals) a.put(JSONObject().put("pair", s.pair).put("tf", s.tf).put("dir", s.dir)
-            .put("price", s.price).put("sl", s.sl).put("tp", s.tp).put("t", s.t).put("src", s.src).put("id", s.id))
+            .put("price", s.price).put("sl", s.sl).put("tp", s.tp).put("t", s.t).put("src", s.src).put("id", s.id)
+            // V16 F1/F2: jejak + skor. opt*-read saat muat → sinyal lama tetap terbaca.
+            .put("strategy", s.strategy).put("confidence", s.confidence)
+            .put("reasons", encodeStrList(s.reasons)).put("passedFilters", encodeStrList(s.passedFilters))
+            .put("failedFilters", encodeStrList(s.failedFilters)).put("decidedAt", s.decidedAt)
+            .put("score", s.score).put("scoreDetail", s.scoreDetail))
         prefs.edit().putString("signals", a.toString()).apply()
     }
 
@@ -217,7 +227,11 @@ object App {
             signals = ArrayList((0 until a.length()).map { k ->
                 val o = a.getJSONObject(k)
                 Sig(o.getString("pair"), o.optString("tf"), o.getString("dir"), o.getDouble("price"),
-                    o.getDouble("sl"), o.getDouble("tp"), o.getLong("t"), o.optString("src"), o.getString("id"))
+                    o.getDouble("sl"), o.getDouble("tp"), o.getLong("t"), o.optString("src"), o.getString("id"),
+                    o.optString("strategy", ""), o.optDouble("confidence", 0.0),
+                    parseStrList(o.optString("reasons", "")), parseStrList(o.optString("passedFilters", "")),
+                    parseStrList(o.optString("failedFilters", "")), o.optLong("decidedAt", 0L),
+                    o.optDouble("score", -1.0), o.optString("scoreDetail", ""))
             })
         } catch (e: Exception) { signals = ArrayList() }
     }
@@ -301,6 +315,63 @@ object App {
         saveJournal()
     }
 
+    // ---------- V16 F7: regime pasar per pair (ditulis BotEngine dari cache yang
+    // sudah diambil; tanpa request tambahan). Persist ringan agar selamat restart. ----------
+    var regime: MutableMap<String, Regime> = LinkedHashMap()
+
+    fun saveRegime() {
+        try {
+            val o = JSONObject()
+            for ((k, v) in regime) {
+                o.put(k, JSONObject().put("label", v.label).put("volatile", v.volatile).put("at", v.at))
+            }
+            prefs.edit().putString("regime_v1", o.toString()).apply()
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    fun loadRegime() {
+        try {
+            val o = JSONObject(prefs.getString("regime_v1", "{}") ?: "{}")
+            val keys = o.keys()
+            val m = LinkedHashMap<String, Regime>()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                val j = o.optJSONObject(k) ?: continue
+                m[k] = Regime(j.optString("label", ""), j.optBoolean("volatile", false), j.optLong("at", 0))
+            }
+            regime = m
+        } catch (e: Exception) { regime = LinkedHashMap() }
+    }
+
+    // ---------- V16 F10: state trailing stop paper (kunci stabil pair|dir|entryT).
+    // Terpisah dari mesin strategi/backtest; posisi paper sendiri tetap di BotEngine. ----------
+    private var trailCache: MutableMap<String, TrailState>? = null
+
+    fun trailAll(): MutableMap<String, TrailState> {
+        var t = trailCache
+        if (t == null) {
+            t = parseTrail(prefs.getString("trail_v1", null))
+            trailCache = t
+        }
+        return t
+    }
+
+    fun saveTrail() {
+        try { prefs.edit().putString("trail_v1", encodeTrail(trailAll())).apply() } catch (e: Exception) { /* abaikan */ }
+    }
+
+    fun clearTrail(key: String) {
+        if (trailAll().remove(key) != null) saveTrail()
+    }
+
+    // ---------- V16 F10: pengaturan trailing (default MATI) + F8 digest (default MATI) ----------
+    var trailOn: Boolean
+        get() = prefs.getBoolean("trail_on", false)
+        set(v) = prefs.edit().putBoolean("trail_on", v).apply()
+    var trailLockPct: Double
+        get() = sanitizeLockPct(prefs.getFloat("trail_lock", 50f).toDouble())
+        set(v) = prefs.edit().putFloat("trail_lock", sanitizeLockPct(v).toFloat()).apply()
+
     // ---------- snapshot terapan + backtest terakhir ----------
     fun saveApplied(origin: String, p: BacktestParams, pairs: List<String>, status: String, valid: Boolean) {
         val allIds = FILTER_DEFS.map { it.id }
@@ -351,6 +422,21 @@ object App {
                 o.optInt("candles"), o.optInt("trades"), o.optLong("engineMs"), o.optLong("totalMs"), o.optString("status"), o.optLong("at"))
         } catch (e: Exception) { return null }
     }
+
+    // ---------- V20 F2: ekspektasi drift + katalog arsip ----------
+    fun saveDriftExpect(e: DriftExpect) {
+        try { prefs.edit().putString("drift_expect", encodeDriftExpect(e)).apply() } catch (ex: Exception) { /* abaikan */ }
+    }
+
+    fun loadDriftExpect(): DriftExpect? =
+        try { parseDriftExpect(prefs.getString("drift_expect", null)) } catch (e: Exception) { null }
+
+    fun saveCatalog(list: List<com.aether.signal.premium.data.ArchiveInfo>) {
+        try { prefs.edit().putString("hist_catalog", com.aether.signal.premium.data.encodeCatalog(list)).apply() } catch (e: Exception) { /* abaikan */ }
+    }
+
+    fun loadCatalog(): MutableList<com.aether.signal.premium.data.ArchiveInfo> =
+        try { com.aether.signal.premium.data.parseCatalog(prefs.getString("hist_catalog", null)) } catch (e: Exception) { ArrayList() }
 
     // ---------- format ----------
     fun fmt(v: Double, d: Int = 2): String {

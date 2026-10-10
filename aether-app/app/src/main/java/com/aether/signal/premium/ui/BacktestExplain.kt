@@ -49,6 +49,13 @@ fun humanFilterReason(key: String): String {
 
 data class ReasonCount(val label: String, val raw: String, val count: Int)
 
+/** V24: indeks label sumbu-X equity (5 label tersebar jujur; murni, teruji). */
+fun equityLabelIdx(n: Int): List<Int> {
+    if (n <= 0) return emptyList()
+    if (n == 1) return listOf(0)
+    return listOf(0, n / 4, n / 2, n * 3 / 4, n - 1).distinct().filter { it in 0 until n }
+}
+
 /** Maksimal [n] alasan penolakan terbanyak (jumlah tertinggi; seri diurut nama). */
 fun topReasons(map: Map<String, Int>, n: Int): List<ReasonCount> =
     map.entries.filter { it.value > 0 }

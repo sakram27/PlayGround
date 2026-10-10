@@ -108,7 +108,31 @@ open class SigAdapter(var items: List<SigItem>, var onClick: ((Int) -> Unit)? = 
         h.main.maxLines = if (wrapMain) 100 else 1
         h.sub.text = r.sub
         h.right.text = r.right
-        h.itemView.setOnClickListener { onClick?.invoke(i) }
+        // Posisi segar saat diklik (bukan posisi saat bind yang bisa basi).
+        h.itemView.setOnClickListener {
+            val pos = h.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) onClick?.invoke(pos)
+        }
+    }
+}
+
+/** V22: baris log monitor — waktu + teks, warna by jenis (info/warn/err). */
+class LogAdapter(var items: List<MonLogLine>, var timeFmt: (Long) -> String) : RecyclerView.Adapter<LogAdapter.H>() {
+    class H(v: View) : RecyclerView.ViewHolder(v) {
+        val t: TextView = v.findViewById(R.id.lt)
+        val x: TextView = v.findViewById(R.id.lx)
+    }
+    override fun onCreateViewHolder(p: ViewGroup, t: Int) = H(LayoutInflater.from(p.context).inflate(R.layout.item_log, p, false))
+    override fun getItemCount() = items.size
+    override fun onBindViewHolder(h: H, i: Int) {
+        val r = items[i]
+        h.t.text = try { timeFmt(r.t) } catch (e: Exception) { "" }
+        h.x.text = r.text
+        h.x.setTextColor((when (r.kind) {
+            2 -> 0xFFF6465D
+            1 -> 0xFFFFB800
+            else -> 0xFFE8EDF2
+        }).toInt())
     }
 }
 

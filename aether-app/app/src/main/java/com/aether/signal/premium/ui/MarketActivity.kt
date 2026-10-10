@@ -387,10 +387,13 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private fun paintSignals() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.sigList)
         list.vertical(this)
-        val items = App.signals.take(3).map {
-            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}", App.fmt(it.price, 4), it.pair)
+        val vis = App.signals.take(3)
+        val items = vis.map {
+            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
         }
-        list.adapter = SigAdapter(items)
+        list.adapter = SigAdapter(items, onClick = { pos ->
+            vis.getOrNull(pos)?.let { openSignalDetail(it.id) }
+        })
         findViewById<TextView>(R.id.sigEmpty).apply {
             visibility = if (App.signals.isEmpty()) View.VISIBLE else View.GONE
             text = "Belum ada sinyal — jalankan backtest atau Start engine."

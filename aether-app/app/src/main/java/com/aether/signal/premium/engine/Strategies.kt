@@ -296,8 +296,11 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
         "ict_setup" -> {
             if (i < 21) none()
             else {
+                // V22 FIX: jendela 20 bar TIDAK mencakup bar sweep (i-1) itu sendiri.
+                // Sebelumnya `i-20 until i` membuat min <= low bar sweep selalu,
+                // sehingga sweepLow/sweepHigh mustahil benar → strategi mati total.
                 var ll = Double.POSITIVE_INFINITY; var hh = Double.NEGATIVE_INFINITY
-                for (j in i - 20 until i) { ll = minOf(ll, c[j].l); hh = maxOf(hh, c[j].h) }
+                for (j in i - 21 until i - 1) { ll = minOf(ll, c[j].l); hh = maxOf(hh, c[j].h) }
                 val sweepLow = c[i - 1].l < ll
                 val sweepHigh = c[i - 1].h > hh
                 when {

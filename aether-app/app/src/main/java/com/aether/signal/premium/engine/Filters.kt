@@ -97,9 +97,14 @@ fun evalFilter(name: String, c: List<Candle>, i: Int, x: Cache, dir: String, p: 
         }
         "liq" -> {
             val lb = (p["lookback"] ?: 20.0).toInt()
-            val (hh, ll) = swing(c, i, lb)
+            if (lb < 2) return false to "lookback terlalu kecil"
+            // V22 FIX: tiap bar j dibandingkan terhadap ayunan SEBELUM j (eksklusi),
+            // bukan terhadap min/maks yang mencakup j itu sendiri (mustahil terlampaui).
             var swept = false
             for (j in maxOf(1, i - lb) until i) {
+                var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
+                for (k in maxOf(0, j - lb) until j) { hh = maxOf(hh, c[k].h); ll = minOf(ll, c[k].l) }
+                if (!hh.isFinite() || !ll.isFinite()) continue
                 if (dir == "LONG" && c[j].l < ll && c[j].c > ll) { swept = true; break }
                 if (dir == "SHORT" && c[j].h > hh && c[j].c < hh) { swept = true; break }
             }

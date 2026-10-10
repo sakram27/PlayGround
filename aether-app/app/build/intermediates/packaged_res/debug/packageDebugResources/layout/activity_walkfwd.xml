@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="WALK-FORWARD" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Data dibagi berurutan; tiap lipatan diuji dengan parameter identik. Warmup hanya dari masa lalu lipatan itu."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnWf2" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="2" style="@style/BtnGhost" android:minHeight="38dp" />
+                    <Button android:id="@+id/btnWf3" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="3" style="@style/BtnGhost" android:minHeight="38dp" />
+                    <Button android:id="@+id/btnWf4" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="4" style="@style/BtnGhost" android:minHeight="38dp" />
+                    <TextView android:id="@+id/wfFolds" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/mut" android:textSize="12sp"
+                        android:gravity="center_vertical|end" />
+                </LinearLayout>
+                <Button android:id="@+id/btnWfRun" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jalankan"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <TextView android:id="@+id/wfStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/wfPooled" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/wfList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

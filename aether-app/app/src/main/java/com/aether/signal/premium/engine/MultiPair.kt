@@ -31,7 +31,8 @@ fun aggregateOverall(rows: List<PairRow>, combinedDD: Double? = null): OverallAg
     return OverallAgg(
         totalTrades = trades.size, wins = wins.size, losses = losses.size,
         winRate = if (trades.isNotEmpty()) wins.size.toDouble() / trades.size * 100 else Double.NaN,
-        profitFactor = if (gl > 0) gp / gl else if (gp > 0) Double.POSITIVE_INFINITY else 0.0,
+        // V18: samakan cakupan buildResult (tak hingga → 999) agar label "∞" konsisten.
+        profitFactor = if (gl > 0) gp / gl else if (gp > 0) 999.0 else 0.0,
         netProfit = net,
         averageWin = if (wins.isNotEmpty()) gp / wins.size else 0.0,
         averageLoss = if (losses.isNotEmpty()) -gl / losses.size else 0.0,

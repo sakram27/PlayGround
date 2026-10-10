@@ -32,6 +32,13 @@
         <activity android:name=".ui.NotifHistoryActivity" android:exported="false" />
         <activity android:name=".ui.ReplayActivity" android:exported="false" />
         <activity android:name=".ui.JournalActivity" android:exported="false" />
+        <activity android:name=".ui.SignalDetailActivity" android:exported="false" />
+        <activity android:name=".ui.AblationActivity" android:exported="false" />
+        <activity android:name=".ui.ConsensusActivity" android:exported="false" />
+        <activity android:name=".ui.WalkForwardActivity" android:exported="false" />
+        <activity android:name=".ui.CollectionActivity" android:exported="false" />
+        <activity android:name=".ui.CostAnalysisActivity" android:exported="false" />
+        <activity android:name=".ui.XValidateActivity" android:exported="false" />
         <service
             android:name=".ui.MonitorService"
             android:exported="false"

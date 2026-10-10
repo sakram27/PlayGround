@@ -20,6 +20,16 @@ class LabActivity : BaseActivity(R.id.nav_lab) {
         findViewById<MaterialButton>(R.id.btnJournal).setOnClickListener {
             startActivity(android.content.Intent(this, JournalActivity::class.java))
         }
+        // V20: riset lanjut gratis (tanpa server/langganan).
+        findViewById<MaterialButton>(R.id.btnArchive).setOnClickListener {
+            startActivity(android.content.Intent(this, CollectionActivity::class.java))
+        }
+        findViewById<MaterialButton>(R.id.btnCost).setOnClickListener {
+            startActivity(android.content.Intent(this, CostAnalysisActivity::class.java))
+        }
+        findViewById<MaterialButton>(R.id.btnXVal).setOnClickListener {
+            startActivity(android.content.Intent(this, XValidateActivity::class.java))
+        }
         val lb = App.lastBt()
         findViewById<TextView>(R.id.lastBt).text =
             if (lb == null) "Belum ada backtest."
