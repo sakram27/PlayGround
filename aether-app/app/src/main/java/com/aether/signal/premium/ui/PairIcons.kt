@@ -149,13 +149,13 @@ class DualFlagDrawable(ctx: Context, resA: Int, resB: Int) : Drawable() {
         cv.drawBitmap(a, null, half, paint)
         cv.drawBitmap(b, null, halfB, paint)
         // garis pemisah tipis
-        paint.color = 0xFF232B36.toInt(); paint.style = Paint.Style.STROKE; paint.strokeWidth = 2f
+        paint.color = 0xFF253244.toInt(); paint.style = Paint.Style.STROKE; paint.strokeWidth = 2f
         cv.drawLine(cx, r.top.toFloat(), cx, r.bottom.toFloat(), paint)
         paint.style = Paint.Style.FILL
         cv.restore()
         // cincin luar
         val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF232B36.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
+            color = 0xFF253244.toInt(); style = Paint.Style.STROKE; strokeWidth = 2f
         }
         cv.drawCircle(cx, cy, rad - 1f, ring)
     }

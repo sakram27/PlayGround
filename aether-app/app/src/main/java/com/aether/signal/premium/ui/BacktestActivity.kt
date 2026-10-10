@@ -34,6 +34,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     override val contentLayout = R.layout.activity_backtest
     override val showBack = true
     private var cancelled = false
+    // V27: cegah run ganda — tombol Run nonaktif selama proses berjalan.
+    private var btRunning = false
     // V22 monitor: polling ringan 400ms, berhenti di onDestroy (anti-bocor).
     private var monitorOpen = false
     private var lastMonSeq: Long = -1
@@ -68,13 +70,37 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         super.onDestroy()
     }
 
+    // V27: status tombol Run mengikuti proses aktual.
+    private fun paintBtButtons() {
+        try {
+            paintRunButtons(
+                findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRun),
+                findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCancel),
+                btRunning)
+        } catch (e: Exception) { /* gaya opsional */ }
+    }
+
+    private fun markRunning() {
+        btRunning = true
+        runOnUiThread { paintBtButtons() }
+    }
+
+    private fun finishRun() {
+        btRunning = false
+        runOnUiThread { paintBtButtons() }
+    }
+
     // ---------- wiring statis (sekali) ----------
     private fun wireStatic() {
         toggle(R.id.segMode, listOf(R.id.segSingle, R.id.segMulti), if (App.mode == "multi") 1 else 0) {
             App.mode = if (it == 1) "multi" else "single"; refreshAll()
         }
-        findViewById<View>(R.id.btnRun).setOnClickListener { if (App.mode == "multi") doMulti() else doSingle() }
+        findViewById<View>(R.id.btnRun).setOnClickListener {
+            if (btRunning) { snack(this, "Backtest masih berjalan — tunggu selesai atau Batal."); return@setOnClickListener }
+            if (App.mode == "multi") doMulti() else doSingle()
+        }
         findViewById<View>(R.id.btnCancel).setOnClickListener { cancelled = true }
+        paintBtButtons()
         toggle(R.id.segPreset, listOf(R.id.segPresetDefault, R.id.segPresetCustom), if (App.presetCustom) 1 else 0) {
             App.presetCustom = it == 1; refreshAll()
         }
@@ -156,6 +182,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             isChecked = App.useAtr
             setOnCheckedChangeListener { _, on -> App.useAtr = on }
         }
+        toggle(R.id.segTp, listOf(R.id.segTpSingle, R.id.segTp2, R.id.segTp3), (App.tpMode - 1).coerceIn(0, 2)) {
+            App.tpMode = it + 1; paintTpSummary(); paintRiskPreset()
+        }
+        bindNum(R.id.inTp2m, App.tp2Mult.toString()) { App.tp2Mult = it.toDoubleOrNull() ?: TP2_MULT_DEFAULT; paintTpSummary() }
+        bindNum(R.id.inTp3m, App.tp3Mult.toString()) { App.tp3Mult = it.toDoubleOrNull() ?: TP3_MULT_DEFAULT; paintTpSummary() }
         findViewById<View>(R.id.btnRiskReset).setOnClickListener { resetRisk(); paintConfig() }
         setupCharts()
     }
@@ -202,7 +233,31 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         App.capital = 1000.0; App.riskPct = 1.0; App.leverage = 1
         App.feePct = 0.05; App.slipPct = 0.02; App.maxHolding = 100
         App.slPct = 1.5; App.tpPct = 3.0; App.useAtr = false
+        App.tpMode = 1; App.tp2Mult = TP2_MULT_DEFAULT; App.tp3Mult = TP3_MULT_DEFAULT
+        try {
+            // Set langsung tanpa toggle() agar listener tidak menumpuk.
+            findViewById<MaterialButtonToggleGroup>(R.id.segTp).check(R.id.segTpSingle)
+            findViewById<TextInputEditText>(R.id.inTp2m).setText(App.tp2Mult.toString())
+            findViewById<TextInputEditText>(R.id.inTp3m).setText(App.tp3Mult.toString())
+            paintTpSummary()
+        } catch (e: Exception) { /* abaikan */ }
         snack(this, "Parameter risiko dikembalikan ke bawaan.")
+    }
+
+    /** Ringkasan skema TP jujur dari konfigurasi aktual (bukan hasil). */
+    private fun paintTpSummary() {
+        try {
+            val m = App.tpMode.coerceIn(1, 3)
+            val txt = when (m) {
+                2 -> "Mode: TP2 — tutup 50% di TP1 (jarak TP), 50% di TP2 (${App.tp2Mult}× jarak TP1). SL menutup sisa."
+                3 -> "Mode: TP3 — tutup ⅓ di TP1, TP2 (${App.tp2Mult}×), TP3 (${App.tp3Mult}× jarak TP1). SL menutup sisa."
+                else -> "Mode: Single TP — seluruh posisi ditutup pada TP1."
+            }
+            findViewById<TextView>(R.id.tpSummary).text = txt
+            val g = findViewById<MaterialButtonToggleGroup>(R.id.segTp)
+            val want = listOf(R.id.segTpSingle, R.id.segTp2, R.id.segTp3)[m - 1]
+            if (g.checkedButtonId != want) g.check(want)
+        } catch (e: Exception) { /* layout belum siap */ }
     }
 
     /** FITUR 2: preset risiko. Ringkasan nilai ditampilkan DULU; baru diterapkan bila disetujui.
@@ -267,11 +322,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val st = findViewById<TextView>(R.id.monStatus)
             st.text = phaseLabel(snap.phase)
             st.setTextColor((when (snap.phase) {
-                MonPhase.COMPLETED -> 0xFF0ECB81
-                MonPhase.FAILED -> 0xFFF6465D
-                MonPhase.CANCELLED -> 0xFFFFB800
-                MonPhase.IDLE -> 0xFF8B95A5
-                else -> 0xFF4C8DFF
+                MonPhase.COMPLETED -> 0xFF10B981
+                MonPhase.FAILED -> 0xFFF87171
+                MonPhase.CANCELLED -> 0xFFFBBF24
+                MonPhase.IDLE -> 0xFF94A3B8
+                else -> 0xFF3B82F6
             }).toInt())
             findViewById<TextView>(R.id.monSummary).text = when (snap.phase) {
                 MonPhase.IDLE -> "Menunggu Backtest."
@@ -322,14 +377,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
 
     // ---------- refresh tampilan ----------
     private fun refreshAll() {
-        paintQuick(); paintConfig(); paintFilters(); paintChart(); paintResult()
+        paintQuick(); paintConfig(); paintFilters(); paintChart(); paintResult(); paintBtButtons()
     }
 
     private fun setStatus(m: String, err: Boolean = false) {
         runOnUiThread {
             findViewById<TextView>(R.id.status).apply {
                 text = m
-                setTextColor(if (err) 0xFFF6465D.toInt() else 0xFF8B95A5.toInt())
+                setTextColor(if (err) 0xFFF87171.toInt() else 0xFF94A3B8.toInt())
             }
         }
     }
@@ -385,7 +440,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<TextInputEditText>(R.id.inRisk).setText(App.riskPct.toString())
         findViewById<TextInputEditText>(R.id.inSl).setText(App.slPct.toString())
         findViewById<TextInputEditText>(R.id.inTp).setText(App.tpPct.toString())
+        findViewById<TextInputEditText>(R.id.inTp2m).setText(App.tp2Mult.toString())
+        findViewById<TextInputEditText>(R.id.inTp3m).setText(App.tp3Mult.toString())
         paintRiskPreset()
+        paintTpSummary()
     }
 
     private fun paintComboCount() {
@@ -586,6 +644,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun doSingle() {
         if (!dateRangeOk()) return
         cancelled = false
+        markRunning()
         equityBusy("Menyiapkan backtest…")
         setStatus("Menyiapkan…")
         runBg {
@@ -608,7 +667,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     App.csv!! to FetchMeta("csv", p.asset, p.timeframe, App.limit, App.csv!!.size, "csv-file", "CSV")
                 else if (p.startDate > 0 || p.endDate > 0) fetchDated(p)
                 else getCandles(App.provider, p.asset, p.timeframe, App.limit).let { it.candles to it.meta }
-                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); return@runBg }
+                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); finishRun(); return@runBg }
                 reportFetch(monId, meta, candles.size)
                 App.candles = candles; App.params = p; App.lastFetchMeta = meta; App.lastFetchAt = System.currentTimeMillis()
                 setStatus("Backtest ${candles.size}c…")
@@ -619,9 +678,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     onEngineStage(monId, ev)
                 }
                 val engMs = (System.nanoTime() - t0) / 1e6
-                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); return@runBg }
+                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); finishRun(); return@runBg }
                 stage = "menyimpan"
-                App.result = res
+                App.result = res; App.lastTpMode = p.tpMode
                 val st = classifyResult(res)
                 App.saveApplied("backtest-single", p, listOf(p.asset), st, res.error == null)
                 App.saveLastBt("single", listOf(p.asset), p, App.limit, res.diag.dateFilteredCount, res.totalTrades, engMs.toLong(), ((System.nanoTime() - tAll) / 1e6).toLong(), st)
@@ -631,7 +690,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         res.strategy, res.asset, res.timeframe, System.currentTimeMillis()))
                     App.addHist(res.trades)
                     res.trades.lastOrNull()?.let { lt ->
-                        App.pushSignal(Sig(res.asset, res.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${res.asset}",
+                        App.pushBacktestSignal(Sig(res.asset, res.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${res.asset}",
                             strategy = res.strategy, decidedAt = System.currentTimeMillis()))
                     }
                 }
@@ -646,6 +705,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 }
                 runOnUiThread { paintQuick(); paintChart(); paintResult() }
                 setStatus(if (res.error != null) "$st: ${res.error}" else "Selesai ${engMs.toLong()}ms · ${res.totalTrades} trade · Net ${mQ(res.netProfit, p.asset)} · cache:${meta.cacheUsed}", res.error != null)
+                finishRun()
             } catch (e: Exception) {
                 // V21: gagal = hasil error eksplisit (tahap tercatat), bukan hasil lama.
                 val msg = if (stage == "mengambil data") "Pengunduhan gagal: ${e.message}"
@@ -661,6 +721,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         runOnUiThread { try { paintResult() } catch (_: Exception) { } }
                     }
                 } catch (_: Exception) { /* jangan crash handler */ }
+                finishRun()
             }
         }
     }
@@ -727,7 +788,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
 
     private fun paintProg(items: List<Triple<String, String, Int>>, done: Int = -1) {
         runOnUiThread {
-            findViewById<TextView>(R.id.progCount).text = "${if (done >= 0) done else items.count { it.third == 0xFF0ECB81.toInt() || it.third == 0xFFF6465D.toInt() }} / ${items.size}"
+            findViewById<TextView>(R.id.progCount).text = "${if (done >= 0) done else items.count { it.third == 0xFF10B981.toInt() || it.third == 0xFFF87171.toInt() }} / ${items.size}"
             findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.progList).apply {
                 vertical(this@BacktestActivity)
                 adapter = ProgAdapter(items)
@@ -741,6 +802,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val sel = App.universe.filter { App.multiSel.contains(it) } + App.multiSel.filter { !App.universe.contains(it) }
         if (sel.isEmpty()) { setStatus("Please select at least one pair.", true); return }
         cancelled = false
+        markRunning()
         equityBusy("Menyiapkan multi-pair…")
         runBg {
             val tAll = System.nanoTime()
@@ -751,13 +813,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     App.result = errorResult(BacktestParams(), "Backtest gagal (konfigurasi): ${e.message}")
                     runOnUiThread { try { paintResult() } catch (_: Exception) { } }
                 } catch (_: Exception) { /* abaikan */ }
+                finishRun()
                 return@runBg
             }
             if (App.csv != null && App.csv!!.size >= 60) setStatus("CSV diabaikan saat multi-pair.")
             val monId = MonitorBus.startRun(sel.joinToString("+"), p.timeframe, p.startDate, p.endDate, sel.size)
             MonitorBus.phase(monId, MonPhase.CHECKING_CACHE, "Multi-pair: ${sel.size} pair")
             MonitorBus.pushLog(monId, 0, "Memulai Backtest multi (${sel.size} pair)")
-            val items = sel.map { Triple(it, "·", 0xFF8B95A5.toInt()) }.toMutableList()
+            val items = sel.map { Triple(it, "·", 0xFF94A3B8.toInt()) }.toMutableList()
             val rows = ArrayList<PairRow>()
             val cache = HashMap<String, Pair<List<Candle>, BacktestResult>>()
             val metas = HashMap<String, FetchMeta>()
@@ -765,12 +828,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             paintProg(items, done)
             for ((idx, sym) in sel.withIndex()) {
                 if (cancelled) {
-                    items[idx] = Triple(sym, "·", 0xFF8B95A5.toInt()); paintProg(items, done)
+                    items[idx] = Triple(sym, "·", 0xFF94A3B8.toInt()); paintProg(items, done)
                     MonitorBus.cancel(monId); setStatus("Dibatalkan.")
                     break
                 }
                 MonitorBus.pairProgress(monId, done, sym)
-                items[idx] = Triple(sym, "…", 0xFF4C8DFF.toInt())
+                items[idx] = Triple(sym, "…", 0xFF3B82F6.toInt())
                 setStatus("Backtest $sym… (${done + 1}/${sel.size})")
                 paintProg(items, done)
                 try {
@@ -805,10 +868,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     rows.add(PairRow(sym, res2))
                     val st = pairStatusOf(PairRow(sym, res2))
                     items[idx] = Triple(sym, if (st == "SUCCESS" || st == "NO TRADES") "✓ $st · ${res2.totalTrades} tr · ${engMs.toLong()}ms" else "✕ $st",
-                        if (st == "SUCCESS") 0xFF0ECB81.toInt() else if (st == "NO TRADES") 0xFFFFB800.toInt() else 0xFFF6465D.toInt())
+                        if (st == "SUCCESS") 0xFF10B981.toInt() else if (st == "NO TRADES") 0xFFFBBF24.toInt() else 0xFFF87171.toInt())
                 } catch (e: Exception) {
                     rows.add(PairRow(sym, null, e.message))
-                    items[idx] = Triple(sym, "✕ NO DATA", 0xFFF6465D.toInt())
+                    items[idx] = Triple(sym, "✕ NO DATA", 0xFFF87171.toInt())
                     MonitorBus.pushLog(monId, 2, "$sym error: ${e.message}")
                 }
                 done++
@@ -821,7 +884,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             App.saveApplied("backtest-multi", p, sel, overall, okN > 0)
             val all = rows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime }
             val first = rows.firstOrNull { it.res?.error == null }
-            App.result = first?.res
+            App.result = first?.res; App.lastTpMode = p.tpMode
             tradeRows = all
             if (first != null) { App.candles = cache[first.sym]!!.first; App.params = p.copy(asset = first.sym); App.lastFetchMeta = metas[first.sym]; App.lastFetchAt = System.currentTimeMillis() }
             App.saveLastBt("multi", sel, p, App.limit, first?.res?.diag?.dateFilteredCount ?: 0, all.size, 0, ((System.nanoTime() - tAll) / 1e6).toLong(), overall)
@@ -832,7 +895,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     p.strategy, sel.joinToString("+"), p.timeframe, System.currentTimeMillis()))
                 App.addHist(first.res.trades)
                 first.res.trades.lastOrNull()?.let { lt ->
-                    App.pushSignal(Sig(first.sym, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${first.sym}",
+                    App.pushBacktestSignal(Sig(first.sym, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${first.sym}",
                         strategy = first.res.strategy, decidedAt = System.currentTimeMillis()))
                 }
             }
@@ -849,6 +912,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             MonitorBus.pairProgress(monId, done, "")
             runOnUiThread { paintQuick(); paintChart(); paintResult() }
             setStatus("$overall: $okN of ${rows.size} pairs processed successfully", okN == 0)
+            finishRun()
         }
     }
 
@@ -861,11 +925,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun setupCharts() {
         findViewById<LineChart>(R.id.equity).apply {
             description.isEnabled = false
-            setBackgroundColor(0xFF0B0E14.toInt())
+            setBackgroundColor(0xFF080B12.toInt())
             legend.isEnabled = false
             axisLeft.isEnabled = false
-            axisRight.textColor = 0xFF8B95A5.toInt()
-            xAxis.textColor = 0xFF5B6572.toInt()
+            axisRight.textColor = 0xFF94A3B8.toInt()
+            xAxis.textColor = 0xFF64748B.toInt()
             xAxis.position = XAxis.XAxisPosition.BOTTOM
             xAxis.setDrawGridLines(false)
         }
@@ -927,7 +991,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             axisMinimum = lo
             axisMaximum = hi
             setDrawGridLines(true)
-            gridColor = 0xFF232B36.toInt()
+            gridColor = 0xFF253244.toInt()
             setLabelCount(4, false)
         }
         // Sumbu waktu jujur: 5 label tanggal dari timestamp aktual.
@@ -943,8 +1007,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val up = finalEq >= initialCapital
         val ds = LineDataSet(e, "Equity").apply {
             setDrawValues(false); setDrawCircles(false)
-            color = (if (up) 0xFF0ECB81 else 0xFFF6465D).toInt(); lineWidth = 2.5f
-            setDrawFilled(true); fillColor = (if (up) 0x330ECB81 else 0x33F6465D).toInt()
+            color = (if (up) 0xFF10B981 else 0xFFF87171).toInt(); lineWidth = 2.5f
+            setDrawFilled(true); fillColor = (if (up) 0x3310B981 else 0x33F87171).toInt()
             mode = LineDataSet.Mode.CUBIC_BEZIER
             axisDependency = YAxis.AxisDependency.RIGHT
         }
@@ -968,7 +1032,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
         if (r.error != null) {
             findViewById<TextView>(R.id.heroNet).text = classifyResult(r)
-            findViewById<TextView>(R.id.heroNet).setTextColor(0xFFF6465D.toInt())
+            findViewById<TextView>(R.id.heroNet).setTextColor(0xFFF87171.toInt())
             findViewById<TextView>(R.id.heroSub).text = r.error
             findViewById<TextView>(R.id.sumLine).text = "${r.asset} · ${classifyResult(r)}"
             findViewById<View>(R.id.btnReplay).visibility = View.GONE
@@ -980,12 +1044,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val noTr = r.totalTrades <= 0
         findViewById<TextView>(R.id.heroNet).apply {
             text = mQ(r.netProfit, r.asset)
-            setTextColor(if (noTr) 0xFFE8EDF2.toInt() else if (r.netProfit >= 0) 0xFF0ECB81.toInt() else 0xFFF6465D.toInt())
+            setTextColor(if (noTr) 0xFFF1F5F9.toInt() else if (r.netProfit >= 0) 0xFF10B981.toInt() else 0xFFF87171.toInt())
         }
         findViewById<TextView>(R.id.heroSub).text =
             "${r.asset} ${r.timeframe} · ${r.strategy} · ${if (noTr) "NO TRADES" else "Win " + App.fmt(r.winRate, 1) + "%"} · PF ${App.fmtD(r.profitFactor)} · DD ${App.fmt(r.maxDrawdownPercent)}%"
         findViewById<TextView>(R.id.sumLine).text =
-            "Net ${App.fmt(r.netProfitPercent)}% · Final ${mQ(r.finalCapital, r.asset)} · Expectancy ${mQ(r.expectancy, r.asset)}"
+            "Net ${App.fmt(r.netProfitPercent)}% · Final ${mQ(r.finalCapital, r.asset)} · Expectancy ${mQ(r.expectancy, r.asset)} · TP: ${tpModeLabel(App.lastTpMode)}"
         paintKv(listOf(
             "Total Trades" to r.totalTrades.toString(),
             "Win Rate" to if (noTr) "NO TRADES" else App.fmt(r.winRate, 1) + "%",
@@ -1181,7 +1245,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val p = App.params
         if (r == null || p == null || App.candles.isEmpty()) {
             v.text = "Tidak dapat dibandingkan: jalankan backtest dulu."
-            v.setTextColor(0xFF8B95A5.toInt())
+            v.setTextColor(0xFF94A3B8.toInt())
             return
         }
         v.text = "Menghitung…"
@@ -1196,9 +1260,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             }
             runOnUiThread {
                 val col = when (rep.verdict) {
-                    AuditVerdict.MATCH -> 0xFF0ECB81.toInt()
-                    AuditVerdict.MISMATCH -> 0xFFF6465D.toInt()
-                    AuditVerdict.UNCOMPARABLE -> 0xFF8B95A5.toInt()
+                    AuditVerdict.MATCH -> 0xFF10B981.toInt()
+                    AuditVerdict.MISMATCH -> 0xFFF87171.toInt()
+                    AuditVerdict.UNCOMPARABLE -> 0xFF94A3B8.toInt()
                 }
                 v.text = "${rep.verdict}: ${rep.reason}\n" +
                     "Input: ${rep.asset} · ${rep.timeframe} · ${rep.strategy} · ${rep.candlesUsed} candle"
@@ -1245,7 +1309,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     else -> "Backtest gagal"
                 }
                 head.text = "Validasi Data Backtest: $st — $msg"
-                head.setTextColor(0xFFF6465D.toInt())
+                head.setTextColor(0xFFF87171.toInt())
                 body.text = (if (r.diag.runId.isNotEmpty())
                     "Run ${r.diag.runId} · selesai ${fmtUtc(r.diag.finishedAt)}.\n" else "") +
                     "Hasil lama (bila masih tampil) BUKAN hasil run ini.\n" +
@@ -1285,7 +1349,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             head.text = "Validasi Data Backtest: $status" +
                 (if (warns.isEmpty()) "" else " — ${warns.first()}") +
                 "\n(Buka diagnostik untuk rincian. Waktu panel UTC; input tanggal midnight UTC.)"
-            head.setTextColor((if (warns.isEmpty()) 0xFF0ECB81 else 0xFFFFB800).toInt())
+            head.setTextColor((if (warns.isEmpty()) 0xFF10B981 else 0xFFFBBF24).toInt())
             val sb = StringBuilder()
             sb.append("Run ${d.runId.ifEmpty { "—" }} · selesai ${if (d.finishedAt > 0) fmtUtc(d.finishedAt) else "—"}\n")
             sb.append("Pair $sym · TF $tf · provider $prov · limit $lim · sumber ${meta?.source ?: d.source ?: "—"}\n")
@@ -1539,14 +1603,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         tv.setPadding(2, 8, 2, 8)
         tv.textSize = 10f
         tv.text = "${b.label}\n${if (b.count == 0) "—" else mQ(b.net, q)}"
-        tv.setTextColor(0xFFE8EDF2.toInt())
+        tv.setTextColor(0xFFF1F5F9.toInt())
         val intensity = if (b.count == 0 || maxAbs <= 0) 0
         else ((abs(b.net) / maxAbs * 120).toInt() + 40).coerceIn(40, 160)
         tv.setBackgroundColor(when {
-            b.count == 0 -> 0xFF171D26.toInt()
-            b.net > 0 -> (intensity shl 24) or 0x000ECB81
-            b.net < 0 -> (intensity shl 24) or 0x00F6465D
-            else -> 0xFF1C232E.toInt()
+            b.count == 0 -> 0xFF101722.toInt()
+            b.net > 0 -> (intensity shl 24) or 0x0010B981
+            b.net < 0 -> (intensity shl 24) or 0x00F87171
+            else -> 0xFF151E2B.toInt()
         })
         tv.setOnClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this)

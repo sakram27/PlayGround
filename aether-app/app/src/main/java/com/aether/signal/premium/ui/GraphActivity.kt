@@ -89,7 +89,7 @@ class GraphActivity : BaseActivity(R.id.nav_markets) {
                     } catch (e: Exception) { /* ikon opsional */ }
                     findViewById<TextView>(R.id.price).apply {
                         text = "${App.fmt(last.c, if (last.c > 1000) 2 else 4)}  ${if (ch >= 0) "+" else ""}${App.fmt(ch)}%"
-                        setTextColor(if (ch >= 0) 0xFF0ECB81.toInt() else 0xFFF6465D.toInt())
+                        setTextColor(if (ch >= 0) 0xFF10B981.toInt() else 0xFFF87171.toInt())
                     }
                     findViewById<TextView>(R.id.status).text =
                         "${candles.size} candle · $prov · cache:${fr.meta.cacheUsed}"
@@ -103,7 +103,7 @@ class GraphActivity : BaseActivity(R.id.nav_markets) {
                         msg = "Gagal memuat $sym ($tf): ${e.message}", showRetry = true) { load() }
                     findViewById<TextView>(R.id.status).apply {
                         text = "Gagal: ${e.message}"
-                        setTextColor(0xFFF6465D.toInt())
+                        setTextColor(0xFFF87171.toInt())
                     }
                 }
             }

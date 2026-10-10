@@ -295,8 +295,9 @@ object NotifBus {
         }
     }
 
-    /** Dipanggil BotEngine tepat setelah pushSignal live. Backtest ("backtest") diabaikan. */
+    /** Hanya sinyal Engine yang boleh masuk notifikasi. Backtest/legacy ditolak eksplisit. */
     fun onSignal(s: Sig) {
+        if (!isEngineSrc(s.src)) return
         when {
             s.src == "dryrun-entry" -> {
                 if (!entryOn) return
@@ -322,7 +323,35 @@ object NotifBus {
                     "Stop loss tercapai · ${s.dir} ${s.pair}",
                     "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
             }
-            else -> { /* backtest/sumber lain: bukan kejadian live */ }
+            else -> { /* sumber Engine lain tanpa bunyi (mis. trail/expired): hanya arsip */ }
+        }
+    }
+
+    /** Notifikasi uji manual (uji jalur kirim, BUKAN sinyal trading).
+     *  @return pesan hasil untuk ditampilkan ke pengguna. */
+    fun sendTest(): String {
+        val c = appCtx ?: return "Konteks belum siap."
+        ensureChannels(c)
+        val rec = NotifRec(System.currentTimeMillis(), "uji", "", "", "", 0.0, "DIKIRIM")
+        return try {
+            val b = NotificationCompat.Builder(c, CH_ENTRY)
+                .setSmallIcon(R.drawable.ic_notif)
+                .setContentTitle("Uji notifikasi Aether")
+                .setContentText("Jalur notifikasi berfungsi. Ini BUKAN sinyal trading — abaikan.")
+                .setStyle(NotificationCompat.BigTextStyle().bigText(
+                    "Jalur notifikasi berfungsi. Ini BUKAN sinyal trading — abaikan."))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+            tapIntent()?.let { b.setContentIntent(it) }
+            NotificationManagerCompat.from(c).notify(3102, b.build())
+            addNotifRec(history(), rec); persistHistory()
+            "Terkirim ke sistem Android (cek bilah notifikasi)."
+        } catch (e: SecurityException) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+            "Izin ditolak sistem — aktifkan izin notifikasi."
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
+            "Gagal: ${e.message}"
         }
     }
 }

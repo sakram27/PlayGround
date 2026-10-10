@@ -7,6 +7,7 @@ import androidx.core.widget.addTextChangedListener
 import com.aether.signal.premium.R
 import com.aether.signal.premium.data.MARKET_TF_LABELS
 import com.aether.signal.premium.data.MARKET_TIMEFRAMES
+import com.aether.signal.premium.data.MARKET_DEFAULT_TF
 import com.aether.signal.premium.data.BACKTEST_TIMEFRAMES
 import com.aether.signal.premium.data.PROVIDER_IDS
 import com.aether.signal.premium.data.PROVIDER_LABELS
@@ -27,7 +28,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     override val contentLayout = R.layout.activity_market
     private var prov = "binance"
     private var forex = false
-    private var tf = "1h"
+    private var tf = MARKET_DEFAULT_TF
     private var query = ""
     private var rows: List<MktRow> = emptyList()
 
@@ -142,7 +143,22 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             "yahoo" -> "sumber: Forex & Metal"
             else -> "sumber: offline (seeded)"
         }
-        findViewById<TextView>(R.id.provStatus).text = "Aktif: $name · $src"
+        // V27: status jujur dari ring kesehatan — hijau HANYA bila cek nyata
+        // terakhir OK dan <15 mnt; merah bila cek terakhir gagal; kuning bila
+        // belum pernah dicek / basi. Tanpa klaim "live".
+        val st = try { App.healthStats(pr) } catch (e: Exception) { null }
+        val stale = st == null || System.currentTimeMillis() - st.lastAt > 15 * 60 * 1000L
+        val label = when {
+            st != null && st.checked && st.lastOk && !stale -> "Aktif: $name · $src · OK ${st.lastLatencyMs}ms"
+            st != null && st.checked && !st.lastOk -> "Aktif: $name · $src · GAGAL (${st.lastKind ?: "jaringan"})"
+            else -> "Aktif: $name · $src · belum dicek"
+        }
+        findViewById<TextView>(R.id.provStatus).apply {
+            text = label
+            try {
+                setTextColor(provStateColor(st?.lastOk == true, st?.checked == true, stale))
+            } catch (e: Exception) { /* abaikan */ }
+        }
     }
 
     private fun load() {
@@ -274,7 +290,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
         }
         wrap.addView(TextView(this).apply {
             text = "Provider aktif: $prov. Simbol harus tersedia pada provider ini."
-            setTextColor(0xFF8B95A5.toInt()); textSize = 12f
+            setTextColor(0xFF94A3B8.toInt()); textSize = 12f
         })
         wrap.addView(input)
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
@@ -387,7 +403,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private fun paintSignals() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.sigList)
         list.vertical(this)
-        val vis = App.signals.take(3)
+        val vis = engineSignalsOnly(App.signals).take(3)
         val items = vis.map {
             SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
         }
@@ -395,8 +411,8 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             vis.getOrNull(pos)?.let { openSignalDetail(it.id) }
         })
         findViewById<TextView>(R.id.sigEmpty).apply {
-            visibility = if (App.signals.isEmpty()) View.VISIBLE else View.GONE
-            text = "Belum ada sinyal — jalankan backtest atau Start engine."
+            visibility = if (vis.isEmpty()) View.VISIBLE else View.GONE
+            text = "Belum ada sinyal Engine — tekan Start Engine."
         }
     }
 

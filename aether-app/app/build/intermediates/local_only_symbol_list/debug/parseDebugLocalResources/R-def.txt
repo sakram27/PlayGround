@@ -3,7 +3,11 @@ local
 color amber
 color blue
 color card
+color cyan
+color cyan_ink
 color dim
+color disabled
+color disabled_ink
 color graphite_800
 color graphite_900
 color green
@@ -15,7 +19,11 @@ color mut
 color nav_tint
 color red
 color red_soft
+color slate
 color txt
+color violet
+color violet_ink
+color white
 drawable bg_pill
 drawable check_mark
 drawable check_mark_off
@@ -60,6 +68,7 @@ drawable flag_sg
 drawable flag_tr
 drawable flag_us
 drawable flag_za
+drawable grad_primary
 drawable ic_calendar
 drawable ic_coin_generic
 drawable ic_gold
@@ -116,6 +125,8 @@ id btnCsv
 id btnCsvClear
 id btnDateClear
 id btnDiagToggle
+id btnEngPairs
+id btnEngSync
 id btnEngine
 id btnExport
 id btnExtra
@@ -139,6 +150,7 @@ id btnMonToggle
 id btnMonteCarlo
 id btnNotifHistory
 id btnNotifPerm
+id btnNotifTest
 id btnOpt
 id btnPair
 id btnPresetAggressive
@@ -217,6 +229,7 @@ id dAge
 id dContent
 id dDir
 id dDist
+id dEntryExtra
 id dEntryStatus
 id dFilters
 id dLive
@@ -242,6 +255,8 @@ id diagBox
 id dir
 id drag
 id empty
+id engDiag
+id engPairs
 id engStatus
 id equity
 id equityMeta
@@ -286,6 +301,8 @@ id inRisk
 id inSl
 id inTo
 id inTp
+id inTp2m
+id inTp3m
 id inWatchLimit
 id jCount
 id jEmpty
@@ -382,6 +399,10 @@ id segTfH1
 id segTfH4
 id segTfM15
 id segTfM5
+id segTp
+id segTp2
+id segTp3
+id segTpSingle
 id sigEmpty
 id sigList
 id singleBox
@@ -412,6 +433,7 @@ id techHead
 id techList
 id title
 id toolbar
+id tpSummary
 id tradeCsv
 id tradeList
 id tradeNext
@@ -466,8 +488,17 @@ style AppActiveIndicator
 style AppBottomNav
 style AppSheet
 style AppTheme
+style BtnBase
+style BtnBaseLine
+style BtnCyan
+style BtnDanger
 style BtnGhost
+style BtnInfo
 style BtnPrimary
+style BtnSlate
+style BtnSmall
+style BtnSmallDanger
+style BtnViolet
 style Card
 style Field
 style SheetTheme

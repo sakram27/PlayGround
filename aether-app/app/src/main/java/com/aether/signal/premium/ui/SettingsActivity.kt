@@ -116,6 +116,10 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         swSo.setOnCheckedChangeListener { _, on -> NotifBus.soundOn = on; paintNotifStatus() }
         swV.setOnCheckedChangeListener { _, on -> NotifBus.vibrateOn = on; paintNotifStatus() }
         findViewById<MaterialButton>(R.id.btnNotifPerm).setOnClickListener { requestNotifPerm() }
+        findViewById<MaterialButton>(R.id.btnNotifTest).setOnClickListener {
+            snack(this, NotifBus.sendTest())
+            paintNotifStatus()
+        }
         findViewById<MaterialButton>(R.id.btnNotifHistory).setOnClickListener {
             startActivity(android.content.Intent(this, NotifHistoryActivity::class.java))
         }
@@ -546,6 +550,9 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
     }
 
     private fun testConn() {
+        val btn = findViewById<MaterialButton>(R.id.btnTest)
+        btn.isEnabled = false
+        btn.text = "Mengetes…"
         findViewById<TextView>(R.id.status).text = "Mengetes…"
         runBg {
             val rows = ArrayList<SigItem>()
@@ -571,6 +578,10 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
                     adapter = SigAdapter(rows)
                 }
                 findViewById<TextView>(R.id.status).text = "Selesai. Yang gagal berarti diblokir jaringan/perangkat."
+                // V27: kembalikan tombol agar bisa dites ulang.
+                try {
+                    findViewById<MaterialButton>(R.id.btnTest).apply { isEnabled = true; text = "Tes Koneksi" }
+                } catch (e: Exception) { /* abaikan */ }
                 try { paintHealth() } catch (e: Exception) { /* abaikan */ }
             }
         }

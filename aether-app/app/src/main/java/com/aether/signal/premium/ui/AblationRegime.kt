@@ -72,6 +72,57 @@ fun classifyRegime(
     return Regime(label, vol, at)
 }
 
+// V28: kebutuhan data minimum diturunkan dari implementasi aktual, bukan tebakan.
+// ema() menyemai SMA pada indeks ke-199 (butuh 200 titik agar e200[199] finite),
+// dan regime memakai lookback 20 (butuh e200[idx-20] finite). Jadi ukuran minimum
+// = 200 + 20 = 220 candle valid. Meminta tepat 200 = "belum siap" selamanya.
+const val REGIME_MIN_CANDLES = 220
+
+// V28: jumlah candle yang diminta Engine per tick. 300 = 220 minimum + margin 80
+// untuk candle duplikat yang dibuang / bar tak valid. Masih dalam batas satu
+// request semua provider (Binance/Bybit ≤1000, Yahoo takeLast, Demo generatif).
+const val ENGINE_CANDLES = 300
+
+/**
+ * Diagnostik per-pair untuk card Kondisi Pasar: angka aktual dari tick terakhir
+ * (diminta/diterima/valid), kebutuhan minimum, sumber, waktu, dan alasan status.
+ * Bukan label palsu — setiap status dapat ditelusuri ke angka ini.
+ */
+data class RegimeDiag(
+    val requested: Int = 0,
+    val received: Int = 0,
+    val valid: Int = 0,
+    val minRequired: Int = REGIME_MIN_CANDLES,
+    val provider: String = "",
+    val timeframe: String = "",
+    val updatedAt: Long = 0L,
+    val error: String = "",
+    val indicatorOk: Boolean = false
+)
+
+/**
+ * V27: satu baris card Kondisi Pasar dari diagnostik aktual (murni, teruji).
+ * Membedakan: menunggu / gagal ambil / data kurang / indikator gagal /
+ * label valid (+basi). Tak ada angka karangan.
+ */
+fun regimeLine(
+    sym: String, d: RegimeDiag?, r: Regime?,
+    engRunning: Boolean, nowMs: Long
+): String {
+    if (d == null) {
+        return if (engRunning) "$sym: Menunggu data… (Engine berjalan)"
+        else "$sym: Menunggu evaluasi Engine — tekan Start Engine."
+    }
+    if (d.error.isNotEmpty()) return "$sym: Gagal mengambil data: ${d.error}"
+    if (d.valid < d.minRequired) return "$sym: Data tidak cukup: diterima ${d.received}, " +
+        "valid ${d.valid}, butuh ≥${d.minRequired} (EMA200). Sumber ${d.provider} ${d.timeframe}."
+    if (!d.indicatorOk) return "$sym: Indikator gagal dihitung (EMA200/ADX belum siap)."
+    if (r == null || r.label.isEmpty()) return "$sym: Indikator gagal dihitung."
+    val ageMin = ((nowMs - r.at).coerceAtLeast(0) / 60000)
+    val stale = if (ageMin > 30) " · data ${ageMin} mnt (mungkin basi)" else ""
+    return "$sym: ${regimeText(r)}$stale"
+}
+
 fun regimeText(r: Regime?): String =
     if (r == null) "Data tidak cukup"
     else r.label + if (r.volatile) " · volatil" else ""

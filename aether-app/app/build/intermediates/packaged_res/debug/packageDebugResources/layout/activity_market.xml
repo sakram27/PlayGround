@@ -67,8 +67,7 @@
                     android:textSize="12sp" android:layout_marginTop="6dp" android:text="Siap." />
                 <Button android:id="@+id/btnRetry" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Coba lagi"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="48dp" android:visibility="gone" />
+                    style="@style/BtnCyan" android:layout_marginTop="6dp" android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <TextView android:id="@+id/fallbackBanner" android:layout_width="match_parent"
@@ -101,7 +100,7 @@
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnWatchLimit" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Terapkan"
-                        style="@style/BtnGhost" android:minHeight="48dp" />
+                        style="@style/BtnViolet" />
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
@@ -111,7 +110,7 @@
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnResetWatch" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Reset" style="@style/BtnGhost" />
+                        android:text="Reset" style="@style/BtnDanger" />
                 </LinearLayout>
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Seret ⠿ untuk mengubah urutan. Urutan tersimpan otomatis."
@@ -158,7 +157,7 @@
                         android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
                     <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Semua →"
-                        style="@style/BtnGhost" android:minHeight="48dp" />
+                        style="@style/BtnInfo" />
                 </LinearLayout>
                 <TextView android:id="@+id/sigEmpty" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"

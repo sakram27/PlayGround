@@ -47,8 +47,7 @@
                 </com.google.android.material.button.MaterialButtonToggleGroup>
                 <Button android:id="@+id/btnJAdd" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="＋ Catatan"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnPrimary" android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/jCount" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />

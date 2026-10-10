@@ -3,6 +3,7 @@ package com.aether.signal.premium.ui
 import android.view.View
 import android.widget.TextView
 import com.aether.signal.premium.R
+import com.aether.signal.premium.engine.parseTimeframe
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 
@@ -40,6 +41,7 @@ class SignalsActivity : BaseActivity(0) {
         list().vertical(this)
         csvViews(false)
         findViewById<TextView>(R.id.hero).visibility = View.GONE
+        try { findViewById<TextView>(R.id.engDiag).visibility = View.GONE } catch (e: Exception) { /* abaikan */ }
         findViewById<View>(R.id.loading).visibility = View.GONE
         findViewById<TextView>(R.id.empty).visibility = View.GONE
         val bMain = findViewById<MaterialButton>(R.id.btnMain)
@@ -47,29 +49,39 @@ class SignalsActivity : BaseActivity(0) {
         when (mode) {
             0 -> {
                 bMain.text = "Hapus sinyal"
+                paintDangerButton(bMain)
                 bMain.setOnClickListener { confirm(this, "Hapus", "Hapus semua sinyal?") { App.clearSignals(); paint() } }
                 bSecond.text = "Ke Markets"
                 bSecond.setOnClickListener { navTo("markets") }
                 // Snapshot + adapter dibuat bersamaan; klik memakai id stabil
                 // (dicari ulang di daftar terkini), bukan posisi sebagai identitas.
-                val vis = App.signals.take(150)
-                val items = vis.map {
+                // Hanya sinyal Engine; data lama tak terklasifikasi ditandai terpisah.
+                val vis = engineSignalsOnly(App.signals).take(150)
+                val items = ArrayList(vis.map {
                     SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src} · SL ${App.fmt(it.sl, 4)} TP ${App.fmt(it.tp, 4)}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
+                })
+                val targets = ArrayList(vis.map { it.id })
+                if (App.legacySignals.isNotEmpty()) {
+                    items.add(SigItem("···", "${App.legacySignals.size} data lama belum terklasifikasi",
+                        "Tidak dihitung sebagai sinyal Engine.", ""))
+                    targets.add("")
                 }
                 list().adapter = SigAdapter(items, onClick = { pos ->
-                    vis.getOrNull(pos)?.let { openSignalDetail(it.id) }
+                    val id = targets.getOrNull(pos) ?: ""
+                    if (id.isEmpty()) snack(this, "Baris info — bukan sinyal Engine.")
+                    else openSignalDetail(id)
                 })
                 if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {
-                    visibility = View.VISIBLE; text = "Belum ada sinyal — Start engine atau jalankan backtest."
+                    visibility = View.VISIBLE; text = "Belum ada sinyal Engine — tekan Start Engine."
                 }
             }
             1 -> {
-                bMain.text = if (App.engRunning) "Stop Engine" else "Start Engine"
                 bMain.setOnClickListener {
-                    if (App.engRunning) BotEngine.stop() else snack(this, BotEngine.start())
+                    if (App.engRunning) snack(this, BotEngine.stop()) else snack(this, BotEngine.start())
                     BotEngine.onTick = { runOnUiThread { paint() } }
                     paint()
                 }
+                paintEngineButton(bMain, App.engRunning)
                 bSecond.text = "Reset"
                 bSecond.setOnClickListener {
                     BotEngine.positions.clear(); BotEngine.closed.clear(); BotEngine.equity = null; paint()
@@ -96,7 +108,7 @@ class SignalsActivity : BaseActivity(0) {
                     BotEngine.closed.take(120).forEach { t ->
                         items.add(SigItem(t.dir, "${t.pair}  ${t.result}", App.fmtDate(t.exitT), App.fmtMoney(t.pnl), t.pair))
                         targets.add(App.signals.find {
-                            (it.src == "dryrun-TP" || it.src == "dryrun-SL" || it.src == "dryrun-trail") &&
+                            (it.src == "dryrun-TP" || it.src == "dryrun-SL" || it.src == "dryrun-trail" || it.src == "dryrun-expired") &&
                                 it.pair == t.pair && it.dir == t.dir && it.t == t.exitT
                         })
                     }
@@ -109,6 +121,7 @@ class SignalsActivity : BaseActivity(0) {
                 if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {
                     visibility = View.VISIBLE; text = "Belum ada posisi paper."
                 }
+                paintEngineDiag()
             }
             2 -> { // History
                 val wins = App.hist.count { it.result == "WIN" }
@@ -118,6 +131,7 @@ class SignalsActivity : BaseActivity(0) {
                     text = "Net ${App.fmtMoney(net)} · ${App.hist.size} trade · ${if (App.hist.isNotEmpty()) App.fmt(wins.toDouble() / App.hist.size * 100, 1) + "%" else "—"}"
                 }
                 bMain.text = "Hapus riwayat"
+                paintDangerButton(bMain)
                 bMain.setOnClickListener { confirm(this, "Hapus", "Hapus riwayat trade?") { App.clearHist(); paint() } }
                 bSecond.text = "Ke Lab"
                 bSecond.setOnClickListener { navTo("lab") }
@@ -128,10 +142,10 @@ class SignalsActivity : BaseActivity(0) {
                     SigItem(it.direction, "${it.asset}  ${it.result}", App.fmtDate(it.exitTime), App.fmtMoney(it.pnl), it.asset)
                 }
                 list().adapter = SigAdapter(items, onClick = { pos ->
-                    // Transaksi backtest menyimpan sinyal arsip ber-id "b{entryTime}{asset}".
+                    // Transaksi backtest → arsip di store backtest (bukan daftar Engine).
                     val t = visH.getOrNull(pos)
                     val s = t?.let { tr ->
-                        App.signals.find { it.src == "backtest" && it.id == "b${tr.entryTime}${tr.asset}" }
+                        App.backtestSignals.find { it.src == "backtest" && it.id == "b${tr.entryTime}${tr.asset}" }
                     }
                     if (s == null) snack(this, "Tidak ada sinyal arsip untuk transaksi ini.")
                     else openSignalDetail(s.id)
@@ -142,6 +156,7 @@ class SignalsActivity : BaseActivity(0) {
             }
             else -> { // Drift (mode 3): live TP/SL vs ekspektasi backtest
                 bMain.text = "Perbarui"
+                paintInfoButton(bMain)
                 bMain.setOnClickListener { paint() }
                 bSecond.text = "Ke Lab"
                 bSecond.setOnClickListener { navTo("lab") }
@@ -180,12 +195,38 @@ class SignalsActivity : BaseActivity(0) {
                 "dari ${ss.size} peristiwa selesai", ""))
         }
         val openN = App.signals.count { it.src == "dryrun-entry" }
-        val arpN = App.signals.count { it.src == "backtest" }
+        val arpN = App.backtestSignals.size
         lines.add(SigItem("···",
             "Live: ${tps.size} TP (menang) · ${sls.size} SL (kalah) · $openN entry (aktif/menunggu) · $arpN arsip",
             "Ambang: n≥$DRIFT_MIN_SAMPLE, |ΔWR|>${DRIFT_WR_WARN_PP.toInt()}pp atau PF turun >${DRIFT_PF_DROP_PCT.toInt()}%. " +
                 "Bukan bukti eksekusi; monitor berhenti bila aplikasi mati.", ""))
         list().adapter = SigAdapter(lines)
+    }
+
+    /** Panel diagnostik Engine: angka aktual tick terakhir + status notifikasi. */
+    private fun paintEngineDiag() {
+        val v = findViewById<TextView>(R.id.engDiag)
+        try {
+            val now = System.currentTimeMillis()
+            val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
+            val oldest = BotEngine.positions.minOfOrNull { it.entryT }?.let { now - it } ?: 0L
+            val snap = EngineDiag.snapshot(
+                running = App.engRunning, strategy = App.strategy, timeframe = App.timeframe,
+                pairs = App.engPairs.toList(), openPositions = BotEngine.positions.size,
+                oldestOpenAgeMs = oldest)
+            val hist = try { NotifBus.history() } catch (e: Exception) { emptyList() }
+            v.text = formatEngineDiag(
+                snap, App.strategy, App.timeframe, App.provider,
+                !NotifBus.needsRuntimePermission(), NotifBus.systemEnabled(),
+                try { NotifBus.quietHours().enabled } catch (e: Exception) { false },
+                hist.count { it.status == "DIKIRIM" },
+                hist.count { it.status == "DITAHAN" },
+                hist.count { it.status == "GAGAL" || it.status == "GAGAL_IZIN" },
+                tfMin, now)
+            v.visibility = View.VISIBLE
+        } catch (e: Exception) {
+            try { v.visibility = View.GONE } catch (_: Exception) { /* abaikan */ }
+        }
     }
 
     /** P10: ekspor riwayat nyata ke CSV. Pilih lokasi (SAF); fallback bagikan. */

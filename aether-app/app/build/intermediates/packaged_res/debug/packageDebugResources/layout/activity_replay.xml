@@ -45,16 +45,16 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnRpReset" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="⏮" style="@style/BtnGhost" android:minHeight="44dp" />
+                        android:text="⏮" style="@style/BtnGhost" />
                     <Button android:id="@+id/btnRpBack" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="◀" style="@style/BtnGhost" android:minHeight="44dp" />
+                        android:text="◀" style="@style/BtnGhost" />
                     <Button android:id="@+id/btnRpPlay" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="2"
-                        android:text="▶ Putar" style="@style/BtnGhost" android:minHeight="44dp" />
+                        android:text="▶ Putar" style="@style/BtnPrimary" />
                     <Button android:id="@+id/btnRpStep" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="▶|" style="@style/BtnGhost" android:minHeight="44dp" />
+                        android:text="▶|" style="@style/BtnGhost" />
                 </LinearLayout>
                 <TextView android:id="@+id/rpStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"

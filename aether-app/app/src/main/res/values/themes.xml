@@ -29,16 +29,98 @@
         <item name="strokeWidth">1dp</item>
         <item name="contentPadding">14dp</item>
     </style>
-    <style name="BtnPrimary" parent="Widget.Material3.Button">
-        <item name="backgroundTint">@color/green</item>
-        <item name="android:textColor">@color/green_ink</item>
-        <item name="cornerRadius">9dp</item>
+
+    <!-- V29 sistem tombol: SATU metrik untuk semua — tinggi 48dp, inset 0
+         (tinggi eksak, bukan dipengaruhi teks/ikon/font), radius 10dp,
+         ikon-teks tengah dengan jarak 8dp, teks 1 baris + elipsis.
+         Peran dibedakan HANYA oleh warna (palet §1). -->
+    <style name="BtnBase" parent="Widget.Material3.Button">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
     </style>
-    <style name="BtnGhost" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="BtnBaseLine" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+
+    <!-- Utama: emerald gradasi halus + ripple. Teks tinta gelap (kontras ~8:1;
+         putih di atas emerald hanya ~2.5:1 sehingga melanggar "kontras tinggi"). -->
+    <style name="BtnPrimary" parent="BtnBase">
+        <item name="android:background">@drawable/grad_primary</item>
+        <item name="android:textColor">@color/green_ink</item>
+    </style>
+    <!-- Berbahaya: merah elegan — Stop/Hapus/gagal. -->
+    <style name="BtnDanger" parent="BtnBase">
+        <item name="backgroundTint">@color/red</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <!-- Sekunder penting + navigasi: biru elegan. -->
+    <style name="BtnInfo" parent="BtnBase">
+        <item name="backgroundTint">@color/blue</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <!-- Pilihan strategi/konfigurasi aktif: violet lembut (terbatas). -->
+    <style name="BtnViolet" parent="BtnBase">
+        <item name="backgroundTint">@color/violet</item>
+        <item name="android:textColor">@color/violet_ink</item>
+    </style>
+    <!-- Data pasar & analisis: teal. -->
+    <style name="BtnCyan" parent="BtnBase">
+        <item name="backgroundTint">@color/cyan</item>
+        <item name="android:textColor">@color/cyan_ink</item>
+    </style>
+    <!-- Netral sekunder: slate garis tepi. -->
+    <style name="BtnSlate" parent="BtnBaseLine">
+        <item name="strokeColor">@color/slate</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <!-- Netral umum: navy garis tepi halus, teks putih lembut. -->
+    <style name="BtnGhost" parent="BtnBaseLine">
         <item name="strokeColor">@color/line</item>
         <item name="android:textColor">@color/txt</item>
-        <item name="cornerRadius">9dp</item>
     </style>
+
+    <!-- Varian kecil 40dp — HANYA untuk grup inline padat (stepper, trio
+         sortir,bulk sheet, navigasi trade). Satu baris = satu varian. -->
+    <style name="BtnSmall" parent="BtnGhost">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="BtnSmallDanger" parent="BtnDanger">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
     <style name="Field" parent="Widget.Material3.TextInputLayout.OutlinedBox.Dense">
         <item name="boxStrokeColor">@color/line</item>
         <item name="boxBackgroundColor">@color/inset</item>

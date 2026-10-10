@@ -22,10 +22,13 @@ fun signalRowExtra(s: Sig): String {
 }
 
 // Halaman detail sinyal (native, Classic Views). Identitas via extra "signal_id"
-// yang dicari ulang di App.signals — bukan posisi daftar. Semua nilai dari objek
-// Sig tersimpan; yang tidak tersimpan dinyatakan "Tidak tersedia".
+// yang dicari ulang di App.signals (Engine) lalu App.backtestSignals (arsip) —
+// bukan posisi daftar. Semua nilai dari objek Sig tersimpan; yang tidak
+// tersimpan dinyatakan "Tidak tersedia".
 
-fun Context.openSignalDetail(signalId: String) {    val s = findSignalById(App.signals, signalId)
+fun Context.openSignalDetail(signalId: String) {
+    // Cari di kedua store (Engine + arsip backtest); id stabil, bukan posisi.
+    val s = findSignalById(App.signals, signalId) ?: findSignalById(App.backtestSignals, signalId)
     if (s == null) {
         snack(this as? android.app.Activity
             ?: return, "Sinyal tidak ditemukan (mungkin sudah dihapus).")
@@ -57,7 +60,7 @@ class SignalDetailActivity : BaseActivity(0) {
 
     private fun paint() {
         val id = intent.getStringExtra("signal_id") ?: ""
-        val s = findSignalById(App.signals, id)
+        val s = findSignalById(App.signals, id) ?: findSignalById(App.backtestSignals, id)
         if (s == null) {
             findViewById<View>(R.id.dContent).visibility = View.GONE
             findViewById<View>(R.id.dMissing).visibility = View.VISIBLE
@@ -76,13 +79,13 @@ class SignalDetailActivity : BaseActivity(0) {
         t(R.id.dPair).text = s.pair.ifEmpty { "—" }
         t(R.id.dDir).apply {
             text = s.dir.ifEmpty { "—" }
-            setTextColor((if (s.dir == "LONG") 0xFF0ECB81 else 0xFFF6465D).toInt())
+            setTextColor((if (s.dir == "LONG") 0xFF10B981 else 0xFFF87171).toInt())
         }
         val st = statusOf(s)
         t(R.id.dStatus).text = st
         t(R.id.dStatus).setTextColor(
-            (if (st.startsWith("Aktif") || st.startsWith("Keluar")) 0xFF0ECB81 else 0xFF8B95A5).toInt())
-        t(R.id.dSrc).text = srcLabel(s.src)
+            (if (st.startsWith("Aktif") || st.startsWith("Keluar")) 0xFF10B981 else 0xFF94A3B8).toInt())
+        t(R.id.dSrc).text = "${sourceBanner(s.src)} · ${srcLabel(s.src)}"
         val tfm = try { parseTimeframe(s.tf) } catch (e: Exception) { 15 }
         val badge = staleBadge(s.t, System.currentTimeMillis(), tfm)
         t(R.id.dTf).text = "Timeframe: ${s.tf.ifEmpty { "—" }}" +
@@ -93,7 +96,7 @@ class SignalDetailActivity : BaseActivity(0) {
     private fun statusOf(s: Sig): String {
         val isOpen = BotEngine.positions.any { it.pair == s.pair && it.dir == s.dir && it.entryT == s.t }
         val laterExit = App.signals.any {
-            (it.src == "dryrun-TP" || it.src == "dryrun-SL" || it.src == "dryrun-trail") &&
+            (it.src == "dryrun-TP" || it.src == "dryrun-SL" || it.src == "dryrun-trail" || it.src == "dryrun-expired") &&
                 it.pair == s.pair && it.dir == s.dir && it.t > s.t
         }
         return deriveSignalStatus(s.src, isOpen, laterExit)
@@ -104,6 +107,9 @@ class SignalDetailActivity : BaseActivity(0) {
         val entryLike = isEntryLike(s.src)
         t(R.id.dPriceLabel).text = if (entryLike) "Harga entry (tersimpan)" else "Harga keluar / exit (tersimpan)"
         t(R.id.dPrice).text = App.fmt(s.price, 4)
+        t(R.id.dEntryExtra).text = "Entry tambahan: Belum tersedia (strategi hanya menyimpan satu level entry)."
+        // Peringatan arah eksplisit — nilai TIDAK diubah diam-diam.
+        val geoOk = levelGeometryOk(s.dir, s.price, s.sl, s.tp)
         t(R.id.dSl).text = "SL  ${App.fmt(s.sl, 4)}"
         t(R.id.dTp1).text = "TP  ${App.fmt(s.tp, 4)}"
         t(R.id.dTpMulti).text = "TP2 / TP3: Tidak tersedia (strategi hanya menyimpan satu target)."
@@ -164,8 +170,11 @@ class SignalDetailActivity : BaseActivity(0) {
                 " — tingkat konfirmasi menurut formula aplikasi, BUKAN probabilitas menang/profit."
         else "\nSkor Konfirmasi: Tidak dapat dihitung (data pembentuk tak tersedia)."
         t(R.id.dRationale).text = "Arah ${s.dir.ifEmpty { "—" }}: " +
-            if (isEntryLike(s.src)) directionRationale(s.dir, s.price, s.sl, s.tp)
-            else "peristiwa keluar mengikuti arah posisi paper yang ditutup."
+            (if (!isEntryLike(s.src)) "peristiwa keluar mengikuti arah posisi paper yang ditutup."
+            else if (!levelGeometryOk(s.dir, s.price, s.sl, s.tp)) "⚠ PERINGATAN: geometri level tidak lazim untuk arah ini — " +
+                "nilai ditampilkan apa adanya, tidak dikoreksi. " +
+                directionRationale(s.dir, s.price, s.sl, s.tp)
+            else directionRationale(s.dir, s.price, s.sl, s.tp))
         t(R.id.dFilters).text = (confTxt + filtTxt + scoreTxt).trim().ifEmpty {
             "Tidak ada jejak tambahan tersimpan untuk sinyal ini."
         }

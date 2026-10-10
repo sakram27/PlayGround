@@ -19,12 +19,12 @@ class ReplayStripView @JvmOverloads constructor(
     private var markers: List<StripMarker> = emptyList()
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFE8EDF2.toInt(); strokeWidth = 3f; style = Paint.Style.STROKE
+        color = 0xFFF1F5F9.toInt(); strokeWidth = 3f; style = Paint.Style.STROKE
     }
     private val cursorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFFFB800.toInt(); strokeWidth = 3f
+        color = 0xFFFBBF24.toInt(); strokeWidth = 3f
     }
-    private val gridPaint = Paint().apply { color = 0xFF232B36.toInt(); strokeWidth = 1f }
+    private val gridPaint = Paint().apply { color = 0xFF253244.toInt(); strokeWidth = 1f }
 
     fun setData(closes: List<Double>, markers: List<StripMarker>) {
         this.closes = closes.filter { it.isFinite() }
@@ -34,10 +34,10 @@ class ReplayStripView @JvmOverloads constructor(
 
     private fun markerPaint(kind: String): Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = when (kind) {
-            "entry" -> 0xFF4C8DFF.toInt()
-            "win" -> 0xFF0ECB81.toInt()
-            "loss" -> 0xFFF6465D.toInt()
-            else -> 0xFF8B95A5.toInt()
+            "entry" -> 0xFF3B82F6.toInt()
+            "win" -> 0xFF10B981.toInt()
+            "loss" -> 0xFFF87171.toInt()
+            else -> 0xFF94A3B8.toInt()
         }
         style = Paint.Style.FILL
     }

@@ -151,11 +151,15 @@ class MonitorService : Service() {
             val allFail = BotEngine.lastTotalPairs > 0 && BotEngine.lastOkPairs == 0
             failStreak = if (allFail) failStreak + 1 else 0
             val t = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(lastTickMs))
+            // V28: angka berlabel via engineStatusLine — "X/Y" = data OK dari total
+            // dikonfigurasi; sinyal/posisi = metrik aktual. Tanpa angka misterius.
             lastSummary = if (allFail)
-                "Menunggu koneksi · 0/${BotEngine.lastTotalPairs} pair OK · $t" +
+                "Menunggu koneksi · " + engineStatusLine(
+                    BotEngine.lastTotalPairs, 0, App.signals.size, BotEngine.positions.size, t) +
                     if (failStreak > 0) " · jeda ${nextDelaySec(failStreak)} dtk" else ""
             else
-                "${BotEngine.lastOkPairs}/${BotEngine.lastTotalPairs} pair OK · ${App.signals.size} sinyal · ${BotEngine.positions.size} posisi · $t"
+                engineStatusLine(BotEngine.lastTotalPairs, BotEngine.lastOkPairs,
+                    App.signals.size, BotEngine.positions.size, t)
         } catch (e: Exception) {
             // Offline/gagal: status menunggu, scheduler tetap (E3: pemulihan otomatis).
             failStreak++

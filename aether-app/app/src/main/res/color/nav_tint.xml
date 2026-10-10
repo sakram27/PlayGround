@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- V29: nav aktif emerald, nonaktif slate — konsisten dengan palet. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:color="@color/green" android:state_checked="true" />
-    <item android:color="@color/dim" />
+    <item android:color="@color/slate" />
 </selector>

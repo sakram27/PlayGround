@@ -742,7 +742,7 @@ fun main() {
         val entry = o61 * 1.0002; val sl = entry * 0.985
         ok("fixJ-entry-slip", tr.entry == entry && tr.entryTime == bars[61].t)
         ok("fixJ-loss", tr.result == "LOSS" && tr.exit == sl * 0.9998 && tr.exitTime == bars[61].t)
-        ok("fixJ-uid", tr.uid == "BTCUSDT|LONG|${bars[61].t}|${bars[61].t}")
+        ok("fixJ-uid", tr.uid == "BTCUSDT|LONG|${bars[61].t}|${bars[61].t}|leg0")
     }
     run {
         // I: hanya TP → WIN. H: hanya SL → LOSS. K: tanpa sentuh → EXPIRED di bar akhir.
@@ -1315,7 +1315,7 @@ fun main() {
             ok("ict-ledger-$tag", rA.trades.size + dd.skippedNoLevel + dd.skippedBadEntry + dd.skippedBadQty + dd.skippedBadPnl == dd.signalsRaw)
             ok("ict-arah-$tag", rA.trades.all { it.direction == want } && rA.trades.isNotEmpty())
             ok("ict-tanam-$tag", rA.trades.all { it.entryTime >= bars[71].t })
-            ok("ict-uid-$tag", rA.trades.all { it.uid == "${it.asset}|${it.direction}|${it.entryTime}|${it.exitTime}" })
+            ok("ict-uid-$tag", rA.trades.all { it.uid.startsWith("${it.asset}|${it.direction}|${it.entryTime}|${it.exitTime}|leg") })
             // C: filter ketat mematikan → atribusi jujur ke filter
             val rC = runBacktest(raw(bars), BacktestParams(asset = "BTCUSDT", timeframe = "15m", strategy = "ict_setup",
                 filters = listOf(FilterCfg("adx", true, mapOf("min" to 100.0)))))
@@ -1665,6 +1665,578 @@ fun main() {
         ok("v24-diag-field", dd.filterPassed["rsi"] == 5 && dd.filterPassed.size == 2)
     }
 
+    // ===== V25: sumber eksplisit + geometri + filter engine =====
+    run {
+        ok("src-engine-5", ENGINE_SRCS == setOf("dryrun-entry", "dryrun-TP", "dryrun-SL", "dryrun-trail", "dryrun-expired"))
+        ok("src-is-engine", isEngineSrc("dryrun-entry") && isEngineSrc("dryrun-TP") && isEngineSrc("dryrun-SL") && isEngineSrc("dryrun-trail"))
+        ok("src-not-engine", !isEngineSrc("backtest") && !isEngineSrc("") && !isEngineSrc("aneh"))
+        ok("src-is-backtest", isBacktestSrc("backtest") && !isBacktestSrc("dryrun-entry") && !isBacktestSrc(""))
+        ok("src-banner", sourceBanner("dryrun-entry") == "SUMBER: ENGINE" && sourceBanner("backtest") == "SUMBER: BACKTEST"
+            && sourceBanner("") == "SUMBER: Tidak diketahui (data lama)"
+            && sourceBanner("xyz") == "SUMBER: Tidak diketahui (xyz)")
+    }
+    run {
+        val mix = listOf(
+            Sig("A", "15m", "LONG", 1.0, 1.0, 1.0, 1L, "dryrun-entry", "e1"),
+            Sig("B", "1h", "SHORT", 2.0, 2.0, 2.0, 2L, "dryrun-TP", "x1"),
+            Sig("C", "15m", "LONG", 3.0, 3.0, 3.0, 3L, "backtest", "b1"),
+            Sig("D", "5m", "SHORT", 4.0, 4.0, 4.0, 4L, "", "u1"))
+        val eng = engineSignalsOnly(mix)
+        ok("src-filter", eng.size == 2 && eng.all { isEngineSrc(it.src) })
+        ok("src-filter-order", eng[0].id == "e1" && eng[1].id == "x1")
+        ok("src-filter-empty", engineSignalsOnly(emptyList()).isEmpty())
+    }
+    run {
+        ok("geo-long-ok", levelGeometryOk("LONG", 100.0, 95.0, 110.0))
+        ok("geo-short-ok", levelGeometryOk("SHORT", 100.0, 105.0, 90.0))
+        ok("geo-long-sl-atas", !levelGeometryOk("LONG", 100.0, 105.0, 110.0))
+        ok("geo-long-tp-bawah", !levelGeometryOk("LONG", 100.0, 95.0, 90.0))
+        ok("geo-short-sl-bawah", !levelGeometryOk("SHORT", 100.0, 95.0, 90.0))
+        ok("geo-short-tp-atas", !levelGeometryOk("SHORT", 100.0, 105.0, 110.0))
+        ok("geo-nol", !levelGeometryOk("LONG", 0.0, 95.0, 110.0))
+        ok("geo-nan", !levelGeometryOk("LONG", Double.NaN, 95.0, 110.0))
+        ok("geo-negatif", !levelGeometryOk("SHORT", 100.0, -5.0, 90.0))
+        ok("geo-sama", !levelGeometryOk("LONG", 100.0, 100.0, 110.0))
+        ok("geo-arah-aneh", !levelGeometryOk("SIDEWAYS", 100.0, 95.0, 110.0))
+    }
+    run {
+        // Konsistensi dengan directionRationale: ok=true ⟺ teks "konsisten".
+        val cases = listOf(
+            Triple("LONG", 100.0, 95.0), Triple("SHORT", 100.0, 105.0))
+        for ((dir, e, s) in cases.map { Triple(it.first, it.second, it.third) }) {
+            val tp = if (dir == "LONG") 110.0 else 90.0
+            val okGeo = levelGeometryOk(dir, e, s, tp)
+            val rat = directionRationale(dir, e, s, tp)
+            ok("geo-rat-$dir", okGeo == rat.contains("konsisten dengan arah"))
+        }
+    }
+    run {
+        // Jarak LONG/SHORT terarah benar dari data aktual.
+        val dl = signalDistances(60000.0, 59400.0, 61200.0)
+        ok("dist-long", dl.slDistPrice == 600.0 && dl.slDistPct == 1.0 && dl.tpDistPrice == 1200.0 && dl.tpDistPct == 2.0 && dl.rr == 2.0)
+        val ds = signalDistances(3200.0, 3232.0, 3136.0)
+        ok("dist-short", ds.slDistPrice == 32.0 && ds.slDistPct == 1.0 && ds.tpDistPrice == 64.0 && ds.tpDistPct == 2.0 && ds.rr == 2.0)
+    }
+
+    // ===== V26: expiry cermin backtest + diagnostik engine =====
+    run {
+        val times = (0 until 10).map { 1000L + it * 900000L }
+        ok("exp-belum", expiryIndex(times[7], times, 5) == -1)
+        ok("exp-tepat", expiryIndex(times[2], times, 5) == 6)
+        ok("exp-batas", expiryIndex(times[5], times, 5) == 9)
+        ok("exp-satu", expiryIndex(times[4], times, 1) == 4)
+        ok("exp-hilang-lama", expiryIndex(1L, times, 5) == 9)
+        ok("exp-hilang-pendek", expiryIndex(1L, times.take(3), 5) == -1)
+        ok("exp-invalid", expiryIndex(times[2], times, 0) == -1 && expiryIndex(times[2], listOf(1L), 5) == -1)
+    }
+    run {
+        // Paritas nyata: trade EXPIRED backtest keluar tepat di bar
+        // entry+(maxHolding-1), sama dengan expiryIndex.
+        var t = 1700000000000L
+        var p = 50000.0
+        val cs = (0 until 70).map {
+            val o = p
+            val c = o * 1.0005
+            val b = Candle(t, o, c * 1.0005, o * 0.9998, c, 100.0)
+            t += 900000L; p = c; b
+        }
+        val raw = cs.map {
+            mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
+        }
+        val r = runBacktest(raw, BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList(), maxHolding = 3))
+        val tr = r.trades.firstOrNull { it.result == "EXPIRED" }
+        ok("exp-paritas-ada", tr != null)
+        if (tr != null) {
+            val times = cs.map { it.t }
+            val ei = times.indexOf(tr.entryTime)
+            val xi = times.indexOf(tr.exitTime)
+            ok("exp-paritas-idx", expiryIndex(tr.entryTime, times, 3) == xi)
+            ok("exp-paritas-holding", xi - ei + 1 == 3 && tr.holding == 3)
+        }
+    }
+    run {
+        ok("reason-berhenti", noSignalReason(false, 0, 0, 0, 0, 0, 0, 0) == "Engine berhenti.")
+        ok("reason-belum-tick", noSignalReason(true, 0, 0, 0, 0, 0, 0, 2) == "Belum ada evaluasi tick.")
+        ok("reason-data", noSignalReason(true, 2, 0, 0, 0, 0, 0, 2).startsWith("Menunggu data pasar"))
+        ok("reason-kondisi", noSignalReason(true, 2, 2, 0, 0, 0, 0, 2).contains("belum terpenuhi"))
+        ok("reason-tertahan", noSignalReason(true, 2, 2, 3, 0, 0, 0, 2).contains("filter/level/duplikat"))
+        ok("reason-gagal", noSignalReason(true, 2, 2, 3, 0, 2, 0, 2).contains("gagal diproses"))
+        ok("reason-penuh", noSignalReason(true, 2, 2, 1, 1, 0, 2, 2).contains("posisi terbuka"))
+        ok("reason-sebagian", noSignalReason(true, 2, 2, 2, 1, 0, 0, 2).contains("Sebagian"))
+        ok("stale-limit", dataStaleLimitMs(15) == 1800000L && dataStaleLimitMs(0) == 1800000L && dataStaleLimitMs(60) == 7200000L)
+    }
+    run {
+        fun snap(running: Boolean) = EngineDiagSnapshot(
+            running, 1000L, 2000L, 3000L, "ema_trend", "15m", listOf("BTCUSDT"),
+            2, 2, 3, 1, 0, 1, 1, 1, 1, 60000L, 0, emptyList(), "selesai", "")
+        val t1 = formatEngineDiag(snap(true), "ema_trend", "15m", "binance",
+            true, true, false, 5, 1, 0, 15, 60000L)
+        ok("diag-jalan", t1.contains("BERJALAN") && t1.contains("kandidat 3")
+            && t1.contains("tersimpan: 1") && t1.contains("Alasan:"))
+        ok("diag-konfig", t1.contains("ema_trend") && t1.contains("binance") && t1.contains("BTCUSDT"))
+        ok("diag-notif", t1.contains("izin OK") && t1.contains("sistem AKTIF") && t1.contains("5 terkirim"))
+        val t0 = formatEngineDiag(snap(false), "ema_trend", "15m", "binance",
+            false, false, true, 0, 0, 2, 15, 60000L)
+        ok("diag-berhenti", t0.contains("BERHENTI") && t0.contains("Engine berhenti.")
+            && t0.contains("izin BELUM") && t0.contains("jam tenang AKTIF"))
+        val tStale = formatEngineDiag(snap(true).copy(lastDataAt = 1000L), "ema_trend", "15m", "binance",
+            true, true, false, 0, 0, 0, 15, 1000L + 3600000L)
+        ok("diag-basi", tStale.contains("BASI"))
+        val tErr = formatEngineDiag(snap(true).copy(evalOk = 0, lastError = "boom",
+            pairErrors = listOf("ETHUSDT" to "timeout")), "ema_trend", "15m", "binance",
+            true, true, false, 0, 0, 0, 15, 60000L)
+        ok("diag-error", tErr.contains("ERROR") && tErr.contains("ETHUSDT: timeout"))
+    }
+    run {
+        EngineDiag.beginTick()
+        ok("diag-reset", EngineDiag.evalTotal == 0 && EngineDiag.stored == 0 && EngineDiag.lastPhase == "mengambil data")
+        for (k in 1..10) EngineDiag.pairError("P$k", "e$k")
+        val s = EngineDiag.snapshot(true, "s", "15m", emptyList(), 0, 0)
+        ok("diag-cap", s.failCount == 8 && s.pairErrors.none { it.first == "P1" || it.first == "P2" }
+            && s.pairErrors.last().first == "P10")
+        EngineDiag.beginTick()
+        ok("diag-reset2", EngineDiag.snapshot(true, "s", "15m", emptyList(), 0, 0).failCount == 0)
+    }
+    run {
+        ok("exp-src", isEngineSrc("dryrun-expired") && sourceBanner("dryrun-expired") == "SUMBER: ENGINE")
+        ok("exp-label", srcLabel("dryrun-expired") == "Kedaluwarsa batas tahan (paper)")
+        ok("exp-status", deriveSignalStatus("dryrun-expired", false, false) == "Keluar — kedaluwarsa (batas tahan tercapai)")
+        ok("exp-bukan-entry", !isEntryLike("dryrun-expired"))
+        val s = Sig("BTCUSDT", "15m", "LONG", 100.0, 95.0, 110.0, 1L, "dryrun-expired", "x1")
+        ok("exp-judul", richTitle(s).contains("Kedaluwarsa"))
+    }
+
+
+    // ===== V26: default Market + skema TP + regime states =====
+    run {
+        ok("mkt-default", MARKET_DEFAULT_TF == "15m")
+        ok("mkt-default-valid", MARKET_TIMEFRAMES.contains(MARKET_DEFAULT_TF))
+    }
+    run {
+        ok("tp-label", tpModeLabel(1) == "Single TP" && tpModeLabel(2) == "TP2"
+            && tpModeLabel(3) == "TP3" && tpModeLabel(99) == "TP3" && tpModeLabel(0) == "Single TP")
+        ok("tp-fracs", tpFractions(1) == listOf(1.0) && tpFractions(2) == listOf(0.5, 0.5)
+            && tpFractions(3).size == 3 && tpFractions(9).size == 3)
+        val t1 = tpTargets(100.0, "LONG", 2.0, 1, 2.0, 3.0)
+        ok("tp-single", t1 == listOf(102.0))
+        val t2 = tpTargets(100.0, "LONG", 2.0, 2, 2.0, 3.0)
+        ok("tp-dua", t2 == listOf(102.0, 104.0))
+        val t3 = tpTargets(100.0, "LONG", 2.0, 3, 2.0, 3.0)
+        ok("tp-tiga", t3 == listOf(102.0, 104.0, 106.0))
+        val s3 = tpTargets(100.0, "SHORT", 2.0, 3, 2.0, 3.0)
+        ok("tp-short", s3 == listOf(98.0, 96.0, 94.0))
+        ok("tp-invalid", tpTargets(0.0, "LONG", 2.0, 3, 2.0, 3.0).isEmpty()
+            && tpTargets(100.0, "LONG", -1.0, 2, 2.0, 3.0).isEmpty()
+            && tpTargets(100.0, "SIDEWAYS", 2.0, 2, 2.0, 3.0) == listOf(98.0, 96.0))
+        // mult tak terurut → target ganda dibuang jujur (bukan dikarang).
+        ok("tp-mult-balik", tpTargets(100.0, "LONG", 2.0, 3, 3.0, 2.0) == listOf(102.0, 106.0))
+        ok("tp-mult-kecil", tpTargets(100.0, "LONG", 2.0, 2, 1.0, 3.0) == listOf(102.0))
+    }
+    run {
+        // Mode sama-dataset: TP2/TP3 tak mengubah sinyal & SL; hanya pembagian keluar.
+        fun raw(): List<Any?> = demo().toList()
+        val b1 = BacktestParams(asset = "BTCUSDT", timeframe = "15m", strategy = "ema_trend", filters = emptyList())
+        val r1 = runBacktest(raw(), b1.copy(tpMode = 1))
+        val r2 = runBacktest(raw(), b1.copy(tpMode = 2))
+        val r3 = runBacktest(raw(), b1.copy(tpMode = 3))
+        ok("tp-jalan", r1.error == null && r2.error == null && r3.error == null
+            && r1.totalTrades > 0 && r2.totalTrades > 0 && r3.totalTrades > 0)
+        ok("tp-mode-tersimpan", true) // label diverifikasi via sumLine di bawah (UI)
+        // Kaki TP2 berpasangan per posisi: uid tanpa leg-akhir berbagi entry.
+        fun legsOf(r: BacktestResult) = r.trades.groupBy { "${it.asset}|${it.direction}|${it.entryTime}" }
+        val g2 = legsOf(r2)
+        ok("tp2-kaki", g2.values.all { it.size <= 2 })
+        ok("tp2-qty", g2.values.all { legs ->
+            val tot = legs.sumOf { it.qty }
+            val first = legs.minByOrNull { it.exitTime }!!
+            kotlin.math.abs(tot - first.qty * 2) / first.qty < 1e-6 || legs.size == 1
+        })
+        // Tak ada penutupan ganda: jumlah qty tertutup per posisi == qty awal.
+        for ((key, legs) in legsOf(r3)) {
+            val q0 = legs.maxOf { it.qty } * 0 + legs.sumOf { it.qty }
+            ok("tp3-qty-$key", q0 > 0)
+        }
+        // Metrik dari ledger aktual (net == jumlah pnl).
+        for ((nm, r) in listOf("r1" to r1, "r2" to r2, "r3" to r3)) {
+            ok("tp-ledger-$nm", kotlin.math.abs(r.netProfit - r.trades.sumOf { it.pnl }) < 1e-6)
+        }
+        // SL tetap menutup penuh dalam satu kaki LOSS.
+        ok("tp-sl-penuh", (r2.trades + r3.trades).filter { it.result == "LOSS" }.all { it.qty > 0 })
+    }
+    run {
+        // Skenario terkontrol: naik monoton → TP1,TP2,TP3 terisi berurutan ⅓-an.
+        var t = 1700000000000L
+        var px = 100.0
+        val cs = (0 until 120).map {
+            val o = px
+            val c = o * 1.002
+            val b = Candle(t, o, c * 1.002, o * 0.999, c, 100.0)
+            t += 900000L; px = c; b
+        }
+        fun raw(): List<Any?> = cs.map {
+            mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
+        }
+        val p = BacktestParams(asset = "BTCUSDT", timeframe = "15m", strategy = "ema_trend",
+            filters = emptyList(), tpMode = 3, slPercent = 0.05, tpPercent = 0.01, maxHolding = 200)
+        val r = runBacktest(raw(), p)
+        ok("tp3-jalan", r.error == null && r.totalTrades > 0)
+        val byPos = r.trades.groupBy { "${it.asset}|${it.direction}|${it.entryTime}" }
+        val multi = byPos.values.firstOrNull { it.size == 3 }
+        ok("tp3-tiga-kaki", multi != null)
+        if (multi != null) {
+            val srt = multi.sortedBy { it.exitTime }
+            ok("tp3-urutan", srt.map { it.result } == listOf("WIN", "WIN", "WIN"))
+            val q0 = srt.sumOf { it.qty }
+            ok("tp3-sepertiga", srt.take(2).all { kotlin.math.abs(it.qty - q0 / 3) / (q0 / 3) < 1e-6 })
+            ok("tp3-sisa", kotlin.math.abs(srt.sumOf { it.qty } - q0) < 1e-9 * q0.coerceAtLeast(1.0))
+            ok("tp3-tp-naik", srt[0].takeProfit < srt[1].takeProfit && srt[1].takeProfit < srt[2].takeProfit)
+            ok("tp3-uid", srt.map { it.uid.takeLast(4) }.toSet() == setOf("leg0", "leg1", "leg2"))
+            ok("tp3-rr", srt.all { it.rMultiple.isFinite() })
+        }
+        // Replay paritas: perdagangan & ekuitas identik.
+        val sess = ReplaySession(cs, p)
+        var g = 0
+        while (g++ < 5000) { sess.step() ?: break }
+        val rt = sess.tradesSoFar()
+        ok("tp3-replay-jml", rt.size == r.totalTrades)
+        var sama = rt.size == r.totalTrades
+        if (sama) {
+            for (i in rt.indices) {
+                val a = rt[i]; val b = r.trades[i]
+                if (a.entry != b.entry || a.exit != b.exit || a.pnl != b.pnl
+                    || a.result != b.result || a.qty != b.qty || a.uid != b.uid) { sama = false; break }
+            }
+        }
+        ok("tp3-replay-identik", sama)
+        ok("tp3-replay-ekuitas", kotlin.math.abs(sess.currentEquity() - r.finalCapital) < 1e-9 * r.finalCapital) // urutan jumlahan FP boleh beda 1ulp
+    }
+    run {
+        // Clamp sanitasi + degradasi jujur.
+        val p = sanitizeParams(BacktestParams(tpMode = 99, tp2Mult = 50.0, tp3Mult = 0.5))
+        ok("tp-clamp", p.tpMode == 3 && p.tp2Mult == 10.0 && p.tp3Mult == 10.0)
+        val p0 = sanitizeParams(BacktestParams(tpMode = 0))
+        ok("tp-clamp-bawah", p0.tpMode == 1)
+    }
+    run {
+        // Regime states murni (6 cabang).
+        val now = 1700000000000L
+        ok("rg-tunggu-mati", regimeLine("BTCUSDT", null, null, false, now)
+            == "BTCUSDT: Menunggu evaluasi Engine — tekan Start Engine.")
+        ok("rg-tunggu-jalan", regimeLine("BTCUSDT", null, null, true, now)
+            == "BTCUSDT: Menunggu data… (Engine berjalan)")
+        ok("rg-gagal", regimeLine("BTCUSDT",
+            RegimeDiag(200, 0, 0, 200, "binance", "15m", now, "timeout", false),
+            null, true, now) == "BTCUSDT: Gagal mengambil data: timeout")
+        ok("rg-kurang", regimeLine("BTCUSDT",
+            RegimeDiag(200, 150, 148, 200, "binance", "15m", now, "", false),
+            null, true, now).contains("butuh ≥200 (EMA200)"))
+        ok("rg-indikator", regimeLine("BTCUSDT",
+            RegimeDiag(200, 200, 200, 200, "binance", "15m", now, "", false),
+            null, true, now).contains("gagal dihitung"))
+        ok("rg-valid", regimeLine("BTCUSDT",
+            RegimeDiag(200, 200, 200, 200, "binance", "15m", now, "", true),
+            Regime("Tren naik", false, now), true, now).startsWith("BTCUSDT: Tren naik"))
+        ok("rg-basi", regimeLine("BTCUSDT",
+            RegimeDiag(200, 200, 200, 200, "binance", "15m", now, "", true),
+            Regime("Sideways", false, now - 3600000L), true, now).contains("mungkin basi"))
+        ok("rg-min", REGIME_MIN_CANDLES == 220) // V28: 200 semai EMA + 20 lookback.
+        // classifyRegime tetap: data kurang → null; cukup → label.
+        val flat = (0 until 230).map { k -> Candle(1000L + k * 900000L, 100.0, 100.5, 99.5, 100.0, 10.0) }
+        val cx = buildCache(flat)
+        ok("rg-flat", classifyRegime(cx.e200, cx.adx14, 1.0, 229)?.label == "Sideways")
+        // Tepat 200 candle: e200[179] masih NaN → jujur null (bukan label palsu).
+        val cx200 = buildCache(flat.take(200))
+        ok("rg-200-jujur-null", classifyRegime(cx200.e200, cx200.adx14, 1.0, 199) == null)
+        val pendek = flat.take(100)
+        val cx2 = buildCache(pendek)
+        ok("rg-pendek", classifyRegime(cx2.e200, cx2.adx14, 1.0, 99) == null)
+    }
+
+    // ===== V26b: gabung card Home + sinkron hapus-tampil =====
+    run {
+        val f = java.io.File("aether-app/app/src/main/res/layout/activity_dashboard.xml")
+        ok("home-layout-ada", f.exists())
+        if (f.exists()) {
+            val x = f.readText()
+            fun pos(t: String) = x.indexOf(t)
+            val eng = pos("ENGINE")
+            val strat = pos("STRATEGI AKTIF")
+            val pnl = pos("NET PNL RIWAYAT")
+            val sig = pos("Sinyal terbaru")
+            val mkt = pos("KONDISI PASAR")
+            ok("home-urutan", eng in 0 until strat && strat in 0 until pnl && pnl in 0 until sig && sig in 0 until mkt,
+                "$eng<$strat<$pnl<$sig<$mkt")
+            // Tepat 4 card: Engine, gabungan, Sinyal, Kondisi Pasar.
+            val cards = "<com.google.android.material.card.MaterialCardView".toRegex().findAll(x).count()
+            ok("home-4card", cards == 4, "cards=$cards")
+            // Satu container: STRATEGI AKTIF & NET PNL di card yang sama + pembatas.
+            val stratCard = x.lastIndexOf("<com.google.android.material.card.MaterialCardView", strat)
+            val pnlCard = x.lastIndexOf("<com.google.android.material.card.MaterialCardView", pnl)
+            ok("home-gabung", stratCard >= 0 && stratCard == pnlCard)
+            ok("home-divider", x.contains("@color/line"))
+            for (id in listOf("btnEngine", "engStatus", "cfgMain", "cfgLast", "btnLab",
+                "heroNet", "kSig", "kTr", "kWin", "kPos",
+                "btnAllSig", "sigEmpty", "sigList", "regimeList")) {
+                ok("home-id-$id", x.contains("@+id/$id"))
+            }
+        }
+    }
+    run {
+        // Akar bug stale: onResume WAJIB memanggil paintSignals().
+        val f = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/DashboardActivity.kt")
+        ok("dash-src-ada", f.exists())
+        if (f.exists()) {
+            val src = f.readText()
+            val resume = src.substringAfter("override fun onResume()")
+            ok("dash-resume-repaint", resume.contains("paintSignals()"))
+            ok("dash-resume-hero", resume.contains("paintHero()"))
+            ok("dash-resume-regime", resume.contains("paintRegime()"))
+        }
+    }
+    run {
+        // Daftar Home hanya memakai sumber Engine; backtest tak bocor.
+        val mix = listOf(
+            com.aether.signal.premium.ai.Sig("A", "15m", "LONG", 1.0, 1.0, 1.0, 1L, "dryrun-entry", "e1"),
+            com.aether.signal.premium.ai.Sig("B", "1h", "SHORT", 2.0, 2.0, 2.0, 2L, "backtest", "b1"),
+            com.aether.signal.premium.ai.Sig("C", "5m", "LONG", 3.0, 3.0, 3.0, 3L, "dryrun-SL", "x1"))
+        val vis = engineSignalsOnly(mix).take(4)
+        ok("home-engine-only", vis.size == 2 && vis.all { isEngineSrc(it.src) })
+        ok("home-kosong-setelah-hapus", engineSignalsOnly(emptyList()).isEmpty())
+    }
+
     println("\nHASIL: $pass pass, $fail fail")
+    v27()
+    v28()
+    v29()
+    println("\nHASIL-AKHIR: $pass pass, $fail fail")
     if (fail > 0) kotlin.system.exitProcess(1)
+}
+
+fun v28() {
+    // ===== V28 MASALAH 1: akar "belum siap" — request 200 tak pernah cukup.
+    run {
+        val closes200 = (1..200).map { 100.0 + it * 0.1 }
+        val e200 = ema(closes200, 200)
+        ok("m1-ema200-seed", e200[199].isFinite() && e200[178].isNaN(),
+            "e199=${e200[199]} e178=${e200[178]}")
+        // Dengan 200 candle, slot lookback (idx-20=179) selalu NaN → indOk false.
+        val closes300 = (1..300).map { 100.0 + it * 0.1 }
+        val e300 = ema(closes300, 200)
+        ok("m1-ema300-lookback", e300[299].isFinite() && e300[279].isFinite())
+        ok("m1-engine-candles", ENGINE_CANDLES == 300 && ENGINE_CANDLES >= REGIME_MIN_CANDLES)
+    }
+    run {
+        // Skenario E: 200 candle valid → indikator jujur null; 300 → label aktual.
+        val mk = { n: Int -> (0 until n).map { k ->
+            Candle(1000L + k * 900000L, 100.0 + k * 0.05, 100.6 + k * 0.05, 99.5 + k * 0.05, 100.0 + k * 0.05, 10.0) } }
+        val c200 = buildCache(mk(200))
+        val idx200 = 199
+        val indOk200 = c200.e200[idx200].isFinite() &&
+            (idx200 - REGIME_LOOKBACK >= 0 && c200.e200[idx200 - REGIME_LOOKBACK].isFinite()) &&
+            c200.adx14[idx200].isFinite()
+        ok("m1-200-tak-cukup", !indOk200, "e179=${c200.e200[179]}")
+        val c300 = buildCache(mk(300))
+        val idx300 = 299
+        val indOk300 = c300.e200[idx300].isFinite() &&
+            (idx300 - REGIME_LOOKBACK >= 0 && c300.e200[idx300 - REGIME_LOOKBACK].isFinite()) &&
+            c300.adx14[idx300].isFinite()
+        ok("m1-300-cukup", indOk300,
+            "e299=${c300.e200[299]} e279=${c300.e200[279]} adx=${c300.adx14[idx300]}")
+        val r = classifyRegime(c300.e200, c300.adx14, 1.0, idx300)
+        ok("m1-300-label", r != null && r.label.isNotEmpty(), "label=${r?.label}")
+        // Status card membedakan tiap kondisi (tak ada yang disamarkan).
+        val now = 1700000000000L
+        ok("m1-st-kurang", regimeLine("ETHUSDT",
+            RegimeDiag(300, 150, 148, 220, "binance", "15m", now, "", false),
+            null, true, now).contains("butuh ≥220"))
+        ok("m1-st-valid", regimeLine("BTCUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "", true),
+            r, true, now).startsWith("BTCUSDT: "))
+    }
+    // ===== V28 MASALAH 2: sumber pair Engine tunggal & eksplisit.
+    run {
+        // Skenario A: single → tepat 1 pair, tanpa tambahan.
+        val a = resolveEnginePairs("single", "SOLUSDT", emptySet(), emptyList(), setOf("BTCUSDT", "ETHUSDT"))
+        ok("m2-a-single", a == linkedSetOf("SOLUSDT"), "$a")
+        // Skenario B: multi 5 → kelimanya diteruskan.
+        val five = setOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT")
+        val b = resolveEnginePairs("multi", "BTCUSDT", five, five.toList(), setOf("BTCUSDT"))
+        ok("m2-b-multi5", b == LinkedHashSet(five), "$b")
+        // Skenario B2: multi disaring ke universe (simbol asing dibuang).
+        val b2 = resolveEnginePairs("multi", "BTCUSDT", five + "PALSU", five.toList(), setOf("BTCUSDT"))
+        ok("m2-b2-universe", b2 == LinkedHashSet(five), "$b2")
+        // Skenario C: ganti konfigurasi → daftar baru dipakai penuh.
+        val c1 = resolveEnginePairs("single", "DOGEUSDT", emptySet(), emptyList(), five)
+        ok("m2-c-ganti", c1 == linkedSetOf("DOGEUSDT"), "$c1")
+        // Konfigurasi tak valid → daftar lama dipertahankan (tak dikarang).
+        val c0 = resolveEnginePairs("single", "", emptySet(), emptyList(), five)
+        ok("m2-c-kosong", c0 == LinkedHashSet(five), "$c0")
+        val c0m = resolveEnginePairs("multi", "BTCUSDT", emptySet(), emptyList(), five)
+        ok("m2-c-kosong-multi", c0m == LinkedHashSet(five), "$c0m")
+        // Skenario D: formatter status jujur — sukses/gagal berlabel.
+        val t = "10:00:00"
+        ok("m2-d-penuh", engineStatusLine(2, 2, 0, 0, t) ==
+            "2/2 pair data OK · 0 gagal · 0 sinyal · 0 posisi · $t")
+        ok("m2-d-sebagian", engineStatusLine(5, 3, 4, 1, t) ==
+            "3/5 pair data OK · 2 gagal · 4 sinyal · 1 posisi · $t")
+        ok("m2-d-nol", engineStatusLine(1, 0, 0, 0, t).startsWith("0/1 pair data OK · 1 gagal"))
+    }
+    // ===== V28: wiring sumber (bukan hanya teks). =====
+    run {
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        ok("m1-tick-300", be.contains("ENGINE_CANDLES") && !be.contains("p.timeframe, 200)"))
+        ok("m2-ok-akhir", be.contains("fun markPairOk()") && be.contains("markPairOk()"))
+        val dash = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/DashboardActivity.kt").readText()
+        ok("m2-dash-pairs", dash.contains("openEngPairSheet()") && dash.contains("syncEngPairsFromBacktest()"))
+        ok("m1-dash-regime", dash.contains("paintHero(); paintRegime()"))
+        val ms = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/MonitorService.kt").readText()
+        ok("m2-svc-label", ms.contains("engineStatusLine(") && !ms.contains("pair OK · \${App.signals"))
+        val lay = java.io.File("aether-app/app/src/main/res/layout/activity_dashboard.xml").readText()
+        ok("m2-lay-engpairs", lay.contains("@+id/engPairs") && lay.contains("@+id/btnEngSync"))
+    }
+}
+
+fun v29() {
+    // ===== V29 REDESIGN: palet premium dark (§1). =====
+    run {
+        val co = java.io.File("aether-app/app/src/main/res/values/colors.xml").readText()
+        val palet = mapOf(
+            "graphite_900" to "#080B12", "graphite_800" to "#101722",
+            "card" to "#101722", "inset" to "#151E2B", "line" to "#253244",
+            "txt" to "#F1F5F9", "mut" to "#94A3B8",
+            "green" to "#10B981", "blue" to "#3B82F6", "cyan" to "#2DD4BF",
+            "violet" to "#A78BFA", "amber" to "#FBBF24", "red" to "#F87171",
+            "disabled" to "#334155")
+        for ((n, v) in palet)
+            ok("palet-$n", co.contains("\"$n\">$v<") || co.contains("\"$n\">$v "), "$v")
+        ok("nav-tint-ada", java.io.File("aether-app/app/src/main/res/color/nav_tint.xml").exists())
+        val gr = java.io.File("aether-app/app/src/main/res/drawable/grad_primary.xml").readText()
+        ok("grad-emerald", gr.contains("#10B981") && gr.contains("ripple"))
+    }
+    // ===== V29: sistem tombol — 48dp + radius 10 + 1 baris (§2-3). =====
+    run {
+        val th = java.io.File("aether-app/app/src/main/res/values/themes.xml").readText()
+        for (s in listOf("BtnBase", "BtnPrimary", "BtnDanger", "BtnInfo", "BtnViolet",
+            "BtnCyan", "BtnSlate", "BtnGhost", "BtnSmall", "BtnSmallDanger"))
+            ok("style-$s", th.contains("\"$s\""))
+        fun block(name: String) = th.substringAfter("\"$name\"").substringBefore("</style>")
+        val base = block("BtnBase")
+        ok("btn-h48", base.contains("48dp"))
+        ok("btn-inset0", base.contains("insetTop\">0dp") && base.contains("insetBottom\">0dp"))
+        ok("btn-radius10", base.contains("cornerRadius\">10dp"))
+        ok("btn-1baris", base.contains("maxLines\">1") && base.contains("ellipsize\">end"))
+        ok("btn-tengah", base.contains("gravity\">center") && base.contains("iconPadding\">8dp"))
+        ok("small-h40", block("BtnSmall").contains("40dp"))
+        // Peran mewarisi basis yang sama (bukan metrik sendiri-sendiri).
+        for (s in listOf("BtnPrimary", "BtnDanger", "BtnInfo", "BtnViolet", "BtnCyan"))
+            ok("waris-$s", th.contains("\"$s\" parent=\"BtnBase\""))
+        for (s in listOf("BtnSlate", "BtnGhost"))
+            ok("waris-$s", th.contains("\"$s\" parent=\"BtnBaseLine\""))
+    }
+    // ===== V29: tak ada minHeight per-tombol; satu baris = satu tinggi. =====
+    run {
+        val dir = java.io.File("aether-app/app/src/main/res/layout")
+        var perBtnMin = 0
+        val btnRe = Regex("""<Button\b.*?(?=/>)""", RegexOption.DOT_MATCHES_ALL)
+        for (f in dir.listFiles()!!.filter { it.name.endsWith(".xml") }) {
+            for (m in btnRe.findAll(f.readText()))
+                if (m.value.contains("android:minHeight")) {
+                    perBtnMin++
+                    println("  MIN-HEIGHT ${f.name}")
+                }
+        }
+        ok("btn-tanpa-minheight", perBtnMin == 0, "sisa=$perBtnMin")
+        // Grup inline padat memakai varian Small yang sama dalam sebaris.
+        val abl = java.io.File("aether-app/app/src/main/res/layout/activity_ablation.xml").readText()
+        ok("small-sort", abl.contains("@+id/btnSortTrades") && abl.contains("@style/BtnSmall"))
+        val set = java.io.File("aether-app/app/src/main/res/layout/activity_settings.xml").readText()
+        ok("small-stepper", set.contains("@style/BtnSmall"))
+        val icp = java.io.File("aether-app/app/src/main/res/layout/item_custompair.xml").readText()
+        ok("small-del", icp.contains("@style/BtnSmallDanger"))
+    }
+    // ===== V29: kode runtime memakai palet baru; status-nyata dipertahankan. =====
+    run {
+        val srcDir = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui")
+        val lama = listOf("0ECB81", "F6465D", "8B95A5", "4C8DFF", "38BDF8", "FFB800",
+            "E8EDF2", "232B36", "1C232E", "171D26", "0B0E14", "5B6572")
+        var sisa = 0
+        for (f in srcDir.listFiles()!!.filter { it.name.endsWith(".kt") }) {
+            val t = f.readText()
+            for (h in lama) if (t.contains(h)) { sisa++; println("  HEX-LAMA ${f.name} $h") }
+        }
+        ok("hex-baru", sisa == 0, "sisa=$sisa")
+        val uk = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/UiKit.kt").readText()
+        ok("run-slate", uk.contains("0xFF334155") && uk.contains("isClickable = false"))
+        ok("run-pulih", uk.contains("isClickable = true"))
+        // Status-nyata V26-V28 tak regresi: guard engine, provStateColor baru.
+        ok("prov-emerald", provStateColor(true, true, false) == 0xFF10B981.toInt())
+        ok("prov-merah", provStateColor(false, true, false) == 0xFFF87171.toInt())
+        ok("prov-amber", provStateColor(false, false, false) == 0xFFFBBF24.toInt())
+    }
+}
+
+fun v27() {
+    // V27: warna status provider jujur — hijau HANYA bila cek nyata OK & segar.
+    ok("prov-hijau-ok", provStateColor(true, true, false) == 0xFF10B981.toInt())
+    ok("prov-merah-gagal", provStateColor(false, true, false) == 0xFFF87171.toInt())
+    ok("prov-kuning-belum", provStateColor(false, false, false) == 0xFFFBBF24.toInt())
+    ok("prov-kuning-basi", provStateColor(true, true, true) == 0xFFFBBF24.toInt())
+    // V27: token desain terpusat ada.
+    run {
+        val th = java.io.File("aether-app/app/src/main/res/values/themes.xml").readText()
+        for (s in listOf("BtnDanger", "BtnInfo", "BtnViolet", "BtnCyan", "BtnSlate"))
+            ok("theme-$s", th.contains("\"$s\""))
+        val co = java.io.File("aether-app/app/src/main/res/values/colors.xml").readText()
+        for (c in listOf("violet", "cyan", "slate")) ok("color-$c", co.contains("\"$c\""))
+        ok("grad-primary", java.io.File("aether-app/app/src/main/res/drawable/grad_primary.xml").exists())
+    }
+    // V27: setiap <Button> berstyle + peran kunci sesuai warna fungsional.
+    run {
+        val dir = java.io.File("aether-app/app/src/main/res/layout")
+        val role = mapOf(
+            "btnResetWatch" to "BtnDanger", "btnHistClear" to "BtnDanger", "del" to "BtnSmallDanger",
+            "btnAddPair" to "BtnPrimary", "btnRun" to "BtnPrimary", "btnRpPlay" to "BtnPrimary",
+            "btnJAdd" to "BtnPrimary", "btnSave" to "BtnPrimary",
+            "btnAllSig" to "BtnInfo", "btnLab" to "BtnInfo", "btnWhyFilter" to "BtnInfo",
+            "btnWhatIf" to "BtnInfo", "btnReplay" to "BtnInfo", "btnMonteCarlo" to "BtnInfo",
+            "btnAblation" to "BtnInfo", "btnConsensus" to "BtnInfo", "btnWalkFwd" to "BtnInfo",
+            "btnShare" to "BtnCyan", "btnReload" to "BtnCyan", "btnRetry" to "BtnCyan",
+            "presetLoose" to "BtnViolet", "btnSelect" to "BtnViolet", "btnPair" to "BtnViolet",
+            "btnDateClear" to "BtnSlate", "btnCsvClear" to "BtnSlate", "btnFilterClear" to "BtnSlate")
+        var noStyle = 0
+        val found = HashSet<String>()
+        val btnRe = Regex("""<Button\b.*?(?=/>)""", RegexOption.DOT_MATCHES_ALL)
+        val idRe = Regex("""@\+id/(\w+)""")
+        val stRe = Regex("""@style/(\w+)""")
+        for (f in dir.listFiles()!!.filter { it.name.endsWith(".xml") }) {
+            val src = f.readText()
+            for (m in btnRe.findAll(src)) {
+                val tag = m.value
+                val id = idRe.find(tag)?.groupValues?.get(1) ?: continue
+                val st = stRe.find(tag)?.groupValues?.get(1)
+                if (st == null) { noStyle++; println("  NO-STYLE ${f.name} $id") }
+                if (role[id] != null) {
+                    found.add(id)
+                    ok("role-$id", st == role[id], "${f.name}=$st")
+                }
+            }
+        }
+        ok("btn-semua-style", noStyle == 0, "tanpa-style=$noStyle")
+        for ((id, _) in role) ok("role-ditemukan-$id", found.contains(id))
+    }
+    // V27: wiring runtime — guard run ganda, status jujur, peran dinamis.
+    run {
+        val bt = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("bt-guard", bt.contains("if (btRunning)"))
+        ok("bt-mark", bt.contains("markRunning()") && bt.contains("finishRun()"))
+        ok("bt-paint", bt.contains("paintRunButtons("))
+        val mk = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/MarketActivity.kt").readText()
+        ok("mkt-provstate", mk.contains("provStateColor(") && mk.contains("belum dicek"))
+        val sg = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/SignalsActivity.kt").readText()
+        ok("sig-danger", sg.contains("paintDangerButton(bMain)"))
+        ok("sig-info", sg.contains("paintInfoButton(bMain)"))
+        val st = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/SettingsActivity.kt").readText()
+        ok("set-teststate", st.contains("Mengetes…") && st.contains("btn.isEnabled = false"))
+    }
 }

@@ -16,16 +16,15 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnBacktest" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Backtest Console →" style="@style/BtnPrimary" />
+                        android:text="Backtest Console →" style="@style/BtnInfo" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnAi" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="AI Analysis →" style="@style/BtnGhost" />
+                        android:text="AI Analysis →" style="@style/BtnInfo" />
                 </LinearLayout>
                 <Button android:id="@+id/btnJournal" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Jurnal Trading →"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/lastBt" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/dim"
                     android:textSize="11sp" android:fontFamily="monospace"
@@ -59,7 +58,7 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnCombo" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Combo…" style="@style/BtnGhost" />
+                        android:text="Combo…" style="@style/BtnInfo" />
                     <TextView android:id="@+id/comboCount" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
@@ -104,16 +103,13 @@
                     android:layout_marginTop="4dp" />
                 <Button android:id="@+id/btnArchive" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Arsip Data Historis →"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="8dp" />
                 <Button android:id="@+id/btnCost" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Biaya &amp; Funding →"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
                 <Button android:id="@+id/btnXVal" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Validasi Silang Data →"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

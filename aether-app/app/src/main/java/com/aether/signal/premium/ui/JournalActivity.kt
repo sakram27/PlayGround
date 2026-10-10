@@ -153,7 +153,7 @@ class JournalActivity : BaseActivity(0) {
         if (tk.isNotEmpty()) {
             root.addView(TextView(this).apply {
                 text = "Terkait transaksi: $tk"
-                setTextColor(0xFF8B95A5.toInt()); textSize = 11f
+                setTextColor(0xFF94A3B8.toInt()); textSize = 11f
             })
         }
         MaterialAlertDialogBuilder(this)

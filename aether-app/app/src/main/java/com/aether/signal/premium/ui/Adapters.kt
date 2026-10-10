@@ -66,17 +66,17 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
         h.sym.text = r.sym
         if (r.err != null && r.price == "—") {
             h.chg.text = "ERR"
-            h.chg.setTextColor(0xFFF6465D.toInt())
+            h.chg.setTextColor(0xFFF87171.toInt())
         } else if (r.stale) {
             h.chg.text = "⏱ " + fmtClock(r.updatedAt)
-            h.chg.setTextColor(0xFF8B95A5.toInt())
+            h.chg.setTextColor(0xFF94A3B8.toInt())
         } else if (r.chg != null && r.chg.isFinite()) {
             val up = r.chg >= 0
             h.chg.text = (if (up) "▲ +" else "▼ ") + App.fmt(r.chg) + "%"
-            h.chg.setTextColor((if (up) 0xFF0ECB81 else 0xFFF6465D).toInt())
+            h.chg.setTextColor((if (up) 0xFF10B981 else 0xFFF87171).toInt())
         } else {
             h.chg.text = r.sig
-            h.chg.setTextColor(0xFF8B95A5.toInt())
+            h.chg.setTextColor(0xFF94A3B8.toInt())
         }
         h.itemView.setOnClickListener { if (r.err == null || r.price != "—") onClick(r) }
     }
@@ -103,7 +103,7 @@ open class SigAdapter(var items: List<SigItem>, var onClick: ((Int) -> Unit)? = 
             } catch (e: Exception) { h.icon.visibility = View.GONE }
         } else h.icon.visibility = View.GONE
         h.dir.text = r.dir
-        h.dir.setTextColor((if (r.dir == "LONG") 0xFF0ECB81 else 0xFFF6465D).toInt())
+        h.dir.setTextColor((if (r.dir == "LONG") 0xFF10B981 else 0xFFF87171).toInt())
         h.main.text = r.main
         h.main.maxLines = if (wrapMain) 100 else 1
         h.sub.text = r.sub
@@ -129,9 +129,9 @@ class LogAdapter(var items: List<MonLogLine>, var timeFmt: (Long) -> String) : R
         h.t.text = try { timeFmt(r.t) } catch (e: Exception) { "" }
         h.x.text = r.text
         h.x.setTextColor((when (r.kind) {
-            2 -> 0xFFF6465D
-            1 -> 0xFFFFB800
-            else -> 0xFFE8EDF2
+            2 -> 0xFFF87171
+            1 -> 0xFFFBBF24
+            else -> 0xFFF1F5F9
         }).toInt())
     }
 }
@@ -154,7 +154,7 @@ class ProgAdapter(var items: List<Triple<String, String, Int>>) : RecyclerView.A
     }
     override fun onCreateViewHolder(p: ViewGroup, t: Int): H {
         val tv = TextView(p.context)
-        tv.setTextColor(0xFF8B95A5.toInt())
+        tv.setTextColor(0xFF94A3B8.toInt())
         tv.textSize = 12f
         tv.typeface = android.graphics.Typeface.MONOSPACE
         tv.setPadding(0, 6, 0, 6)

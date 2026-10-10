@@ -36,7 +36,7 @@ class SparkView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = n
         visibility = VISIBLE
         up = clean.last() >= clean.first()
         pts = clean
-        val col = if (up) 0xFF0ECB81.toInt() else 0xFFF6465D.toInt()
+        val col = if (up) 0xFF10B981.toInt() else 0xFFF87171.toInt()
         line.color = col
         invalidate()
     }
@@ -63,7 +63,7 @@ class SparkView @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = n
         fillPath.lineTo(px(pts.size - 1), pad + h)
         fillPath.lineTo(px(0), pad + h)
         fillPath.close()
-        val base = if (up) 0xFF0ECB81.toInt() else 0xFFF6465D.toInt()
+        val base = if (up) 0xFF10B981.toInt() else 0xFFF87171.toInt()
         // D: gradient tipis-halus (~18% -> transparan), mengikuti arah harga nyata.
         fill.shader = LinearGradient(
             0f, pad, 0f, pad + h,

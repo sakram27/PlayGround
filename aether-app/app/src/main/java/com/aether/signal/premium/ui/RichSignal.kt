@@ -41,6 +41,7 @@ fun richTitle(s: Sig): String = when (s.src) {
     "dryrun-TP" -> "Take profit tercapai · ${s.dir} ${s.pair}"
     "dryrun-SL" -> "Stop loss tercapai · ${s.dir} ${s.pair}"
     "dryrun-trail" -> "Trailing stop tersentuh · ${s.dir} ${s.pair}"
+    "dryrun-expired" -> "Kedaluwarsa · ${s.dir} ${s.pair}"
     "backtest" -> "Sinyal backtest ${s.dir} ${s.pair}"
     else -> "Sinyal ${s.dir} ${s.pair}"
 }

@@ -116,6 +116,10 @@
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_notif_history.xml"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/drawable_grad_primary.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/drawable/grad_primary.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_sg.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_sg.png"
     },

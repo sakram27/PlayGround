@@ -66,6 +66,10 @@
                         android:layout_height="wrap_content" android:text="—"
                         android:textColor="@color/txt" android:textSize="20sp"
                         android:textStyle="bold" android:fontFamily="monospace" />
+                    <TextView android:id="@+id/dEntryExtra" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="2dp"
+                        android:text="Entry tambahan: Belum tersedia." />
                     <TextView android:id="@+id/dSl" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textColor="@color/red"
                         android:textSize="14sp" android:fontFamily="monospace"
@@ -146,8 +150,7 @@
                         android:layout_marginTop="4dp" />
                     <Button android:id="@+id/btnShare" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:text="Bagikan sinyal"
-                        style="@style/BtnGhost" android:layout_marginTop="8dp"
-                        android:minHeight="44dp" />
+                        style="@style/BtnCyan" android:layout_marginTop="8dp" />
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:text="Aether Signal adalah aplikasi sinyal, bukan eksekusi order otomatis. Nilai di atas adalah yang tercatat saat sinyal dibuat."
                         android:textColor="@color/dim" android:textSize="11sp"

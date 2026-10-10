@@ -15,13 +15,13 @@
             android:orientation="horizontal" android:layout_marginTop="8dp">
             <Button android:id="@+id/btnAll" android:layout_width="0dp"
                 android:layout_height="wrap_content" android:layout_weight="1"
-                android:text="All" style="@style/BtnGhost" android:minHeight="38dp" />
+                android:text="All" style="@style/BtnSlate" />
             <Button android:id="@+id/btnClear" android:layout_width="0dp"
                 android:layout_height="wrap_content" android:layout_weight="1"
-                android:text="Clear" style="@style/BtnGhost" android:minHeight="38dp" />
+                android:text="Clear" style="@style/BtnSlate" />
             <Button android:id="@+id/btnTop5" android:layout_width="0dp"
                 android:layout_height="wrap_content" android:layout_weight="1"
-                android:text="Top 5" style="@style/BtnGhost" android:minHeight="38dp" />
+                android:text="Top 5" style="@style/BtnSlate" />
         </LinearLayout>
         <ListView android:id="@+id/list" android:layout_width="match_parent"
             android:layout_height="280dp" android:layout_marginTop="8dp"

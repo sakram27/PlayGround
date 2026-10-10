@@ -23,8 +23,8 @@
         android:layout_marginTop="4dp" />
     <Button android:id="@+id/btnBacktest" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="Pakai di Backtest"
-        style="@style/BtnPrimary" android:layout_marginTop="12dp" />
+        style="@style/BtnInfo" android:layout_marginTop="12dp" />
     <Button android:id="@+id/btnChart" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="Buka Grafik"
-        style="@style/BtnGhost" android:layout_marginTop="8dp" />
+        style="@style/BtnInfo" android:layout_marginTop="8dp" />
 </LinearLayout>

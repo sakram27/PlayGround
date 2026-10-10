@@ -58,10 +58,10 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnComboAll" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Pilih Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Pilih Semua" style="@style/BtnViolet" />
                     <Button android:id="@+id/btnComboClear" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Hapus Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Hapus Semua" style="@style/BtnGhost" />
                     <TextView android:id="@+id/comboCount" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
@@ -104,7 +104,7 @@
                 <LinearLayout android:id="@+id/singleBox" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:orientation="vertical">
                     <Button android:id="@+id/btnPair" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" style="@style/BtnGhost"
+                        android:layout_height="wrap_content" style="@style/BtnViolet"
                         android:layout_marginTop="8dp" />
                 </LinearLayout>
                 <LinearLayout android:id="@+id/multiBox" android:layout_width="match_parent"
@@ -120,11 +120,11 @@
                         android:orientation="horizontal">
                         <Button android:id="@+id/btnSelect" android:layout_width="0dp"
                             android:layout_height="wrap_content" android:layout_weight="1"
-                            android:text="Select Pairs" style="@style/BtnPrimary" />
+                            android:text="Select Pairs" style="@style/BtnViolet" />
                         <Space android:layout_width="8dp" android:layout_height="1dp" />
                         <Button android:id="@+id/btnReload" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:text="Reload"
-                            style="@style/BtnGhost" />
+                            style="@style/BtnCyan" />
                     </LinearLayout>
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -161,22 +161,22 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/presetLoose" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Longgar" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Longgar" style="@style/BtnViolet" />
                     <Button android:id="@+id/presetBal" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Seimbang" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Seimbang" style="@style/BtnViolet" />
                     <Button android:id="@+id/presetStrict" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Ketat" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Ketat" style="@style/BtnViolet" />
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnFilterAll" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Pilih Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Pilih Semua" style="@style/BtnViolet" />
                     <Button android:id="@+id/btnFilterClear" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Hapus Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="Hapus Semua" style="@style/BtnSlate" />
                     <TextView android:id="@+id/filterCount" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
@@ -204,15 +204,15 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnPresetConservative" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Konservatif" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:text="Konservatif" style="@style/BtnViolet"
                         android:textSize="11sp" />
                     <Button android:id="@+id/btnPresetBalanced" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Seimbang" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:text="Seimbang" style="@style/BtnViolet"
                         android:textSize="11sp" />
                     <Button android:id="@+id/btnPresetAggressive" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Agresif" style="@style/BtnGhost" android:minHeight="38dp"
+                        android:text="Agresif" style="@style/BtnViolet"
                         android:textSize="11sp" />
                 </LinearLayout>
                 <TextView android:id="@+id/riskPresetStatus" android:layout_width="match_parent"
@@ -244,9 +244,49 @@
                     android:id="@+id/swAtr" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Level ATR-14"
                     android:textColor="@color/txt" android:layout_marginTop="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="METODE TAKE PROFIT" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segTp" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTpSingle" android:text="Single TP" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTp2" android:text="TP2" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTp3" android:text="TP3" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="TP2 menutup 50/50 di TP1→TP2. TP3 menutup sepertiga di TP1→TP2→TP3. TP2 = kelipatan jarak TP1 di bawah; SL menutup seluruh sisa."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP2 × jarak">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp2m" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP3 × jarak">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp3m" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <TextView android:id="@+id/tpSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
                 <Button android:id="@+id/btnRiskReset" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Kembalikan bawaan"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp" />
+                    style="@style/BtnDanger" android:layout_marginTop="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
@@ -294,17 +334,16 @@
                 </LinearLayout>
                 <Button android:id="@+id/btnDateClear" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Bersihkan tanggal"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="38dp" />
+                    style="@style/BtnSlate" android:layout_marginTop="6dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnCsv" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Import CSV" style="@style/BtnGhost" />
+                        android:text="Import CSV" style="@style/BtnCyan" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnCsvClear" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Hapus" style="@style/BtnGhost" />
+                        android:text="Hapus" style="@style/BtnSlate" />
                 </LinearLayout>
                 <TextView android:id="@+id/csvStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
@@ -330,7 +369,7 @@
                         android:layout_marginEnd="8dp" />
                     <Button android:id="@+id/btnMonToggle" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="▾"
-                        style="@style/BtnGhost" android:minHeight="38dp"
+                        style="@style/BtnGhost"
                         android:minWidth="48dp" />
                 </LinearLayout>
                 <TextView android:id="@+id/monSummary" android:layout_width="match_parent"
@@ -352,8 +391,7 @@
                         android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
                     <Button android:id="@+id/btnMonClearLog" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Hapus Tampilan Log"
-                        style="@style/BtnGhost" android:layout_marginTop="6dp"
-                        android:minHeight="38dp" android:textSize="11sp" />
+                        style="@style/BtnSlate" android:layout_marginTop="6dp" android:textSize="11sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -457,43 +495,36 @@
                         android:layout_marginTop="6dp" />
                     <Button android:id="@+id/btnWhyFilter" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Lihat Filter"
-                        style="@style/BtnGhost" android:layout_marginTop="8dp"
-                        android:minHeight="44dp" android:visibility="gone" />
+                        style="@style/BtnInfo" android:layout_marginTop="8dp" android:visibility="gone" />
                     <Button android:id="@+id/btnWhatIf" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Simulasikan Tanpa Filter Ini"
-                        style="@style/BtnGhost" android:layout_marginTop="6dp"
-                        android:minHeight="44dp" android:visibility="gone" />
+                        style="@style/BtnInfo" android:layout_marginTop="6dp" android:visibility="gone" />
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnReplay" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="▶ Replay per Candle" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:visibility="gone" />
+                        android:text="▶ Replay per Candle" style="@style/BtnInfo" android:visibility="gone" />
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="6dp">
                     <Button android:id="@+id/btnMonteCarlo" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Monte Carlo" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Monte Carlo" style="@style/BtnInfo" android:textSize="12sp" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnAblation" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Dampak Filter" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Dampak Filter" style="@style/BtnInfo" android:textSize="12sp" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnConsensus" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Konsensus TF" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Konsensus TF" style="@style/BtnInfo" android:textSize="12sp" />
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="6dp">
                     <Button android:id="@+id/btnWalkFwd" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Walk-Forward" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Walk-Forward" style="@style/BtnInfo" android:textSize="12sp" />
                 </LinearLayout>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="BIAYA TRANSAKSI" android:textColor="@color/dim"
@@ -525,15 +556,14 @@
                     <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
                     <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnGhost" />
+                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnCyan" />
                 </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
                 <Button android:id="@+id/btnDiagToggle" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Buka diagnostik &amp; alasan filter ▾"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/auditHead" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
@@ -558,8 +588,7 @@
                         android:layout_marginTop="4dp" />
                     <Button android:id="@+id/btnAudit" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:text="Audit Konsistensi Live vs Backtest"
-                        style="@style/BtnGhost" android:layout_marginTop="8dp"
-                        android:minHeight="48dp" />
+                        style="@style/BtnCyan" android:layout_marginTop="8dp" />
                     <TextView android:id="@+id/auditVerdict" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textColor="@color/mut"
                         android:textSize="12sp" android:layout_marginTop="6dp" />

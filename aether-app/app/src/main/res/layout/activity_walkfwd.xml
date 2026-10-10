@@ -20,13 +20,13 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnWf2" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="2" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="2" style="@style/BtnViolet" />
                     <Button android:id="@+id/btnWf3" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="3" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="3" style="@style/BtnViolet" />
                     <Button android:id="@+id/btnWf4" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="4" style="@style/BtnGhost" android:minHeight="38dp" />
+                        android:text="4" style="@style/BtnViolet" />
                     <TextView android:id="@+id/wfFolds" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
@@ -34,8 +34,7 @@
                 </LinearLayout>
                 <Button android:id="@+id/btnWfRun" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Jalankan"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/wfStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />

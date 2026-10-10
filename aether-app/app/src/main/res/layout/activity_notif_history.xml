@@ -73,13 +73,11 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnHistClearFilter" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Hapus filter" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Hapus filter" style="@style/BtnSlate" android:textSize="12sp" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnHistExport" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Ekspor CSV" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Ekspor CSV" style="@style/BtnCyan" android:textSize="12sp" />
                 </LinearLayout>
                 <TextView android:id="@+id/histCount" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
@@ -110,13 +108,11 @@
                     android:text="Belum ada notifikasi tercatat. Riwayat terisi saat mesin live mengirim sinyal entry/SL/TP." />
                 <Button android:id="@+id/btnHistClear" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Hapus riwayat"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="48dp" />
+                    style="@style/BtnDanger" android:layout_marginTop="8dp" />
                 <Button android:id="@+id/btnHistResetDedup" android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Reset deduplikasi (pisah dari riwayat)"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="48dp" />
+                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Menghapus riwayat TIDAK menghapus status deduplikasi, sehingga notifikasi lama tidak terkirim ulang secara tidak sengaja. Reset deduplikasi dilakukan terpisah."
                     android:textColor="@color/dim" android:textSize="11sp"

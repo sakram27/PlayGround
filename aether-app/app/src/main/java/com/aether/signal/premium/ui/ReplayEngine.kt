@@ -1,6 +1,7 @@
 package com.aether.signal.premium.ui
 
 import com.aether.signal.premium.engine.*
+import kotlin.math.abs
 
 // FITUR 1 (V14): replay backtest per candle — MURNI & teruji JVM.
 // Meniru loop runBacktest PERSIS langkah demi langkah (keputusan, filter, entry di
@@ -18,8 +19,16 @@ data class ReplayOpen(
     val qty: Double,
     val riskAmount: Double,
     val entryIdx: Int,
-    val lastJ: Int
-)
+    val lastJ: Int,
+    // V26: status kaki TP bertingkat (cermin mesin: TP diisi berurutan,
+    // kaki terakhir menutup sisa; SL menutup seluruh sisa sekaligus).
+    val targets: List<Double> = emptyList(),
+    val fracs: List<Double> = emptyList(),
+    val leg: Int = 0,
+    val remaining: Double = Double.NaN
+) {
+    fun rem(qtyOrig: Double): Double = if (remaining.isFinite()) remaining else qtyOrig
+}
 
 /** Ringkasan indikator pada satu bar (NaN = belum siap → UI tampil "—"). */
 data class ReplayInd(
@@ -50,7 +59,9 @@ data class ReplayFrame(
 private data class PendingOpen(
     val dir: String, val entry: Double, val lv: RiskLevels,
     val qty: Double, val riskAmount: Double, val entryIdx: Int, val lastJ: Int,
-    val dec: SignalDecision
+    val dec: SignalDecision,
+    val targets: List<Double> = emptyList(),
+    val fracs: List<Double> = emptyList()
 )
 
 /**
@@ -136,7 +147,8 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
         if (pend != null && pend.entryIdx == i) {
             pending = null
             open = ReplayOpen(pend.dir, pend.entry, pend.lv.sl, pend.lv.tp,
-                pend.qty, pend.riskAmount, pend.entryIdx, pend.lastJ)
+                pend.qty, pend.riskAmount, pend.entryIdx, pend.lastJ,
+                pend.targets, pend.fracs, 0, Double.NaN)
             val f = ReplayFrame(i, cs.size, cs[i], evaluated = false,
                 signalDir = null, signalReasons = emptyList(),
                 filterPassed = null, filterFailed = emptyList(), pendingEntry = false,
@@ -230,7 +242,19 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             return f
         }
         val lastJ = minOf(cs.size - 1, i + params.maxHolding)
-        pending = PendingOpen(dec.direction, entry, lv, qty, riskAmount, i + 1, lastJ, dec)
+        val tpDist = abs(lv.tp - entry)
+        val targets = tpTargets(entry, dec.direction, tpDist, params.tpMode, params.tp2Mult, params.tp3Mult)
+        if (targets.isEmpty()) {
+            cursor++
+            val f0 = ReplayFrame(i, cs.size, cs[i], evaluated = true,
+                signalDir = dec.direction, signalReasons = dec.reasons,
+                filterPassed = true, filterFailed = emptyList(), pendingEntry = false,
+                justOpened = null, closed = null, open = null, equity = equity)
+            frames.add(f0)
+            return f0
+        }
+        pending = PendingOpen(dec.direction, entry, lv, qty, riskAmount, i + 1, lastJ, dec,
+            targets, tpFractions(params.tpMode))
         cursor++
         val f = ReplayFrame(i, cs.size, cs[i], evaluated = true,
             signalDir = dec.direction, signalReasons = dec.reasons,
@@ -240,39 +264,60 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
         return f
     }
 
-    /** Periksa SL/TP/EXPIRED pada bar [i] untuk posisi terbuka (cermin badan scan mesin). */
+    /** Periksa SL/TP/EXPIRED pada bar [i] untuk posisi terbuka.
+     *  Cermin aturan kaki mesin: SL didahulukan, TP diisi berurutan
+     *  (maks satu pengisian per bar — lanjut j++ seperti mesin), EXPIRED
+     *  menutup sisa di lastJ. Satu frame = maksimal satu Trade tertutup. */
     private fun checkExitFrame(base: ReplayFrame, i: Int): ReplayFrame {
         val cs = candles
         val op = open ?: run { cursor++; frames.add(base); return base }
+        // Sisa debu pembulatan (≤1e-9) dianggap lunas — cegah posisi menggantung.
+        if (op.rem(op.qty) / op.qty <= 1e-9 && op.rem(op.qty) >= 0) {
+            open = null
+            cursor++
+            val f0 = base.copy(open = null, equity = equity)
+            frames.add(f0)
+            return f0
+        }
         val b = cs[i]
+        val tgts = if (op.targets.isNotEmpty()) op.targets else listOf(op.tp)
+        val frs = if (op.fracs.isNotEmpty()) op.fracs else listOf(1.0)
+        val qtyOrig = op.qty
+        val rem = op.rem(qtyOrig)
         val slHit: Boolean; val tpHit: Boolean
-        if (op.dir == "LONG") { slHit = b.l <= op.sl; tpHit = b.h >= op.tp }
-        else { slHit = b.h >= op.sl; tpHit = b.l <= op.tp }
-        var exit: Double? = null
-        var result = "EXPIRED"
-        if (slHit && tpHit) {
-            exit = if (op.dir == "LONG") op.sl * (1 - params.slippagePercent) else op.sl * (1 + params.slippagePercent)
-            result = "LOSS"
-        } else if (slHit) {
-            exit = if (op.dir == "LONG") op.sl * (1 - params.slippagePercent) else op.sl * (1 + params.slippagePercent)
-            result = "LOSS"
+        if (op.dir == "LONG") {
+            slHit = b.l <= op.sl
+            tpHit = op.leg < tgts.size && b.h >= tgts[op.leg]
+        } else {
+            slHit = b.h >= op.sl
+            tpHit = op.leg < tgts.size && b.l <= tgts[op.leg]
+        }
+        // kind==null → tahan (atau EXPIRED bila di/past lastJ dengan sisa).
+        var kind: String? = null
+        var ex = 0.0
+        var qClose = 0.0
+        var tgt = op.tp
+        if (slHit) {
+            ex = if (op.dir == "LONG") op.sl * (1 - params.slippagePercent) else op.sl * (1 + params.slippagePercent)
+            kind = "SL"; qClose = rem
         } else if (tpHit) {
-            exit = if (op.dir == "LONG") op.tp * (1 - params.slippagePercent) else op.tp * (1 + params.slippagePercent)
-            result = "WIN"
-        } else if (i >= op.lastJ) {
+            val isLast = op.leg >= tgts.size - 1
+            qClose = if (isLast) rem else qtyOrig * frs.getOrElse(op.leg) { 1.0 }
+            ex = if (op.dir == "LONG") tgts[op.leg] * (1 - params.slippagePercent) else tgts[op.leg] * (1 + params.slippagePercent)
+            kind = "TP${op.leg + 1}"; tgt = tgts[op.leg]
+        } else if (i >= op.lastJ && rem / qtyOrig > 1e-9) {
             val lb = cs[op.lastJ]
-            exit = if (op.dir == "LONG") lb.c * (1 - params.slippagePercent) else lb.c * (1 + params.slippagePercent)
-            result = "EXPIRED"
+            ex = if (op.dir == "LONG") lb.c * (1 - params.slippagePercent) else lb.c * (1 + params.slippagePercent)
+            kind = "EXPIRED"; qClose = rem
         }
         cursor++
-        if (exit == null) {
+        if (kind == null) {
             val f = base.copy(open = open, equity = equity)
             frames.add(f)
             return f
         }
-        val ex = exit
-        val gross = (if (op.dir == "LONG") ex - op.entry else op.entry - ex) * op.qty
-        val fees = (op.entry * op.qty + ex * op.qty) * params.feePercent
+        val gross = (if (op.dir == "LONG") ex - op.entry else op.entry - ex) * qClose
+        val fees = (op.entry * qClose + ex * qClose) * params.feePercent
         val pnl = gross - fees
         if (!pnl.isFinite()) {
             // Cermin mesin (badPnl): posisi gugur tanpa transaksi & tanpa perubahan ekuitas.
@@ -281,26 +326,34 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             frames.add(f)
             return f
         }
-        val rMult = if (op.riskAmount > 0) pnl / op.riskAmount else 0.0
+        val legRisk = if (qtyOrig > 0) op.riskAmount * (qClose / qtyOrig) else 0.0
+        val rMult = if (legRisk > 0) pnl / legRisk else 0.0
         equity += pnl
         if (!equity.isFinite()) equity = params.initialCapital
         peak = maxOf(peak, equity)
         val dd = if (peak > 0) (peak - equity) / peak else 0.0
         if (dd > maxDD) maxDD = dd
+        val result = when (kind) {
+            "SL" -> "LOSS"
+            "EXPIRED" -> "EXPIRED"
+            else -> "WIN"
+        }
+        val legNo = op.leg
         val t = Trade(
             direction = op.dir, asset = params.asset, timeframe = params.timeframe,
-            entry = op.entry, exit = ex, stopLoss = op.sl, takeProfit = op.tp,
+            entry = op.entry, exit = ex, stopLoss = op.sl, takeProfit = tgt,
             entryTime = cs[op.entryIdx].t, exitTime = cs[i].t,
-            strategy = params.strategy, confidence = 0.0, reasons = emptyList(),
-            qty = op.qty, riskAmount = op.riskAmount, fees = fees, pnl = pnl,
+            strategy = params.strategy, confidence = 0.0, reasons = listOf("leg $kind"),
+            qty = qClose, riskAmount = legRisk, fees = fees, pnl = pnl,
             pnlPercent = if (op.entry > 0) ((if (op.dir == "LONG") ex - op.entry else op.entry - ex) / op.entry) * 100 * params.leverage else 0.0,
             rMultiple = rMult, result = result, holding = i - op.entryIdx + 1,
-            uid = "${params.asset}|${op.dir}|${cs[op.entryIdx].t}|${cs[i].t}"
+            uid = "${params.asset}|${op.dir}|${cs[op.entryIdx].t}|${cs[i].t}|leg$legNo"
         )
         trades.add(t)
-        open = null
-        fctx.lastExit = i
-        val f = base.copy(closed = t, open = null, equity = equity)
+        open = if (kind == "SL" || kind == "EXPIRED" || op.leg >= tgts.size - 1) null
+        else op.copy(leg = op.leg + 1, remaining = rem - qClose)
+        if (open == null) fctx.lastExit = i // cermin mesin: cooldown dihitung dari exit final
+        val f = base.copy(closed = t, open = open, equity = equity)
         frames.add(f)
         return f
     }

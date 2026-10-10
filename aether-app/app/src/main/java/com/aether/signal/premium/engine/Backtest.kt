@@ -18,6 +18,11 @@ fun sanitizeParams(raw: BacktestParams): BacktestParams {
     val mh = clampD(p.maxHolding.toDouble(), 1.0, 2000.0).toInt()
     val aSl = clampD(p.atrSlMult, 0.2, 10.0)
     val aTp = clampD(p.atrTpMult, 0.2, 20.0)
+    // V26: skema TP bertingkat (default = Single TP, perilaku lama utuh).
+    val tpm = p.tpMode.coerceIn(1, 3)
+    val m2 = clampD(p.tp2Mult, 1.0, 10.0)
+    var m3 = clampD(p.tp3Mult, 1.0, 10.0)
+    if (m3 < m2) m3 = m2 // jaga urutan tangga TP2 ≤ TP3
     if (p.startDate != 0L && p.endDate != 0L && p.endDate <= p.startDate)
         throw IllegalArgumentException("Tanggal akhir harus sesudah tanggal awal.")
     if (!STRATEGIES.containsKey(p.strategy)) throw IllegalArgumentException("Strategi tidak dikenal: " + p.strategy)
@@ -30,7 +35,8 @@ fun sanitizeParams(raw: BacktestParams): BacktestParams {
     return p.copy(
         asset = asset, riskPerTrade = risk, leverage = lev, feePercent = fee,
         slippagePercent = slip, slPercent = sl, tpPercent = tp, maxHolding = mh,
-        atrSlMult = aSl, atrTpMult = aTp, filters = filters
+        atrSlMult = aSl, atrTpMult = aTp, tpMode = tpm, tp2Mult = m2, tp3Mult = m3,
+        filters = filters
     )
 }
 
@@ -155,56 +161,105 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams, onStage: ((En
         if (notional > maxNotional) qty = maxNotional / entry
         if (!(qty > 0) || !qty.isFinite()) { badQty++; i++; continue }
 
-        var exit: Double? = null; var exitIdx = -1; var result = "EXPIRED"
+        // V26: evaluasi target keluar bertingkat. SL selalu didahulukan bila satu
+        // candle menyentuh SL+TP (konservatif, seperti perilaku lama). TP diisi
+        // berurutan TP1→TP2→TP3; kaki terakhir menutup seluruh sisa posisi.
+        val tpDist = abs(lv.tp - entry)
+        val targets = tpTargets(entry, dec.direction, tpDist, params.tpMode, params.tp2Mult, params.tp3Mult)
+        if (targets.isEmpty()) { noLevel++; i++; continue }
+        val fracs = tpFractions(params.tpMode)
+        val qtyOrig = qty
+        var remaining = qty
+        var leg = 0
+        data class Leg(val kind: String, val exit: Double, val exitIdx: Int, val qtyClosed: Double, val target: Double)
+        val legs = ArrayList<Leg>()
         val lastJ = minOf(candles.size - 1, i + params.maxHolding)
         var j = i + 1
-        while (j <= lastJ) {
+        while (j <= lastJ && remaining / qtyOrig > 1e-9) {
             val b = candles[j]
-            val slHit: Boolean; val tpHit: Boolean
-            if (dec.direction == "LONG") { slHit = b.l <= lv.sl; tpHit = b.h >= lv.tp } else { slHit = b.h >= lv.sl; tpHit = b.l <= lv.tp }
+            val slHit: Boolean
+            val tpHit: Boolean
+            if (dec.direction == "LONG") {
+                slHit = b.l <= lv.sl
+                tpHit = leg < targets.size && b.h >= targets[leg]
+            } else {
+                slHit = b.h >= lv.sl
+                tpHit = leg < targets.size && b.l <= targets[leg]
+            }
             if (slHit && tpHit) {
-                exit = if (dec.direction == "LONG") lv.sl * (1 - params.slippagePercent) else lv.sl * (1 + params.slippagePercent)
-                exitIdx = j; result = "LOSS"; break
+                val ex = if (dec.direction == "LONG") lv.sl * (1 - params.slippagePercent) else lv.sl * (1 + params.slippagePercent)
+                legs.add(Leg("SL", ex, j, remaining, lv.tp)); remaining = 0.0; break
             }
             if (slHit) {
-                exit = if (dec.direction == "LONG") lv.sl * (1 - params.slippagePercent) else lv.sl * (1 + params.slippagePercent)
-                exitIdx = j; result = "LOSS"; break
+                val ex = if (dec.direction == "LONG") lv.sl * (1 - params.slippagePercent) else lv.sl * (1 + params.slippagePercent)
+                legs.add(Leg("SL", ex, j, remaining, lv.tp)); remaining = 0.0; break
             }
             if (tpHit) {
-                exit = if (dec.direction == "LONG") lv.tp * (1 - params.slippagePercent) else lv.tp * (1 + params.slippagePercent)
-                exitIdx = j; result = "WIN"; break
+                val isLast = leg >= targets.size - 1
+                val qClose = if (isLast) remaining else qtyOrig * fracs.getOrElse(leg) { 1.0 }
+                val ex = if (dec.direction == "LONG") targets[leg] * (1 - params.slippagePercent) else targets[leg] * (1 + params.slippagePercent)
+                legs.add(Leg("TP${leg + 1}", ex, j, qClose, targets[leg])); remaining -= qClose; leg++
             }
             j++
         }
-        if (exit == null) {
+        if (remaining / qtyOrig > 1e-9) {
             val b = candles[lastJ]
-            exit = if (dec.direction == "LONG") b.c * (1 - params.slippagePercent) else b.c * (1 + params.slippagePercent)
-            exitIdx = lastJ; result = "EXPIRED"
+            val ex = if (dec.direction == "LONG") b.c * (1 - params.slippagePercent) else b.c * (1 + params.slippagePercent)
+            legs.add(Leg("EXPIRED", ex, lastJ, remaining, lv.tp)); remaining = 0.0
         }
-        val ex = exit
-        val gross = (if (dec.direction == "LONG") ex - entry else entry - ex) * qty
-        val fees = (entry * qty + ex * qty) * params.feePercent
-        val pnl = gross - fees
-        if (!pnl.isFinite()) { badPnl++; i++; continue }
-        val rMult = if (riskAmount > 0) pnl / riskAmount else 0.0
-        equity += pnl
-        if (!equity.isFinite()) equity = params.initialCapital
-        peak = maxOf(peak, equity)
-        val dd = if (peak > 0) (peak - equity) / peak else 0.0
-        if (dd > maxDD) maxDD = dd
-        equityCurve.add(EquityPoint(candles[exitIdx].t, equity))
-        trades.add(Trade(
-            direction = dec.direction, asset = params.asset, timeframe = params.timeframe,
-            entry = entry, exit = ex, stopLoss = lv.sl, takeProfit = lv.tp,
-            entryTime = next.t, exitTime = candles[exitIdx].t,
-            strategy = dec.strategy, confidence = dec.confidence, reasons = dec.reasons,
-            qty = qty, riskAmount = riskAmount, fees = fees, pnl = pnl,
-            pnlPercent = if (entry > 0) ((if (dec.direction == "LONG") ex - entry else entry - ex) / entry) * 100 * params.leverage else 0.0,
-            rMultiple = rMult, result = result, holding = exitIdx - (i + 1) + 1,
-            uid = "${params.asset}|${dec.direction}|${next.t}|${candles[exitIdx].t}"
-        ))
-        i = exitIdx + 1 // cermin JS: i = exitIdx lalu i++ oleh for → lanjut di exitIdx+1
-        fctx.lastExit = exitIdx
+        // Materialisasi kaki menjadi catatan ledger (satu Trade per kaki).
+        // Fase 1 (murni): hitung semua kaki dulu. Gagal di sini = posisi gugur
+        // total tanpa menyentuh ekuitas/kurva/ledger (cermin badPnl lama).
+        data class LegCalc(val leg: Leg, val result: String, val gross: Double, val fees: Double, val pnl: Double, val legRisk: Double, val rMult: Double)
+        val calcs = ArrayList<LegCalc>()
+        var badLeg = false
+        for (lf in legs) {
+            val result = when (lf.kind) {
+                "SL" -> "LOSS"
+                "EXPIRED" -> "EXPIRED"
+                else -> "WIN"
+            }
+            val gross = (if (dec.direction == "LONG") lf.exit - entry else entry - lf.exit) * lf.qtyClosed
+            val fees = (entry * lf.qtyClosed + lf.exit * lf.qtyClosed) * params.feePercent
+            val pnl = gross - fees
+            if (!pnl.isFinite() || !lf.qtyClosed.isFinite() || lf.qtyClosed <= 0) { badLeg = true; break }
+            val legRisk = if (qtyOrig > 0) riskAmount * (lf.qtyClosed / qtyOrig) else 0.0
+            val rMult = if (legRisk > 0) pnl / legRisk else 0.0
+            if (!rMult.isFinite() && pnl != 0.0) { badLeg = true; break }
+            calcs.add(LegCalc(lf, result, gross, fees, pnl, legRisk, rMult))
+        }
+        // Uji tuntas: ekuitas hasil pun harus finite (cermin penjaga lama).
+        if (!badLeg) {
+            var probe = equity
+            for (c in calcs) {
+                probe += c.pnl
+                if (!probe.isFinite()) { badLeg = true; break }
+            }
+        }
+        if (badLeg || calcs.isEmpty()) { badPnl++; i++; continue }
+        // Fase 2: tulis ledger + kurva + ekuitas berurutan.
+        var lastExitIdx = i + 1
+        for ((k, c) in calcs.withIndex()) {
+            val lf = c.leg
+            equity += c.pnl
+            peak = maxOf(peak, equity)
+            val dd = if (peak > 0) (peak - equity) / peak else 0.0
+            if (dd > maxDD) maxDD = dd
+            equityCurve.add(EquityPoint(candles[lf.exitIdx].t, equity))
+            trades.add(Trade(
+                direction = dec.direction, asset = params.asset, timeframe = params.timeframe,
+                entry = entry, exit = lf.exit, stopLoss = lv.sl, takeProfit = lf.target,
+                entryTime = next.t, exitTime = candles[lf.exitIdx].t,
+                strategy = dec.strategy, confidence = dec.confidence, reasons = dec.reasons + "leg ${lf.kind}",
+                qty = lf.qtyClosed, riskAmount = c.legRisk, fees = c.fees, pnl = c.pnl,
+                pnlPercent = if (entry > 0) ((if (dec.direction == "LONG") lf.exit - entry else entry - lf.exit) / entry) * 100 * params.leverage else 0.0,
+                rMultiple = c.rMult, result = c.result, holding = lf.exitIdx - (i + 1) + 1,
+                uid = "${params.asset}|${dec.direction}|${next.t}|${candles[lf.exitIdx].t}|leg$k"
+            ))
+            lastExitIdx = lf.exitIdx
+        }
+        i = lastExitIdx + 1 // cermin JS: i = exitIdx lalu i++ oleh for → lanjut di exitIdx+1
+        fctx.lastExit = lastExitIdx
     }
     emitEval(force = true)
 

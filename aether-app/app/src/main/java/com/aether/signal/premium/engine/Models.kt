@@ -8,6 +8,52 @@ const val MIN_CANDLES = 60
 const val WARMUP = 60
 const val DEFAULT_MAX_HOLDING = 100
 
+// V26: tangga TP bertingkat. TP1 selalu = jarak TP bawaan; TP2/TP3 adalah
+// kelipatan jarak TP1 (default 2x/3x, dapat dikonfigurasi). Penutupan sebagian
+// mengikuti fraksi tetap: TP2 = 50/50; TP3 = sepertiga per kaki dengan kaki
+// terakhir menutup seluruh sisa (anti-residu pembulatan).
+const val TP2_MULT_DEFAULT = 2.0
+const val TP3_MULT_DEFAULT = 3.0
+val TP2_FRACS: List<Double> = listOf(0.5, 0.5)
+val TP3_FRACS: List<Double> = listOf(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0)
+
+/** Label mode TP untuk ringkasan/UI. */
+fun tpModeLabel(mode: Int): String = when (mode.coerceIn(1, 3)) {
+    2 -> "TP2"
+    3 -> "TP3"
+    else -> "Single TP"
+}
+
+/** Fraksi penutupan per kaki (terakhir = sisa). Selalu dijumlahkan ≈ 1. */
+fun tpFractions(mode: Int): List<Double> = when (mode.coerceIn(1, 3)) {
+    2 -> TP2_FRACS
+    3 -> TP3_FRACS
+    else -> listOf(1.0)
+}
+
+/**
+ * Target TP terurut searah posisi dari jarak TP1 aktual (mendukung mode ATR
+ * karena memakai jarak, bukan tpPercent). Target tak valid (tak strictly
+ * melampaui target sebelumnya searah posisi, non-finite, ≤0) DIBUANG dengan
+ * jujur — TP1 dari level tervalidasi selalu dipertahankan.
+ */
+fun tpTargets(entry: Double, dir: String, tp1Dist: Double, mode: Int, m2: Double, m3: Double): List<Double> {
+    if (!entry.isFinite() || entry <= 0 || !tp1Dist.isFinite() || tp1Dist <= 0) return emptyList()
+    val sgn = if (dir == "LONG") 1.0 else -1.0
+    val tp1 = entry + sgn * tp1Dist
+    if (!tp1.isFinite() || tp1 <= 0) return emptyList()
+    val out = ArrayList<Double>()
+    out.add(tp1)
+    val mults = listOf(m2, m3).take(maxOf(0, mode.coerceIn(1, 3) - 1))
+    for (m in mults) {
+        if (!m.isFinite() || m <= 1.0) continue
+        val t = entry + sgn * tp1Dist * m
+        if (!t.isFinite() || t <= 0) continue
+        if ((sgn > 0 && t > out.last()) || (sgn < 0 && t < out.last())) out.add(t)
+    }
+    return out
+}
+
 data class Candle(val t: Long, val o: Double, val h: Double, val l: Double, val c: Double, val v: Double)
 
 data class Combo(val mode: String, val strategies: List<String>)
@@ -38,6 +84,12 @@ data class BacktestParams(
     val useAtr: Boolean = false,
     val atrSlMult: Double = 1.5,
     val atrTpMult: Double = 3.0,
+    // V26: skema Take Profit bertingkat. 1 = Single TP (perilaku lama, utuh).
+    // 2/3 = TP1..TPn dengan penutupan sebagian mengikuti fraksi tetap.
+    val tpMode: Int = 1,
+    // Kelipatan jarak TP1 untuk TP2/TP3 (TP1 = jarak TP bawaan |tp - entry|).
+    val tp2Mult: Double = TP2_MULT_DEFAULT,
+    val tp3Mult: Double = TP3_MULT_DEFAULT,
     val filters: List<FilterCfg> = emptyList()
 )
 

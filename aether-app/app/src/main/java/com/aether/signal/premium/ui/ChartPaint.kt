@@ -24,7 +24,7 @@ import java.util.*
 object ChartPaint {
     fun setup(c: CombinedChart, marker: com.github.mikephil.charting.components.MarkerView?) {
         c.description.isEnabled = false
-        c.setBackgroundColor(0xFF0B0E14.toInt())
+        c.setBackgroundColor(0xFF080B12.toInt())
         c.setDrawGridBackground(false)
         c.setPinchZoom(true)
         c.isDragEnabled = true
@@ -38,12 +38,12 @@ object ChartPaint {
             axisMinimum = 0f; axisMaximum = 20f
         }
         c.axisRight.apply {
-            setDrawGridLines(true); gridColor = 0xFF232B36.toInt()
-            textColor = 0xFF8B95A5.toInt(); setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
+            setDrawGridLines(true); gridColor = 0xFF253244.toInt()
+            textColor = 0xFF94A3B8.toInt(); setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
         }
         c.xAxis.apply {
             position = XAxis.XAxisPosition.BOTTOM; setDrawGridLines(false)
-            textColor = 0xFF8B95A5.toInt(); setAvoidFirstLastClipping(true)
+            textColor = 0xFF94A3B8.toInt(); setAvoidFirstLastClipping(true)
         }
         if (marker != null) c.marker = marker
     }
@@ -71,12 +71,12 @@ object ChartPaint {
         }
         val cs = CandleDataSet(ce, "OHLC").apply {
             setDrawValues(false)
-            shadowColor = 0xFF8B95A5.toInt()
-            decreasingColor = 0xFFF6465D.toInt()
+            shadowColor = 0xFF94A3B8.toInt()
+            decreasingColor = 0xFFF87171.toInt()
             decreasingPaintStyle = android.graphics.Paint.Style.FILL
-            increasingColor = 0xFF0ECB81.toInt()
+            increasingColor = 0xFF10B981.toInt()
             increasingPaintStyle = android.graphics.Paint.Style.FILL
-            neutralColor = 0xFF8B95A5.toInt()
+            neutralColor = 0xFF94A3B8.toInt()
             axisDependency = YAxis.AxisDependency.RIGHT
         }
         cd.setData(CandleData(cs))
@@ -87,7 +87,7 @@ object ChartPaint {
             candles.forEachIndexed { i, k -> be.add(BarEntry(i.toFloat(), (k.v / mv * 15).toFloat())) }
             val bs = BarDataSet(be, "Vol").apply {
                 setDrawValues(false)
-                colors = candles.map { if (it.c >= it.o) 0x550ECB81.toInt() else 0x55F6465D.toInt() }
+                colors = candles.map { if (it.c >= it.o) 0x5510B981.toInt() else 0x55F87171.toInt() }
                 axisDependency = YAxis.AxisDependency.LEFT
             }
             cd.setData(BarData(bs).apply { barWidth = 0.7f })
@@ -104,7 +104,7 @@ object ChartPaint {
                 val ss = ScatterDataSet(sc, "Trades").apply {
                     setDrawValues(false)
                     setScatterShape(com.github.mikephil.charting.charts.ScatterChart.ScatterShape.CIRCLE)
-                    color = 0xFF4C8DFF.toInt(); scatterShapeSize = 14f
+                    color = 0xFF3B82F6.toInt(); scatterShapeSize = 14f
                     axisDependency = YAxis.AxisDependency.RIGHT
                 }
                 cd.setData(ScatterData(ss))
@@ -112,12 +112,12 @@ object ChartPaint {
             val last = trades.last()
             c.axisRight.removeAllLimitLines()
             c.axisRight.addLimitLine(LimitLine(last.stopLoss.toFloat(), "SL").apply {
-                lineColor = 0xFFF6465D.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
-                textColor = 0xFFF6465D.toInt(); textSize = 10f
+                lineColor = 0xFFF87171.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
+                textColor = 0xFFF87171.toInt(); textSize = 10f
             })
             c.axisRight.addLimitLine(LimitLine(last.takeProfit.toFloat(), "TP").apply {
-                lineColor = 0xFF0ECB81.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
-                textColor = 0xFF0ECB81.toInt(); textSize = 10f
+                lineColor = 0xFF10B981.toInt(); lineWidth = 1.5f; enableDashedLine(8f, 6f, 0f)
+                textColor = 0xFF10B981.toInt(); textSize = 10f
             })
         } else {
             c.axisRight.removeAllLimitLines()
@@ -150,7 +150,7 @@ object ChartPaint {
         if (msg != null) {
             tv?.visibility = View.VISIBLE
             tv?.text = msg
-            tv?.setTextColor(if (showRetry) 0xFFF6465D.toInt() else 0xFF8B95A5.toInt())
+            tv?.setTextColor(if (showRetry) 0xFFF87171.toInt() else 0xFF94A3B8.toInt())
         } else tv?.visibility = View.GONE
         if (retry != null) {
             retry.visibility = if (!loading && showRetry) View.VISIBLE else View.GONE

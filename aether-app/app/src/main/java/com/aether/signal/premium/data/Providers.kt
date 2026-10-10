@@ -55,6 +55,8 @@ private val BYBIT_TF = mapOf("1m" to "1", "3m" to "3", "5m" to "5", "15m" to "15
 
 /** Timeframe yang didukung penuh oleh SELURUH provider (Market memakai daftar ini). */
 val MARKET_TIMEFRAMES = listOf("5m", "15m", "1h", "4h", "1d")
+/** Default Market saat belum ada preferensi (satu-satunya sumber). */
+const val MARKET_DEFAULT_TF = "15m"
 val MARKET_TF_LABELS = listOf("M5", "M15", "H1", "H4", "D1")
 
 /** Timeframe yang didukung layar Backtest (P3: cadangan konsisten bila TF Market tak ada). */

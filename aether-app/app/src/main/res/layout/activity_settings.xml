@@ -27,11 +27,11 @@
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnExport" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Export JSON" style="@style/BtnGhost" />
+                        android:text="Export JSON" style="@style/BtnCyan" />
                 </LinearLayout>
                 <Button android:id="@+id/btnImport" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Import JSON (pulihkan)"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp" />
+                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Export mencakup sinyal, riwayat, dan konfigurasi (provider, strategi, filter, watchlist kustom). Import menimpa konfigurasi saat ini."
                     android:textColor="@color/dim" android:textSize="11sp"
@@ -48,7 +48,7 @@
                     android:textSize="10sp" android:textStyle="bold" />
                 <Button android:id="@+id/btnTest" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Tes Koneksi"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp" />
+                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/status" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
@@ -112,11 +112,13 @@
                     android:textSize="12sp" android:layout_marginTop="6dp" />
                 <Button android:id="@+id/btnNotifPerm" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Aktifkan izin notifikasi"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
+                <Button android:id="@+id/btnNotifTest" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Kirim notifikasi uji"
+                    style="@style/BtnCyan" android:layout_marginTop="6dp" />
                 <Button android:id="@+id/btnNotifHistory" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Riwayat notifikasi"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="48dp" />
+                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/swDigest" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Digest per jam (gabung entry)"
@@ -144,14 +146,14 @@
                     android:gravity="center_vertical">
                     <Button android:id="@+id/btnTrailMinus" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="−"
-                        style="@style/BtnGhost" android:minHeight="44dp" />
+                        style="@style/BtnSmall" />
                     <TextView android:id="@+id/trailLockTxt" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:gravity="center" android:textColor="@color/txt"
                         android:textSize="13sp" android:fontFamily="monospace" />
                     <Button android:id="@+id/btnTrailPlus" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="+"
-                        style="@style/BtnGhost" android:minHeight="44dp" />
+                        style="@style/BtnSmall" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -176,29 +178,24 @@
                     android:orientation="horizontal" android:layout_marginTop="4dp">
                     <Button android:id="@+id/btnQuietStart" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Mulai 22:00" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Mulai 22:00" style="@style/BtnGhost" android:textSize="12sp" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnQuietEnd" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Selesai 07:00" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Selesai 07:00" style="@style/BtnGhost" android:textSize="12sp" />
                 </LinearLayout>
                 <Button android:id="@+id/btnQuietDays" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Pilih hari"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="44dp" />
+                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="6dp">
                     <Button android:id="@+id/btnQuietPresetWork" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Malam Hari Kerja" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Malam Hari Kerja" style="@style/BtnViolet" android:textSize="12sp" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnQuietPresetWeekend" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Akhir Pekan" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
+                        android:text="Akhir Pekan" style="@style/BtnViolet" android:textSize="12sp" />
                 </LinearLayout>
                 <TextView android:id="@+id/quietPresetStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
@@ -246,8 +243,7 @@
                     android:textSize="12sp" android:layout_marginTop="4dp" />
                 <Button android:id="@+id/btnBatt" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Minta pengecualian baterai"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="48dp" />
+                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="PERANGKAT &amp; JARINGAN" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold"
@@ -263,8 +259,7 @@
                     android:layout_marginTop="4dp" />
                 <Button android:id="@+id/btnBattSys" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Buka pengaturan baterai"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp"
-                    android:minHeight="48dp" />
+                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView

@@ -28,13 +28,11 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnXvTf" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="TF: 15m" style="@style/BtnGhost"
-                        android:minHeight="44dp" />
+                        android:text="TF: 15m" style="@style/BtnViolet" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnXvRun" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Bandingkan" style="@style/BtnGhost"
-                        android:minHeight="44dp" />
+                        android:text="Bandingkan" style="@style/BtnCyan" />
                 </LinearLayout>
                 <TextView android:id="@+id/xvStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"

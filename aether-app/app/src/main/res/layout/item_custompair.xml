@@ -13,5 +13,5 @@
         android:fontFamily="monospace" android:maxLines="1" android:ellipsize="end" />
     <Button android:id="@+id/del" android:layout_width="wrap_content"
         android:layout_height="wrap_content" android:text="Hapus"
-        style="@style/BtnGhost" android:minHeight="38dp" />
+        style="@style/BtnSmallDanger" />
 </LinearLayout>

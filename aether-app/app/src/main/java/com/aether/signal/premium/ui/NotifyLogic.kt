@@ -135,6 +135,7 @@ fun notifKindLabel(kind: String): String = when (kind) {
     "entry" -> "Sinyal entry"
     "tp" -> "Take profit"
     "sl" -> "Stop loss"
+    "uji" -> "Uji notifikasi (bukan sinyal)"
     else -> kind
 }
 

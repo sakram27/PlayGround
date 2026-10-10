@@ -633,14 +633,14 @@
     <color name="abc_search_url_text_selected">@android:color/black</color>
     <color name="accent_material_dark">@color/material_deep_teal_200</color>
     <color name="accent_material_light">@color/material_deep_teal_500</color>
-    <color name="amber">#FFB800</color>
+    <color name="amber">#FBBF24</color>
     <color name="androidx_core_ripple_material_light">#1f000000</color>
     <color name="androidx_core_secondary_text_default_material_light">#8a000000</color>
     <color name="background_floating_material_dark">@color/material_grey_800</color>
     <color name="background_floating_material_light">@android:color/white</color>
     <color name="background_material_dark">@color/material_grey_850</color>
     <color name="background_material_light">@color/material_grey_50</color>
-    <color name="blue">#4C8DFF</color>
+    <color name="blue">#3B82F6</color>
     <color name="bright_foreground_disabled_material_dark">#80ffffff</color>
     <color name="bright_foreground_disabled_material_light">#80000000</color>
     <color name="bright_foreground_inverse_material_dark">@color/bright_foreground_material_light</color>
@@ -651,11 +651,13 @@
     <color name="button_material_light">#ffd6d7d7</color>
     <color name="call_notification_answer_color">#1d873b</color>
     <color name="call_notification_decline_color">#d93025</color>
-    <color name="card">#171D26</color>
+    <color name="card">#101722</color>
     <color name="cardview_dark_background">#FF424242</color>
     <color name="cardview_light_background">#FFFFFFFF</color>
     <color name="cardview_shadow_end_color">#03000000</color>
     <color name="cardview_shadow_start_color">#37000000</color>
+    <color name="cyan">#2DD4BF</color>
+    <color name="cyan_ink">#06222E</color>
     <color name="design_bottom_navigation_shadow_color">#14000000</color>
     <color name="design_dark_default_color_background">#121212</color>
     <color name="design_dark_default_color_error">#CF6679</color>
@@ -691,24 +693,26 @@
     <color name="design_fab_stroke_top_inner_color">#1AFFFFFF</color>
     <color name="design_fab_stroke_top_outer_color">#2EFFFFFF</color>
     <color name="design_snackbar_background_color">#323232</color>
-    <color name="dim">#5B6572</color>
+    <color name="dim">#64748B</color>
     <color name="dim_foreground_disabled_material_dark">#80bebebe</color>
     <color name="dim_foreground_disabled_material_light">#80323232</color>
     <color name="dim_foreground_material_dark">#ffbebebe</color>
     <color name="dim_foreground_material_light">#ff323232</color>
+    <color name="disabled">#334155</color>
+    <color name="disabled_ink">#94A3B8</color>
     <color name="error_color_material_dark">#ff7043</color>
     <color name="error_color_material_light">#ff5722</color>
     <color name="foreground_material_dark">@android:color/white</color>
     <color name="foreground_material_light">@android:color/black</color>
-    <color name="graphite_800">#12161D</color>
-    <color name="graphite_900">#0B0E13</color>
-    <color name="green">#0ECB81</color>
+    <color name="graphite_800">#101722</color>
+    <color name="graphite_900">#080B12</color>
+    <color name="green">#10B981</color>
     <color name="green_ink">#06110D</color>
     <color name="green_soft">#0A2E22</color>
     <color name="highlighted_text_material_dark">#6680cbc4</color>
     <color name="highlighted_text_material_light">#66009688</color>
-    <color name="inset">#1C232E</color>
-    <color name="line">#232B36</color>
+    <color name="inset">#151E2B</color>
+    <color name="line">#253244</color>
     <color name="m3_ref_palette_black">#ff000000</color>
     <color name="m3_ref_palette_error0">#ff000000</color>
     <color name="m3_ref_palette_error10">#ff410e0b</color>
@@ -946,7 +950,7 @@
     <color name="mtrl_textinput_filled_box_default_background_color">#0A000000</color>
     <color name="mtrl_textinput_focused_box_stroke_color">#00000000</color>
     <color name="mtrl_textinput_hovered_box_stroke_color">#DE000000</color>
-    <color name="mut">#8B95A5</color>
+    <color name="mut">#94A3B8</color>
     <color name="notification_action_color_filter">#ffffffff</color>
     <color name="notification_icon_bg_color">#ff9e9e9e</color>
     <color name="primary_dark_material_dark">@android:color/black</color>
@@ -957,7 +961,7 @@
     <color name="primary_text_default_material_light">#de000000</color>
     <color name="primary_text_disabled_material_dark">#4Dffffff</color>
     <color name="primary_text_disabled_material_light">#39000000</color>
-    <color name="red">#F6465D</color>
+    <color name="red">#F87171</color>
     <color name="red_soft">#3A1E22</color>
     <color name="ripple_material_dark">#33ffffff</color>
     <color name="ripple_material_light">#1f000000</color>
@@ -965,13 +969,17 @@
     <color name="secondary_text_default_material_light">#8a000000</color>
     <color name="secondary_text_disabled_material_dark">#36ffffff</color>
     <color name="secondary_text_disabled_material_light">#24000000</color>
+    <color name="slate">#64748B</color>
     <color name="switch_thumb_disabled_material_dark">#ff616161</color>
     <color name="switch_thumb_disabled_material_light">#ffbdbdbd</color>
     <color name="switch_thumb_normal_material_dark">#ffbdbdbd</color>
     <color name="switch_thumb_normal_material_light">#fff1f1f1</color>
     <color name="tooltip_background_dark">#e6616161</color>
     <color name="tooltip_background_light">#e6FFFFFF</color>
-    <color name="txt">#E8EDF2</color>
+    <color name="txt">#F1F5F9</color>
+    <color name="violet">#A78BFA</color>
+    <color name="violet_ink">#0E1220</color>
+    <color name="white">#FFFFFF</color>
     <dimen name="abc_action_bar_content_inset_material">16dp</dimen>
     <dimen name="abc_action_bar_content_inset_with_nav">72dp</dimen>
     <dimen name="abc_action_bar_default_height_material">56dp</dimen>
@@ -5570,15 +5578,79 @@
     <item name="shapeAppearanceOverlay">@null</item>
   </style>
     <style name="Base.Widget.MaterialComponents.TextView" parent="Widget.AppCompat.TextView"/>
-    <style name="BtnGhost" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="BtnBase" parent="Widget.Material3.Button">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+    <style name="BtnBaseLine" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+    <style name="BtnCyan" parent="BtnBase">
+        <item name="backgroundTint">@color/cyan</item>
+        <item name="android:textColor">@color/cyan_ink</item>
+    </style>
+    <style name="BtnDanger" parent="BtnBase">
+        <item name="backgroundTint">@color/red</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name="BtnGhost" parent="BtnBaseLine">
         <item name="strokeColor">@color/line</item>
         <item name="android:textColor">@color/txt</item>
-        <item name="cornerRadius">9dp</item>
     </style>
-    <style name="BtnPrimary" parent="Widget.Material3.Button">
-        <item name="backgroundTint">@color/green</item>
+    <style name="BtnInfo" parent="BtnBase">
+        <item name="backgroundTint">@color/blue</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name="BtnPrimary" parent="BtnBase">
+        <item name="android:background">@drawable/grad_primary</item>
         <item name="android:textColor">@color/green_ink</item>
-        <item name="cornerRadius">9dp</item>
+    </style>
+    <style name="BtnSlate" parent="BtnBaseLine">
+        <item name="strokeColor">@color/slate</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <style name="BtnSmall" parent="BtnGhost">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="BtnSmallDanger" parent="BtnDanger">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="BtnViolet" parent="BtnBase">
+        <item name="backgroundTint">@color/violet</item>
+        <item name="android:textColor">@color/violet_ink</item>
     </style>
     <style name="Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardBackgroundColor">@color/card</item>

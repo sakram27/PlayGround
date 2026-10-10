@@ -12,6 +12,62 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="ENGINE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnEngine" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Start Engine" style="@style/BtnPrimary" />
+                    <TextView android:id="@+id/engStatus" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Berhenti." android:textColor="@color/mut"
+                        android:textSize="12sp" android:gravity="center" />
+                </LinearLayout>
+                <!-- V28: daftar pair Engine eksplisit — bukan tebakan. Diubah via
+                     "Ubah" (centang manual) atau "Salin dari Backtest". -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PAIR ENGINE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/engPairs" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnEngPairs" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Ubah Pair" style="@style/BtnViolet" />
+                    <Button android:id="@+id/btnEngSync" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Salin dari Backtest" style="@style/BtnCyan" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="STRATEGI AKTIF" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="14sp" android:textStyle="bold"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/dim"
+                    android:textSize="11sp" android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Buka Lab →"
+                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/line" android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="NET PNL RIWAYAT" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
                 <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
@@ -61,16 +117,6 @@
                             android:fontFamily="monospace" />
                     </LinearLayout>
                 </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="10dp">
-                    <Button android:id="@+id/btnEngine" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Start Engine" style="@style/BtnPrimary" />
-                    <TextView android:id="@+id/engStatus" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Berhenti." android:textColor="@color/mut"
-                        android:textSize="12sp" android:gravity="center" />
-                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -86,7 +132,7 @@
                         android:textSize="17sp" android:textStyle="bold" />
                     <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Semua →"
-                        style="@style/BtnGhost" android:minHeight="38dp" />
+                        style="@style/BtnInfo" />
                 </LinearLayout>
                 <TextView android:id="@+id/sigEmpty" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
@@ -99,7 +145,7 @@
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
+            style="@style/Card">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -113,26 +159,6 @@
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:fontFamily="monospace"
                     android:layout_marginTop="6dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Strategi aktif" android:textColor="@color/txt"
-                    android:textSize="17sp" android:textStyle="bold" />
-                <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/dim"
-                    android:textSize="11sp" android:layout_marginTop="4dp" />
-                <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="Buka Lab →"
-                    style="@style/BtnGhost" android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

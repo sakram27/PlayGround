@@ -81,7 +81,7 @@ class GroupedCheckAdapter(
         val r = rows[p]
         if (r is CheckRow.Header) {
             val tv = (reuse as? TextView) ?: TextView(act).apply {
-                setTextColor(0xFF5B6572.toInt())
+                setTextColor(0xFF64748B.toInt())
                 textSize = 10f
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 setPadding(4, 18, 4, 6)
@@ -94,7 +94,7 @@ class GroupedCheckAdapter(
             android.R.layout.simple_list_item_multiple_choice, parent, false
         ) as CheckedTextView
         ctv.text = item.label
-        ctv.setTextColor(0xFFE8EDF2.toInt())
+        ctv.setTextColor(0xFFF1F5F9.toInt())
         ctv.textSize = 14f
         ctv.minHeight = (48 * act.resources.displayMetrics.density).toInt()
         // Sinkronkan visual dengan status ListView (penting saat daur ulang view).

@@ -16,13 +16,13 @@
         android:orientation="horizontal" android:layout_marginTop="8dp">
         <Button android:id="@+id/btnAll" android:layout_width="0dp"
             android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="Pilih Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+            android:text="Pilih Semua" style="@style/BtnSlate" />
         <Button android:id="@+id/btnClear" android:layout_width="0dp"
             android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="Hapus Semua" style="@style/BtnGhost" android:minHeight="38dp" />
+            android:text="Hapus Semua" style="@style/BtnSlate" />
         <Button android:id="@+id/btnExtra" android:layout_width="0dp"
             android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="Extra" style="@style/BtnGhost" android:minHeight="38dp"
+            android:text="Extra" style="@style/BtnSlate"
             android:visibility="gone" />
     </LinearLayout>
     <ListView android:id="@+id/list" android:layout_width="match_parent"

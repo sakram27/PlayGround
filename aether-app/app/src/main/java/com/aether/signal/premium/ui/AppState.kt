@@ -26,7 +26,8 @@ data class AppliedCfg(
     val combo: List<String>, val strategyMode: String,
     val activeFilters: List<String>, val disabledFilters: List<String>,
     val rr: String, val slLabel: String, val tpLabel: String,
-    val timeframe: String, val pairs: List<String>, val status: String, val valid: Boolean
+    val timeframe: String, val pairs: List<String>, val status: String, val valid: Boolean,
+    val tpModeLabel: String = "Single TP"
 )
 
 data class LastBt(
@@ -58,6 +59,13 @@ object App {
     var maxHolding: Int = 100
     var slPct: Double = 1.5
     var tpPct: Double = 3.0
+    // V26: skema TP (1 = Single TP, 2 = TP2, 3 = TP3). Session-only seperti
+    // parameter risiko lain (tak dipersist/diimpor — konsisten dgn slPct).
+    var tpMode: Int = 1
+    var tp2Mult: Double = TP2_MULT_DEFAULT
+    var tp3Mult: Double = TP3_MULT_DEFAULT
+    // Mode TP yang dipakai run terakhir (untuk label hasil; bukan konfigurasi aktif).
+    var lastTpMode: Int = 1
     var useAtr: Boolean = false
     var provider: String = "binance"
     var timeframe: String = "15m"
@@ -69,6 +77,9 @@ object App {
     var fAtrMin = 0.3; var fAtrMax = 5.0; var fSession = "all"; var fCool = 3.0; var fSr = 0.3
 
     var signals: ArrayList<Sig> = ArrayList()
+    // Arsip simulasi backtest + data lama tak terklasifikasi (terpisah dari Engine).
+    var backtestSignals: ArrayList<Sig> = ArrayList()
+    var legacySignals: ArrayList<Sig> = ArrayList()
     var hist: ArrayList<Trade> = ArrayList()
     var candles: List<Candle> = emptyList()
     var params: BacktestParams? = null
@@ -110,6 +121,15 @@ object App {
     fun savePair() = prefs.edit().putString("pair", pair).apply()    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
     fun saveStrategy() = prefs.edit().putString("strategy", strategy).apply()
     fun saveEngPairs() = prefs.edit().putStringSet("engpairs", LinkedHashSet(engPairs)).apply()
+    // V28: sinkronisasi EKSPLISIT pair Backtest → Engine. Hanya dipanggil dari
+    // tombol "Salin dari Backtest" (dengan konfirmasi) — tidak pernah diam-diam.
+    // Mengembalikan daftar yang dipakai; kosong = konfigurasi tak valid sehingga
+    // daftar engine saat ini dipertahankan.
+    fun syncEngPairsFromBacktest(): LinkedHashSet<String> {
+        engPairs = resolveEnginePairs(mode, pair, multiSel, universe, engPairs)
+        saveEngPairs()
+        return LinkedHashSet(engPairs)
+    }
     fun saveCombo() = prefs.edit().putStringSet("comboextra", LinkedHashSet(comboExtra)).apply()
     fun saveCustomPairs() = prefs.edit().putStringSet("custompairs", LinkedHashSet(customPairs)).apply()
     fun saveWatchLimit() = prefs.edit().putInt("watchlimit", watchLimit.coerceIn(1, MAX_WATCH_PAIRS)).apply()
@@ -196,43 +216,115 @@ object App {
             riskPerTrade = riskPct / 100, leverage = leverage,
             feePercent = feePct / 100, slippagePercent = slipPct / 100,
             slPercent = slPct / 100, tpPercent = tpPct / 100, maxHolding = maxHolding,
+            tpMode = tpMode, tp2Mult = tp2Mult, tp3Mult = tp3Mult,
             strategy = strategy, combo = combo, filters = activeFilterCfgs(),
             startDate = fromDate, endDate = toDate, useAtr = useAtr
         )
     }
 
     // ---------- signals/history persist ----------
+    // INVARIAN SUMBER (fix pencampuran Engine vs Backtest):
+    // - signals: HANYA sinyal Engine (dryrun-*). Card/notifikasi Engine membaca ini.
+    // - backtestSignals: HANYA arsip simulasi backtest (detail hasil backtest).
+    // - legacySignals: data lama yang sumbernya tak dapat ditentukan (tidak dihitung
+    //   sebagai sinyal Engine, tidak dihapus).
     fun pushSignal(s: Sig) {
+        // Rute defensif by sumber eksplisit: tak ada jalur yang bisa memasukkan
+        // sinyal backtest ke daftar Engine meski pemanggil salah memakai fungsi ini.
+        if (isBacktestSrc(s.src)) {
+            pushBacktestSignal(s)
+            return
+        }
+        if (!isEngineSrc(s.src)) {
+            pushLegacySignal(s)
+            return
+        }
         if (signals.any { it.pair == s.pair && it.tf == s.tf && it.t == s.t && it.dir == s.dir }) return
         signals.add(0, s)
         if (signals.size > 200) signals = ArrayList(signals.take(200))
         saveSignals()
     }
 
+    fun pushBacktestSignal(s: Sig) {
+        val v = if (isBacktestSrc(s.src)) s else s.copy(src = SRC_BACKTEST)
+        if (backtestSignals.any { it.id == v.id }) return
+        backtestSignals.add(0, v)
+        if (backtestSignals.size > 200) backtestSignals = ArrayList(backtestSignals.take(200))
+        saveBacktestSignals()
+    }
+
+    private fun pushLegacySignal(s: Sig) {
+        if (legacySignals.any { it.id == s.id && s.id.isNotEmpty() }) return
+        legacySignals.add(0, s)
+        if (legacySignals.size > 200) legacySignals = ArrayList(legacySignals.take(200))
+        saveLegacySignals()
+    }
+
+    private fun sigToJson(s: Sig): JSONObject = JSONObject().put("pair", s.pair).put("tf", s.tf).put("dir", s.dir)
+        .put("price", s.price).put("sl", s.sl).put("tp", s.tp).put("t", s.t).put("src", s.src).put("id", s.id)
+        .put("strategy", s.strategy).put("confidence", s.confidence)
+        .put("reasons", encodeStrList(s.reasons)).put("passedFilters", encodeStrList(s.passedFilters))
+        .put("failedFilters", encodeStrList(s.failedFilters)).put("decidedAt", s.decidedAt)
+        .put("score", s.score).put("scoreDetail", s.scoreDetail)
+
+    private fun sigFromJson(o: JSONObject): Sig = Sig(o.getString("pair"), o.optString("tf"), o.getString("dir"), o.getDouble("price"),
+        o.getDouble("sl"), o.getDouble("tp"), o.getLong("t"), o.optString("src"), o.getString("id"),
+        o.optString("strategy", ""), o.optDouble("confidence", 0.0),
+        parseStrList(o.optString("reasons", "")), parseStrList(o.optString("passedFilters", "")),
+        parseStrList(o.optString("failedFilters", "")), o.optLong("decidedAt", 0L),
+        o.optDouble("score", -1.0), o.optString("scoreDetail", ""))
+
     private fun saveSignals() {
         val a = JSONArray()
-        for (s in signals) a.put(JSONObject().put("pair", s.pair).put("tf", s.tf).put("dir", s.dir)
-            .put("price", s.price).put("sl", s.sl).put("tp", s.tp).put("t", s.t).put("src", s.src).put("id", s.id)
-            // V16 F1/F2: jejak + skor. opt*-read saat muat → sinyal lama tetap terbaca.
-            .put("strategy", s.strategy).put("confidence", s.confidence)
-            .put("reasons", encodeStrList(s.reasons)).put("passedFilters", encodeStrList(s.passedFilters))
-            .put("failedFilters", encodeStrList(s.failedFilters)).put("decidedAt", s.decidedAt)
-            .put("score", s.score).put("scoreDetail", s.scoreDetail))
+        for (s in signals) a.put(sigToJson(s))
         prefs.edit().putString("signals", a.toString()).apply()
+    }
+
+    private fun saveBacktestSignals() {
+        val a = JSONArray()
+        for (s in backtestSignals) a.put(sigToJson(s))
+        prefs.edit().putString("backtest_signals", a.toString()).apply()
+    }
+
+    private fun saveLegacySignals() {
+        val a = JSONArray()
+        for (s in legacySignals) a.put(sigToJson(s))
+        prefs.edit().putString("legacy_signals", a.toString()).apply()
     }
 
     private fun loadSignals() {
         try {
+            // Migrasi sekali jalan: kunci lama "signals" bisa berisi campuran era
+            // sebelum pemisahan → partisi by sumber eksplisit, tanpa menebak.
             val a = JSONArray(prefs.getString("signals", "[]"))
-            signals = ArrayList((0 until a.length()).map { k ->
-                val o = a.getJSONObject(k)
-                Sig(o.getString("pair"), o.optString("tf"), o.getString("dir"), o.getDouble("price"),
-                    o.getDouble("sl"), o.getDouble("tp"), o.getLong("t"), o.optString("src"), o.getString("id"),
-                    o.optString("strategy", ""), o.optDouble("confidence", 0.0),
-                    parseStrList(o.optString("reasons", "")), parseStrList(o.optString("passedFilters", "")),
-                    parseStrList(o.optString("failedFilters", "")), o.optLong("decidedAt", 0L),
-                    o.optDouble("score", -1.0), o.optString("scoreDetail", ""))
-            })
+            val eng = ArrayList<Sig>()
+            val bt = ArrayList<Sig>()
+            val leg = ArrayList<Sig>()
+            for (k in 0 until a.length()) {
+                val s = sigFromJson(a.getJSONObject(k))
+                when {
+                    isBacktestSrc(s.src) -> bt.add(s)
+                    isEngineSrc(s.src) -> eng.add(s)
+                    else -> leg.add(s)
+                }
+            }
+            // Gabung simpanan terpisah era baru (dedup by id).
+            fun merge(base: ArrayList<Sig>, key: String) {
+                try {
+                    val b = JSONArray(prefs.getString(key, "[]"))
+                    for (k in 0 until b.length()) {
+                        val s = sigFromJson(b.getJSONObject(k))
+                        if (base.none { it.id == s.id && s.id.isNotEmpty() }) base.add(s)
+                    }
+                } catch (e: Exception) { /* abaikan blok rusak */ }
+            }
+            merge(bt, "backtest_signals")
+            merge(leg, "legacy_signals")
+            signals = ArrayList(eng.take(200))
+            backtestSignals = ArrayList(bt.take(200))
+            legacySignals = ArrayList(leg.take(200))
+            // Tulis balik terpartisi agar kunci lama tak lagi campuran.
+            saveSignals(); saveBacktestSignals(); saveLegacySignals()
         } catch (e: Exception) { signals = ArrayList() }
     }
 
@@ -318,6 +410,8 @@ object App {
     // ---------- V16 F7: regime pasar per pair (ditulis BotEngine dari cache yang
     // sudah diambil; tanpa request tambahan). Persist ringan agar selamat restart. ----------
     var regime: MutableMap<String, Regime> = LinkedHashMap()
+    // V27: diagnostik per-pair (ditulis tiap tick; persist agar selamat restart).
+    var regimeDiag: MutableMap<String, RegimeDiag> = LinkedHashMap()
 
     fun saveRegime() {
         try {
@@ -341,6 +435,36 @@ object App {
             }
             regime = m
         } catch (e: Exception) { regime = LinkedHashMap() }
+        try {
+            val o = JSONObject(prefs.getString("regime_diag_v1", "{}") ?: "{}")
+            val keys = o.keys()
+            val m = LinkedHashMap<String, RegimeDiag>()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                val j = o.optJSONObject(k) ?: continue
+                m[k] = RegimeDiag(
+                    j.optInt("requested", 0), j.optInt("received", 0), j.optInt("valid", 0),
+                    j.optInt("minRequired", REGIME_MIN_CANDLES),
+                    j.optString("provider", ""), j.optString("timeframe", ""),
+                    j.optLong("updatedAt", 0), j.optString("error", ""),
+                    j.optBoolean("indicatorOk", false))
+            }
+            regimeDiag = m
+        } catch (e: Exception) { regimeDiag = LinkedHashMap() }
+    }
+
+    fun saveRegimeDiag() {
+        try {
+            val o = JSONObject()
+            for ((k, v) in regimeDiag) {
+                o.put(k, JSONObject().put("requested", v.requested).put("received", v.received)
+                    .put("valid", v.valid).put("minRequired", v.minRequired)
+                    .put("provider", v.provider).put("timeframe", v.timeframe)
+                    .put("updatedAt", v.updatedAt).put("error", v.error)
+                    .put("indicatorOk", v.indicatorOk))
+            }
+            prefs.edit().putString("regime_diag_v1", o.toString()).apply()
+        } catch (e: Exception) { /* abaikan */ }
     }
 
     // ---------- V16 F10: state trailing stop paper (kunci stabil pair|dir|entryT).
@@ -386,6 +510,7 @@ object App {
             .put("rr", rr)
             .put("sl", if (p.useAtr) "ATR 14 × ${p.atrSlMult} / × ${p.atrTpMult}" else "${trimNum(p.slPercent * 100)}%")
             .put("tp", if (p.useAtr) "ATR 14 × ${p.atrTpMult}" else "${trimNum(p.tpPercent * 100)}%")
+            .put("tpMode", tpModeLabel(p.tpMode))
             .put("timeframe", p.timeframe).put("pairs", JSONArray(pairs))
             .put("status", status).put("valid", valid)
         prefs.edit().putString("applied_cfg", o.toString()).apply()
@@ -398,7 +523,8 @@ object App {
             fun ja(k: String): List<String> { val a = o.optJSONArray(k) ?: return emptyList(); return (0 until a.length()).map { a.getString(it) } }
             return AppliedCfg(o.getString("origin"), o.getLong("at"), o.getString("strategy"), o.optString("comboMode"),
                 ja("combo"), o.optString("strategyMode"), ja("active"), ja("disabled"), o.optString("rr"),
-                o.optString("sl"), o.optString("tp"), o.optString("timeframe"), ja("pairs"), o.optString("status"), o.optBoolean("valid"))
+                o.optString("sl"), o.optString("tp"), o.optString("timeframe"), ja("pairs"), o.optString("status"), o.optBoolean("valid"),
+                o.optString("tpMode", "Single TP"))
         } catch (e: Exception) { return null }
     }
 

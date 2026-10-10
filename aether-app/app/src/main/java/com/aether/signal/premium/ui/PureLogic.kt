@@ -24,6 +24,49 @@ fun equityPlotRange(values: List<Double>): Pair<Float, Float> {
     return (mn - pad).toFloat() to (mx + pad).toFloat()
 }
 
+// V27: warna status provider yang jujur — hijau HANYA bila pemeriksaan nyata
+// terakhir OK dan data belum basi. Murni & teruji JVM.
+fun provStateColor(lastOk: Boolean, checked: Boolean, stale: Boolean): Int = when {
+    checked && lastOk && !stale -> 0xFF10B981.toInt()
+    checked && !lastOk -> 0xFFF87171.toInt()
+    else -> 0xFFFBBF24.toInt()
+}
+
+// V28: SATU resolver daftar pair Engine (murni, teruji). Aturan eksplisit:
+// - mode multi → seluruh multiSel yang valid (interseksi universe bila universe ada).
+// - mode single → App.pair.
+// - kosong/tak valid → pertahankan daftar engine saat ini (jangan diam-diam
+//   mengaktifkan semua pair provider, jangan mengarang default baru).
+// Backtest dan Engine BERBAGI konfigurasi pair lewat fungsi ini; sinkronisasi
+// hanya terjadi saat pengguna menekan "Salin dari Backtest" (tercatat di UI).
+fun resolveEnginePairs(
+    mode: String,
+    pair: String,
+    multiSel: Set<String>,
+    universe: List<String>,
+    current: Set<String>
+): LinkedHashSet<String> {
+    fun clean(s: String) = s.trim().uppercase()
+    val out = if (mode == "multi") {
+        val sel = LinkedHashSet(multiSel.map { clean(it) }.filter { it.isNotEmpty() })
+        if (universe.isNotEmpty()) LinkedHashSet(sel.filter { universe.contains(it) })
+        else sel
+    } else {
+        val p = clean(pair)
+        if (p.isEmpty()) linkedSetOf() else linkedSetOf(p)
+    }
+    return if (out.isEmpty()) LinkedHashSet(current) else out
+}
+
+// V28: satu baris status Engine yang berlabel — setiap angka punya arti jelas:
+// configured = pair dikonfigurasi, dataOk = data valid + evaluasi selesai,
+// failed = gagal (configured - dataOk tidak negatif), signals = sinyal Engine
+// tersimpan, positions = posisi paper terbuka. Murni & teruji.
+fun engineStatusLine(configured: Int, dataOk: Int, signals: Int, positions: Int, at: String): String {
+    val failed = (configured - dataOk).coerceAtLeast(0)
+    return "$dataOk/$configured pair data OK · $failed gagal · $signals sinyal · $positions posisi · $at"
+}
+
 // D: dedup kejadian notifikasi — tambah bila baru, batasi ukuran.
 fun dedupAdd(s: MutableSet<String>, key: String, cap: Int = 500): Boolean {
     if (s.contains(key)) return false

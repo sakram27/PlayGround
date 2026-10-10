@@ -11,6 +11,9 @@
     <TextView android:id="@+id/hero" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:textColor="@color/txt" android:textSize="13sp" android:fontFamily="monospace"
         android:layout_margin="8dp" android:visibility="gone" />
+    <TextView android:id="@+id/engDiag" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="@color/mut" android:textSize="11sp" android:fontFamily="monospace"
+        android:layout_margin="8dp" android:visibility="gone" />
     <ProgressBar android:id="@+id/loading" android:layout_width="wrap_content"
         android:layout_height="wrap_content" android:layout_gravity="center"
         android:layout_margin="16dp" android:visibility="gone" />
@@ -26,11 +29,11 @@
             android:layout_weight="1" style="@style/BtnPrimary" />
         <Space android:layout_width="8dp" android:layout_height="1dp" />
         <Button android:id="@+id/btnSecond" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" style="@style/BtnGhost" />
+            android:layout_weight="1" style="@style/BtnInfo" />
         <Space android:id="@+id/spCsv" android:layout_width="8dp" android:layout_height="1dp"
             android:visibility="gone" />
         <Button android:id="@+id/btnCsv" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:text="CSV" style="@style/BtnGhost"
+            android:layout_weight="1" android:text="CSV" style="@style/BtnCyan"
             android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

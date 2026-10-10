@@ -37,31 +37,48 @@ object BotEngine {
 
     fun setExternallyDriven(v: Boolean) { externallyDriven = v }
 
+    @Volatile private var busy = false
+
+    @Synchronized
     fun start(): String {
+        if (App.engRunning || busy) return "Sudah berjalan."
         if (App.engPairs.isEmpty()) return "Pilih pair dulu."
         try { App.buildParams(App.engPairs.first()) } catch (e: Exception) { return "Config error: ${e.message}" }
-        if (equity == null) equity = try { App.buildParams(App.engPairs.first()).initialCapital } catch (e: Exception) { 1000.0 }
-        // V16 F10: bersihkan state trailing yatim (posisi hilang saat restart).
+        busy = true
         try {
-            val live = positions.map { positionKey(it.pair, it.dir, it.entryT) }.toHashSet()
-            val all = App.trailAll()
-            if (all.keys.removeAll { !live.contains(it) }) App.saveTrail()
-        } catch (e: Exception) { /* abaikan */ }
-        App.engRunning = true
-        if (MonitorService.running || externallyDriven) {
-            // Selalu Siaga sudah memantau: jangan buat scheduler kedua.
+            if (equity == null) equity = try { App.buildParams(App.engPairs.first()).initialCapital } catch (e: Exception) { 1000.0 }
+            try {
+                val live = positions.map { positionKey(it.pair, it.dir, it.entryT) }.toHashSet()
+                val all = App.trailAll()
+                if (all.keys.removeAll { !live.contains(it) }) App.saveTrail()
+            } catch (e: Exception) { /* abaikan */ }
+            App.engRunning = true
+            EngineDiag.startedAt = System.currentTimeMillis()
+            if (MonitorService.running || externallyDriven) {
+                // Selalu Siaga sudah memantau: jangan buat scheduler kedua.
+                exec.execute { tick(true); onTick?.invoke() }
+                return "Dipantau Selalu Siaga."
+            }
             exec.execute { tick(true); onTick?.invoke() }
-            return "Dipantau Selalu Siaga."
+            sched?.cancel(false)
+            sched = exec.scheduleAtFixedRate({ if (App.engRunning) { tick(false); onTick?.invoke() } }, 90, 90, TimeUnit.SECONDS)
+            return "Jalan."
+        } finally {
+            busy = false
         }
-        exec.execute { tick(true); onTick?.invoke() }
-        sched?.cancel(false)
-        sched = exec.scheduleAtFixedRate({ if (App.engRunning) { tick(false); onTick?.invoke() } }, 90, 90, TimeUnit.SECONDS)
-        return "Jalan."
     }
 
-    fun stop() {
-        App.engRunning = false
-        sched?.cancel(false)
+    @Synchronized
+    fun stop(): String {
+        if (!App.engRunning || busy) return "Sudah berhenti."
+        busy = true
+        try {
+            App.engRunning = false
+            sched?.cancel(false)
+            return "Dihentikan."
+        } finally {
+            busy = false
+        }
     }
 
     fun levels(entry: Double, dir: String, cache: Cache, idx: Int, p: BacktestParams): Pair<Double, Double> {
@@ -81,22 +98,57 @@ object BotEngine {
         if (equity == null) equity = p.initialCapital
         val tfMs = try { parseTimeframe(p.timeframe) * 60000L } catch (e: Exception) { 900000L }
         var ok = 0
+        // V28: hanya pair yang datanya valid DAN evaluasinya selesai tanpa
+        // exception yang dihitung OK (dipanggil di titik keluar normal).
+        fun markPairOk() { ok++; EngineDiag.evalOk++ }
         val syms = App.engPairs.toList()
         lastTotalPairs = syms.size
+        // V26: telemetri aktual per tick (dibaca panel diagnostik).
+        EngineDiag.beginTick()
+        EngineDiag.lastPhase = "mengambil data ${syms.size} pair"
         for (sym in syms) {
+            EngineDiag.evalTotal++
             try {
-                val raw = getCandles(App.provider, sym, p.timeframe, 200).candles
+                // V28: minta ENGINE_CANDLES (300), bukan 200. Akar bug "belum siap":
+                // meminta tepat 200 membuat e200[idx-20] selalu NaN (EMA menyemai
+                // pada indeks 199), sehingga indikator tak pernah valid walau data
+                // sempurna. Lihat REGIME_MIN_CANDLES=220 di AblationRegime.kt.
+                val raw = getCandles(App.provider, sym, p.timeframe, ENGINE_CANDLES).candles
                 val candles = normalizeCandles(raw.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? })
+                if (candles.isEmpty()) {
+                    EngineDiag.pairError(sym, "data kosong")
+                    EngineDiag.lastError = "data kosong ($sym)"
+                    continue
+                }
                 val cache = buildCache(candles)
                 val last = candles.last()
-                ok++
-                // V16 F7: regime dari cache yang SUDAH diambil (tanpa request tambahan).
+                if (last.t > EngineDiag.lastDataAt) EngineDiag.lastDataAt = last.t
+                // V28: "OK" = data valid diterima DAN evaluasi selesai tanpa
+                // exception. Dihitung di titik keluar normal (bawah try), bukan di
+                // sini — pair yang crash saat evaluasi tak boleh dihitung OK.
+                // V16 F7 + V27: regime dari cache yang SUDAH diambil (tanpa request
+                // tambahan) + diagnostik aktual per pair (bukan label palsu).
                 try {
                     val idx = candles.size - 1
                     val atr = cache.atr14[idx]
                     val atrPct = if (atr.isFinite() && atr > 0 && last.c > 0) atr / last.c * 100 else null
-                    classifyRegime(cache.e200, cache.adx14, atrPct, idx)?.let { App.regime[sym] = it }
-                } catch (e: Exception) { /* label opsional, jangan matikan tick */ }
+                    val indOk = cache.e200[idx].isFinite() &&
+                        (idx - REGIME_LOOKBACK >= 0 && cache.e200[idx - REGIME_LOOKBACK].isFinite()) &&
+                        cache.adx14[idx].isFinite()
+                    if (indOk) {
+                        classifyRegime(cache.e200, cache.adx14, atrPct, idx)?.let { App.regime[sym] = it }
+                    }
+                    App.regimeDiag[sym] = RegimeDiag(
+                        requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
+                        provider = App.provider, timeframe = p.timeframe,
+                        updatedAt = System.currentTimeMillis(), error = "", indicatorOk = indOk)
+                } catch (e: Exception) {
+                    App.regimeDiag[sym] = RegimeDiag(
+                        requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
+                        provider = App.provider, timeframe = p.timeframe,
+                        updatedAt = System.currentTimeMillis(),
+                        error = (e.message ?: "gagal").take(120), indicatorOk = false)
+                }
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
                     open.mark = last.c
@@ -145,6 +197,11 @@ object BotEngine {
                                             strategy = "", confidence = 0.0,
                                             reasons = listOf("trailing stop tersentuh @ ${App.fmt(cl, 4)}"),
                                             decidedAt = System.currentTimeMillis())
+                                        if (App.signals.any { it.pair == tsig.pair && it.tf == tsig.tf && it.t == tsig.t && it.dir == tsig.dir }) {
+                                            EngineDiag.dupHeld++
+                                        } else {
+                                            EngineDiag.stored++
+                                        }
                                         App.pushSignal(tsig)
                                         break
                                     }
@@ -168,15 +225,58 @@ object BotEngine {
                         fx.lastExitT = b.t; fx.tfMs = tfMs
                         fctx[sym] = fx
                         val sig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t, "dryrun-" + if (win) "TP" else "SL", "d${b.t}${sym}")
+                        if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
+                            EngineDiag.dupHeld++
+                        } else {
+                            EngineDiag.stored++
+                        }
                         App.pushSignal(sig)
                         // Notifikasi SL/TP NYATA (level tersentuh per definisi mesin) + dedup.
+                        EngineDiag.notifCalls++
                         try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                         break
                     }
+                    // V26: kedaluwarsa cermin backtest (maxHolding). Tanpa ini posisi
+                    // paper menggantung selamanya dan menahan entry baru untuk pair
+                    // tersebut tanpa batas — akar "engine jalan tapi tak ada sinyal".
+                    if (positions.contains(open) && p.maxHolding > 0) {
+                        val xi = expiryIndex(open.entryT, candles.map { it.t }, p.maxHolding)
+                        if (xi >= 0) {
+                            val bx = candles[xi]
+                            val exit = if (open.dir == "LONG") bx.c * (1 - p.slippagePercent)
+                            else bx.c * (1 + p.slippagePercent)
+                            val gross = (if (open.dir == "LONG") exit - open.entry else open.entry - exit) * open.qty
+                            val fees = (open.entry * open.qty + exit * open.qty) * p.feePercent
+                            val pnl = gross - fees
+                            equity = (equity ?: p.initialCapital) + pnl
+                            positions.remove(open)
+                            closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, "EXPIRED", open.entryT, bx.t))
+                            if (closed.size > 300) { closed.subList(300, closed.size).clear() }
+                            val fx3 = fctx[sym] ?: FilterCtx()
+                            fx3.lastExitT = bx.t; fx3.tfMs = tfMs
+                            fctx[sym] = fx3
+                            App.clearTrail(positionKey(sym, open.dir, open.entryT))
+                            // Arsip Engine tanpa notifikasi (seperti trail): keluar
+                            // kedaluwarsa bukan TP/SL, jadi tidak dibunyikan.
+                            val esig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, bx.t,
+                                "dryrun-expired", "x${bx.t}${sym}",
+                                strategy = "", confidence = 0.0,
+                                reasons = listOf("batas tahan ${p.maxHolding} bar tercapai"),
+                                decidedAt = System.currentTimeMillis())
+                            if (App.signals.any { it.pair == esig.pair && it.tf == esig.tf && it.t == esig.t && it.dir == esig.dir }) {
+                                EngineDiag.dupHeld++
+                            } else {
+                                EngineDiag.stored++
+                            }
+                            App.pushSignal(esig)
+                        }
+                    }
                 } else {
                     val i = candles.size - 1
+                    EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
-                    if (!dec.passed) continue
+                    if (!dec.passed) { markPairOk(); continue }
+                    EngineDiag.candidates++
                     val fx = fctx[sym] ?: FilterCtx()
                     fx.lastSigT = last.t; fx.lastSigDirT = dec.direction; fx.tfMs = tfMs
                     fctx[sym] = fx
@@ -186,18 +286,22 @@ object BotEngine {
                     if (p.filters.isNotEmpty()) {
                         val fr = applyFilters(candles, i, cache, dec.direction, p.filters, fx)
                         failedIds = fr.failed.mapNotNull { filterIdForReasonKey(it) }.distinct()
-                        if (!fr.passed) continue
+                        if (!fr.passed) {
+                            EngineDiag.filteredOut++
+                            markPairOk()
+                            continue
+                        }
                     }
                     var entry = last.c
                     entry = if (dec.direction == "LONG") entry * (1 + p.slippagePercent) else entry * (1 - p.slippagePercent)
                     val (sl, tp) = levels(entry, dec.direction, cache, i, p)
-                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) continue
+                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) { EngineDiag.invalidLevels++; continue }
                     val riskDist = Math.abs(entry - sl)
-                    if (!(riskDist > 0)) continue
+                    if (!(riskDist > 0)) { EngineDiag.invalidLevels++; continue }
                     var qty = ((equity ?: p.initialCapital) * p.riskPerTrade) / riskDist
                     val maxNot = (equity ?: p.initialCapital) * p.leverage
                     if (qty * entry > maxNot) qty = maxNot / entry
-                    if (!(qty > 0)) continue
+                    if (!(qty > 0)) { EngineDiag.invalidLevels++; continue }
                     positions.add(PaperPos(sym, dec.direction, entry, last.t, sl, tp, qty, last.c, 0.0))
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
@@ -212,14 +316,34 @@ object BotEngine {
                         decidedAt = System.currentTimeMillis(),
                         score = sc?.total ?: -1.0,
                         scoreDetail = if (sc != null) "${scoreExplain(passedIds.size, activeIds.size)} · ${sc.coverage}" else "")
+                    if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
+                        EngineDiag.dupHeld++
+                    } else {
+                        EngineDiag.stored++
+                    }
                     App.pushSignal(sig)
                     // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
+                    EngineDiag.notifCalls++
                     try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                 }
-            } catch (e: Exception) { /* lanjut pair berikut */ }
+                // V28: sampai sini = data valid + evaluasi selesai tanpa exception.
+                markPairOk()
+            } catch (e: Exception) {
+                // V26: kegagalan per-pair dicatat (bukan ditelan diam-diam).
+                EngineDiag.pairError(sym, e.message ?: "gagal")
+                EngineDiag.lastError = "${sym}: ${e.message ?: "gagal"}".take(160)
+                App.regimeDiag[sym] = RegimeDiag(
+                    requested = ENGINE_CANDLES, provider = App.provider, timeframe = p.timeframe,
+                    updatedAt = System.currentTimeMillis(),
+                    error = (e.message ?: "gagal").take(120), indicatorOk = false)
+                /* lanjut pair berikut */
+            }
         }
+        EngineDiag.lastTickAt = System.currentTimeMillis()
+        EngineDiag.lastPhase = if (EngineDiag.evalOk > 0) "selesai" else "selesai (tanpa data valid)"
         lastOkPairs = ok
         try { App.saveRegime() } catch (e: Exception) { /* abaikan */ }
+        try { App.saveRegimeDiag() } catch (e: Exception) { /* abaikan */ }
         lastScan = "Jalan · equity $${App.fmt(equity ?: 0.0)} · ${java.util.Date()}"
     }
 

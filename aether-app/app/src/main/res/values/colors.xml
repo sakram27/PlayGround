@@ -1,18 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- V29 palet premium dark: dominasi hitam-navy, aksen terkontrol.
+     Nama dipertahankan agar kode tak berubah; nilai mengikuti standar. -->
 <resources>
-    <color name="graphite_900">#0B0E13</color>
-    <color name="graphite_800">#12161D</color>
-    <color name="card">#171D26</color>
-    <color name="inset">#1C232E</color>
-    <color name="line">#232B36</color>
-    <color name="txt">#E8EDF2</color>
-    <color name="mut">#8B95A5</color>
-    <color name="dim">#5B6572</color>
-    <color name="green">#0ECB81</color>
+    <color name="graphite_900">#080B12</color>
+    <color name="graphite_800">#101722</color>
+    <color name="card">#101722</color>
+    <color name="inset">#151E2B</color>
+    <color name="line">#253244</color>
+    <color name="txt">#F1F5F9</color>
+    <color name="mut">#94A3B8</color>
+    <color name="dim">#64748B</color>
+    <color name="green">#10B981</color>
     <color name="green_ink">#06110D</color>
     <color name="green_soft">#0A2E22</color>
-    <color name="red">#F6465D</color>
+    <color name="red">#F87171</color>
     <color name="red_soft">#3A1E22</color>
-    <color name="amber">#FFB800</color>
-    <color name="blue">#4C8DFF</color>
+    <color name="amber">#FBBF24</color>
+    <color name="blue">#3B82F6</color>
+    <!-- violet = pilihan strategi/konfigurasi aktif (terbatas). -->
+    <color name="violet">#A78BFA</color>
+    <color name="violet_ink">#0E1220</color>
+    <!-- cyan = teal data pasar & analisis. -->
+    <color name="cyan">#2DD4BF</color>
+    <color name="cyan_ink">#06222E</color>
+    <color name="slate">#64748B</color>
+    <!-- Tombol nonaktif: slate redup, tetap terbaca, jelas tak aktif. -->
+    <color name="disabled">#334155</color>
+    <color name="disabled_ink">#94A3B8</color>
+    <color name="white">#FFFFFF</color>
 </resources>

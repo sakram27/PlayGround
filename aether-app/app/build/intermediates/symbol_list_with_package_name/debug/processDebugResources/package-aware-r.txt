@@ -1378,6 +1378,8 @@ color cardview_dark_background
 color cardview_light_background
 color cardview_shadow_end_color
 color cardview_shadow_start_color
+color cyan
+color cyan_ink
 color design_bottom_navigation_shadow_color
 color design_box_stroke_color
 color design_dark_default_color_background
@@ -1421,6 +1423,8 @@ color dim_foreground_disabled_material_dark
 color dim_foreground_disabled_material_light
 color dim_foreground_material_dark
 color dim_foreground_material_light
+color disabled
+color disabled_ink
 color error_color_material_dark
 color error_color_material_light
 color foreground_material_dark
@@ -2108,6 +2112,7 @@ color secondary_text_default_material_dark
 color secondary_text_default_material_light
 color secondary_text_disabled_material_dark
 color secondary_text_disabled_material_light
+color slate
 color switch_thumb_disabled_material_dark
 color switch_thumb_disabled_material_light
 color switch_thumb_material_dark
@@ -2117,6 +2122,9 @@ color switch_thumb_normal_material_light
 color tooltip_background_dark
 color tooltip_background_light
 color txt
+color violet
+color violet_ink
+color white
 dimen abc_action_bar_content_inset_material
 dimen abc_action_bar_content_inset_with_nav
 dimen abc_action_bar_default_height_material
@@ -3058,6 +3066,7 @@ drawable flag_sg
 drawable flag_tr
 drawable flag_us
 drawable flag_za
+drawable grad_primary
 drawable ic_arrow_back_black_24
 drawable ic_calendar
 drawable ic_call_answer
@@ -3305,6 +3314,8 @@ id btnCsv
 id btnCsvClear
 id btnDateClear
 id btnDiagToggle
+id btnEngPairs
+id btnEngSync
 id btnEngine
 id btnExport
 id btnExtra
@@ -3328,6 +3339,7 @@ id btnMonToggle
 id btnMonteCarlo
 id btnNotifHistory
 id btnNotifPerm
+id btnNotifTest
 id btnOpt
 id btnPair
 id btnPresetAggressive
@@ -3444,6 +3456,7 @@ id dAge
 id dContent
 id dDir
 id dDist
+id dEntryExtra
 id dEntryStatus
 id dFilters
 id dLive
@@ -3509,6 +3522,8 @@ id embed
 id empty
 id end
 id endToStart
+id engDiag
+id engPairs
 id engStatus
 id enterAlways
 id enterAlwaysCollapsed
@@ -3597,6 +3612,8 @@ id inRisk
 id inSl
 id inTo
 id inTp
+id inTp2m
+id inTp3m
 id inWatchLimit
 id included
 id indeterminate
@@ -3859,6 +3876,10 @@ id segTfH1
 id segTfH4
 id segTfM15
 id segTfM5
+id segTp
+id segTp2
+id segTp3
+id segTpSingle
 id select_dialog_listview
 id selected
 id selection_type
@@ -3967,6 +3988,7 @@ id toolbar
 id top
 id topPanel
 id touch_outside
+id tpSummary
 id tradeCsv
 id tradeList
 id tradeNext
@@ -4702,8 +4724,17 @@ style Base_Widget_MaterialComponents_Snackbar
 style Base_Widget_MaterialComponents_TextInputEditText
 style Base_Widget_MaterialComponents_TextInputLayout
 style Base_Widget_MaterialComponents_TextView
+style BtnBase
+style BtnBaseLine
+style BtnCyan
+style BtnDanger
 style BtnGhost
+style BtnInfo
 style BtnPrimary
+style BtnSlate
+style BtnSmall
+style BtnSmallDanger
+style BtnViolet
 style Card
 style CardView
 style CardView_Dark
