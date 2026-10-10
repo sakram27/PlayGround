@@ -11,281 +11,6 @@
             style="@style/Card" android:layout_marginBottom="10dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:gravity="center_vertical">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="BACKTEST MONITOR"
-                        android:textColor="@color/dim" android:textSize="10sp"
-                        android:textStyle="bold" />
-                    <TextView android:id="@+id/monStatus" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="IDLE"
-                        android:textColor="@color/mut" android:textSize="11sp"
-                        android:textStyle="bold" android:fontFamily="monospace"
-                        android:layout_marginEnd="8dp" />
-                    <Button android:id="@+id/btnMonToggle" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="▾"
-                        style="@style/BtnGhost" android:minHeight="38dp"
-                        android:minWidth="48dp" />
-                </LinearLayout>
-                <TextView android:id="@+id/monSummary" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Menunggu Backtest."
-                    android:textColor="@color/mut" android:textSize="12sp"
-                    android:layout_marginTop="2dp" />
-                <LinearLayout android:id="@+id/monDetail" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:orientation="vertical"
-                    android:visibility="gone">
-                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monFacts"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="LOG AKTIVITAS" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
-                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monLog"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
-                    <Button android:id="@+id/btnMonClearLog" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Hapus Tampilan Log"
-                        style="@style/BtnGhost" android:layout_marginTop="6dp"
-                        android:minHeight="38dp" android:textSize="11sp" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="BACKTEST CONSOLE" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <TextView android:id="@+id/quickMeta" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:fontFamily="monospace"
-                    android:layout_marginTop="4dp" />
-                <com.google.android.material.button.MaterialButtonToggleGroup
-                    android:id="@+id/segMode" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
-                    app:singleSelection="true" app:selectionRequired="true">
-                    <com.google.android.material.button.MaterialButton android:id="@+id/segSingle" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Single Pair" style="@style/BtnGhost" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/segMulti" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Multi Pair" style="@style/BtnGhost" />
-                </com.google.android.material.button.MaterialButtonToggleGroup>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/btnRun" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="▶  Run Backtest" style="@style/BtnPrimary" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnCancel" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Batal"
-                        style="@style/BtnGhost" />
-                </LinearLayout>
-                <TextView android:id="@+id/status" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Siap."
-                    android:textColor="@color/mut" android:textSize="12sp"
-                    android:layout_marginTop="6dp" />
-                <TextView android:id="@+id/progCount" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/txt"
-                    android:textSize="12sp" android:fontFamily="monospace" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/progList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="EQUITY CURVE" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/equity" android:layout_width="match_parent"
-                    android:layout_height="220dp" android:layout_marginTop="6dp" />
-                <TextView android:id="@+id/equityMeta" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="11sp" android:fontFamily="monospace"
-                    android:layout_marginTop="6dp" />
-                <TextView android:id="@+id/equityMsg" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:gravity="center" android:padding="12dp"
-                    android:visibility="gone"
-                    android:text="Jalankan backtest untuk melihat equity curve." />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="HASIL" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="—"
-                    android:textColor="@color/txt" android:textSize="24sp"
-                    android:fontFamily="monospace" android:textStyle="bold"
-                    android:layout_marginTop="4dp" />
-                <TextView android:id="@+id/heroSub" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:fontFamily="monospace" />
-                <TextView android:id="@+id/sumLine" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <LinearLayout android:id="@+id/whyBox" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:orientation="vertical"
-                    android:visibility="gone" android:layout_marginTop="8dp"
-                    android:background="@color/inset" android:padding="10dp">
-                    <TextView android:id="@+id/whyHead" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:text="MENGAPA TIDAK ADA TRANSAKSI?"
-                        android:textColor="@color/amber" android:textSize="11sp"
-                        android:textStyle="bold" />
-                    <TextView android:id="@+id/whyBody" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:lineSpacingMultiplier="1.1"
-                        android:layout_marginTop="6dp" />
-                    <Button android:id="@+id/btnWhyFilter" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Lihat Filter"
-                        style="@style/BtnGhost" android:layout_marginTop="8dp"
-                        android:minHeight="44dp" android:visibility="gone" />
-                    <Button android:id="@+id/btnWhatIf" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Simulasikan Tanpa Filter Ini"
-                        style="@style/BtnGhost" android:layout_marginTop="6dp"
-                        android:minHeight="44dp" android:visibility="gone" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/btnReplay" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="▶ Replay per Candle" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:visibility="gone" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="6dp">
-                    <Button android:id="@+id/btnMonteCarlo" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Monte Carlo" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnAblation" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Dampak Filter" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnConsensus" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Konsensus TF" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="6dp">
-                    <Button android:id="@+id/btnWalkFwd" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Walk-Forward" style="@style/BtnGhost"
-                        android:minHeight="44dp" android:textSize="12sp" />
-                </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="BIAYA TRANSAKSI" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
-                    android:layout_marginTop="10dp" />
-                <TextView android:id="@+id/feeLine" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="4dp" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-                <TextView android:id="@+id/pairsHead" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="PER PAIR"
-                    android:textColor="@color/dim" android:textSize="10sp"
-                    android:textStyle="bold" android:layout_marginTop="8dp"
-                    android:visibility="gone" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/pairsList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp"
-                    android:gravity="center_vertical">
-                    <Button android:id="@+id/tradePrev" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="‹" style="@style/BtnGhost" />
-                    <TextView android:id="@+id/tradePage" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:gravity="center" android:textColor="@color/mut"
-                        android:textSize="12sp" android:fontFamily="monospace" />
-                    <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
-                    <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnGhost" />
-                </LinearLayout>
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-                <Button android:id="@+id/btnDiagToggle" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Buka diagnostik &amp; alasan filter ▾"
-                    style="@style/BtnGhost" android:layout_marginTop="8dp"
-                    android:minHeight="44dp" />
-                <TextView android:id="@+id/auditHead" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <LinearLayout android:id="@+id/diagBox" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:orientation="vertical"
-                    android:visibility="gone">
-                    <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="DIAGNOSTIK"
-                        android:textColor="@color/dim" android:textSize="10sp"
-                        android:textStyle="bold" android:layout_marginTop="8dp" />
-                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="VALIDASI DATA" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
-                    <TextView android:id="@+id/auditBody" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="11sp" android:fontFamily="monospace"
-                        android:lineSpacingMultiplier="1.15"
-                        android:layout_marginTop="4dp" />
-                    <Button android:id="@+id/btnAudit" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:text="Audit Konsistensi Live vs Backtest"
-                        style="@style/BtnGhost" android:layout_marginTop="8dp"
-                        android:minHeight="48dp" />
-                    <TextView android:id="@+id/auditVerdict" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
-                </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="PETA WAKTU (UTC)" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
-                    android:layout_marginTop="10dp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Agregat laba/rugi transaksi per jam &amp; hari keluar (UTC). Hijau = bersih positif, merah = negatif."
-                    android:textColor="@color/dim" android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-                <TextView android:id="@+id/heatSummary" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <LinearLayout android:id="@+id/heatHours" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:orientation="vertical"
-                    android:layout_marginTop="6dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="PER HARI" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
-                    android:layout_marginTop="8dp" />
-                <LinearLayout android:id="@+id/heatDays" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:orientation="horizontal"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="STRATEGI" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
@@ -585,6 +310,281 @@
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp"
                     android:text="CSV tidak aktif." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="BACKTEST MONITOR"
+                        android:textColor="@color/dim" android:textSize="10sp"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/monStatus" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="IDLE"
+                        android:textColor="@color/mut" android:textSize="11sp"
+                        android:textStyle="bold" android:fontFamily="monospace"
+                        android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/btnMonToggle" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="▾"
+                        style="@style/BtnGhost" android:minHeight="38dp"
+                        android:minWidth="48dp" />
+                </LinearLayout>
+                <TextView android:id="@+id/monSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Menunggu Backtest."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:id="@+id/monDetail" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monFacts"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="LOG AKTIVITAS" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monLog"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+                    <Button android:id="@+id/btnMonClearLog" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Hapus Tampilan Log"
+                        style="@style/BtnGhost" android:layout_marginTop="6dp"
+                        android:minHeight="38dp" android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="BACKTEST CONSOLE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/quickMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segMode" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/segSingle" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Single Pair" style="@style/BtnGhost" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/segMulti" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Multi Pair" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnRun" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶  Run Backtest" style="@style/BtnPrimary" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnCancel" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Batal"
+                        style="@style/BtnGhost" />
+                </LinearLayout>
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Siap."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/progCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/progList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="EQUITY CURVE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/equity" android:layout_width="match_parent"
+                    android:layout_height="220dp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/equityMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="11sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/equityMsg" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:gravity="center" android:padding="12dp"
+                    android:visibility="gone"
+                    android:text="Jalankan backtest untuk melihat equity curve." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="HASIL" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="24sp"
+                    android:fontFamily="monospace" android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/heroSub" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/sumLine" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/whyBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone" android:layout_marginTop="8dp"
+                    android:background="@color/inset" android:padding="10dp">
+                    <TextView android:id="@+id/whyHead" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="MENGAPA TIDAK ADA TRANSAKSI?"
+                        android:textColor="@color/amber" android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/whyBody" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/txt"
+                        android:textSize="12sp" android:lineSpacingMultiplier="1.1"
+                        android:layout_marginTop="6dp" />
+                    <Button android:id="@+id/btnWhyFilter" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Lihat Filter"
+                        style="@style/BtnGhost" android:layout_marginTop="8dp"
+                        android:minHeight="44dp" android:visibility="gone" />
+                    <Button android:id="@+id/btnWhatIf" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Simulasikan Tanpa Filter Ini"
+                        style="@style/BtnGhost" android:layout_marginTop="6dp"
+                        android:minHeight="44dp" android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnReplay" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶ Replay per Candle" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnMonteCarlo" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Monte Carlo" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnAblation" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Dampak Filter" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnConsensus" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Konsensus TF" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnWalkFwd" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Walk-Forward" style="@style/BtnGhost"
+                        android:minHeight="44dp" android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="BIAYA TRANSAKSI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:id="@+id/feeLine" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <TextView android:id="@+id/pairsHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="PER PAIR"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/pairsList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
+                    <Button android:id="@+id/tradePrev" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="‹" style="@style/BtnGhost" />
+                    <TextView android:id="@+id/tradePage" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:textColor="@color/mut"
+                        android:textSize="12sp" android:fontFamily="monospace" />
+                    <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
+                    <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnGhost" />
+                </LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <Button android:id="@+id/btnDiagToggle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Buka diagnostik &amp; alasan filter ▾"
+                    style="@style/BtnGhost" android:layout_marginTop="8dp"
+                    android:minHeight="44dp" />
+                <TextView android:id="@+id/auditHead" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/diagBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="DIAGNOSTIK"
+                        android:textColor="@color/dim" android:textSize="10sp"
+                        android:textStyle="bold" android:layout_marginTop="8dp" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="VALIDASI DATA" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <TextView android:id="@+id/auditBody" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/txt"
+                        android:textSize="11sp" android:fontFamily="monospace"
+                        android:lineSpacingMultiplier="1.15"
+                        android:layout_marginTop="4dp" />
+                    <Button android:id="@+id/btnAudit" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="Audit Konsistensi Live vs Backtest"
+                        style="@style/BtnGhost" android:layout_marginTop="8dp"
+                        android:minHeight="48dp" />
+                    <TextView android:id="@+id/auditVerdict" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="6dp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PETA WAKTU (UTC)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Agregat laba/rugi transaksi per jam &amp; hari keluar (UTC). Hijau = bersih positif, merah = negatif."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <TextView android:id="@+id/heatSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/heatHours" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PER HARI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <LinearLayout android:id="@+id/heatDays" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
