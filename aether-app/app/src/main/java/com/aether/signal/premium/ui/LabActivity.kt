@@ -94,9 +94,12 @@ class LabActivity : BaseActivity(R.id.nav_lab) {
         runBg {
             val maps = candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }
             val out = hyperoptSearch(maps, base)
+            // V34: catat basis optimasi (data run terakhir) agar baris yang
+            // diterapkan tak dikira hasil konfigurasi saat ini bila basi.
+            val baseDesc = "${base.asset} · ${base.timeframe} · ${labelStrategy(base)}"
             runOnUiThread {
                 findViewById<MaterialButton>(R.id.btnOpt).isEnabled = true
-                st.text = "Selesai: ${out.size} kombinasi. Terbaik ≠ aktif — terapkan manual."
+                st.text = "Selesai: ${out.size} kombinasi atas $baseDesc. Terbaik ≠ aktif — terapkan manual."
                 val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.optList)
                 list.vertical(this)
                 list.adapter = SigAdapter(
@@ -109,8 +112,26 @@ class LabActivity : BaseActivity(R.id.nav_lab) {
                     onClick = { i ->
                         if (i < 5) {
                             val o = out[i]
-                            App.slPct = o.sl; App.tpPct = o.tp; App.riskPct = o.risk
-                            snack(this@LabActivity, "Tersimpan (SL ${o.sl} TP ${o.tp} R ${o.risk}). Buka Backtest lalu Run.")
+                            // V34: terapkan eksplisit via dialog — hanya SL/TP/
+                            // risiko yang diubah; strategi & filter dipertahankan.
+                            // Gagal tulis = pesan error jelas, bukan diam.
+                            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                                .setTitle("Terapkan hasil #${i + 1}?")
+                                .setMessage("SL ${o.sl}% · TP ${o.tp}% · Risiko ${o.risk}%\n" +
+                                    "(basis: $baseDesc)\n\nStrategi & filter TIDAK diubah. " +
+                                    "Buka Backtest lalu Run untuk menghitung ulang.")
+                                .setPositiveButton("Terapkan") { _, _ ->
+                                    try {
+                                        App.slPct = o.sl; App.tpPct = o.tp; App.riskPct = o.risk
+                                        App.lastHyperopt = Triple(o.sl, o.tp, o.risk)
+                                        App.lastHyperoptAt = System.currentTimeMillis()
+                                        snack(this, "Diterapkan: SL ${o.sl}% · TP ${o.tp}% · Risiko ${o.risk}%. Buka Backtest lalu Run.")
+                                    } catch (e: Exception) {
+                                        snack(this, "Gagal menerapkan: ${e.message}")
+                                    }
+                                }
+                                .setNegativeButton("Batal", null)
+                                .show()
                         } else snack(this@LabActivity, "Hanya 5 terbaik yang bisa diterapkan.")
                     })
             }

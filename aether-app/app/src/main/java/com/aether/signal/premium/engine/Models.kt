@@ -143,6 +143,68 @@ data class EquityPoint(val t: Long, val equity: Double)
  */
 fun isWinTrade(t: Trade): Boolean = t.result == "WIN" || (t.result == "TRAIL" && t.pnl > 0)
 
+/**
+ * V34: sidik konfigurasi efektif — kanonik, stabil, mencakup SELURUH
+ * parameter yang memengaruhi simulasi. Dihitung dari parameter sanitasi
+ * (bukan input mentah UI) agar identik dengan yang dipakai mesin.
+ * Format angka Double.toString (deterministik untuk nilai yang sama).
+ */
+fun configFingerprint(p: BacktestParams): String {
+    fun f(v: Double): String = v.toString()
+    val sb = StringBuilder()
+    sb.append("asset=").append(p.asset).append("|tf=").append(p.timeframe)
+        .append("|strat=").append(p.strategy)
+        .append("|stratP=").append(p.strategyParams.toList().sortedBy { it.first }
+            .joinToString(",") { "${it.first}=${f(it.second)}" })
+    val combo = p.combo
+    sb.append("|combo=").append(if (combo == null) "-" else "${combo.mode}:${combo.strategies.sorted().joinToString("+")}")
+    sb.append("|filters=").append(p.filters.filter { it.enabled }.sortedBy { it.name }
+        .joinToString(",") { fc ->
+            val prm = fc.params.toList().sortedBy { it.first }.joinToString(";") { "${it.first}=${f(it.second)}" }
+            val ss = fc.sessions?.sortedWith(compareBy({ it.first }, { it.second }))?.joinToString(";") { "${it.first}-${it.second}" } ?: ""
+            "${fc.name}[$prm]{$ss}"
+        })
+    sb.append("|sl=").append(f(p.slPercent)).append("|tp=").append(f(p.tpPercent))
+        .append("|tpm=").append(p.tpMode).append("|m2=").append(f(p.tp2Mult)).append("|m3=").append(f(p.tp3Mult))
+        .append("|trail=").append(p.trailOn).append(",").append(f(p.trailDistPct)).append(",").append(f(p.trailActPct))
+        .append("|risk=").append(f(p.riskPerTrade)).append("|lev=").append(p.leverage)
+        .append("|cap=").append(f(p.initialCapital))
+        .append("|fee=").append(f(p.feePercent)).append("|slip=").append(f(p.slippagePercent))
+        .append("|mh=").append(p.maxHolding)
+        .append("|atr=").append(p.useAtr).append(",").append(f(p.atrSlMult)).append(",").append(f(p.atrTpMult))
+        .append("|dates=").append(p.startDate).append(",").append(p.endDate)
+    return sb.toString()
+}
+
+/**
+ * V34: ringkasan konfigurasi efektif (Bahasa Indonesia) — dari parameter yang
+ * DIKIRIM ke mesin, bukan bacaan komponen UI. [hyperoptSrc] = baris asal
+ * Hyperopt bila parameter berasal dari hasil terapan, else null.
+ */
+fun effectiveConfigSummary(p: BacktestParams, hyperoptSrc: String? = null): String {
+    val b = StringBuilder()
+    val stratName = STRATEGIES[p.strategy]?.first ?: p.strategy
+    b.append("Strategi: $stratName (${labelStrategy(p)})")
+    if (p.strategyParams.isNotEmpty()) {
+        b.append(" (").append(p.strategyParams.toList().sortedBy { it.first }
+            .joinToString(", ") { "${it.first}=${it.second}" }).append(")")
+    }
+    b.append("\nPair: ${p.asset} · TF: ${p.timeframe}")
+    val flt = p.filters.filter { it.enabled }
+    b.append("\nFilter aktif (${flt.size}): ")
+    b.append(if (flt.isEmpty()) "tidak ada" else flt.sortedBy { it.name }.joinToString(", ") { fc ->
+        val nm = FILTER_DEFS.find { it.id == fc.name }?.name ?: fc.name
+        val prm = fc.params.toList().sortedBy { it.first }.joinToString(";") { "${it.first}=${it.second}" }
+        if (prm.isEmpty()) nm else "$nm($prm)"
+    })
+    b.append("\nSL: ${p.slPercent * 100}% · TP: ${p.tpPercent * 100}% (${tpModeLabel(p.tpMode)})")
+    b.append("\nTrailing: ${if (p.trailOn) "AKTIF (jarak ${p.trailDistPct * 100}%, aktivasi ${p.trailActPct * 100}%)" else "mati"}")
+    b.append("\nRentang: ${if (p.startDate > 0 || p.endDate > 0) "${p.startDate}→${p.endDate}" else "seluruh data"}")
+    b.append("\nModal: ${p.initialCapital} · Risiko: ${p.riskPerTrade * 100}% · Lev: ${p.leverage}× · Fee: ${p.feePercent * 100}% · Slip: ${p.slippagePercent * 100}%")
+    b.append("\nSumber: ${hyperoptSrc ?: "konfigurasi manual"}")
+    return b.toString()
+}
+
 data class BacktestDiag(
     val rawCount: Int = 0, val normalizedCount: Int = 0, val dateFilteredCount: Int = 0,
     val warmup: Int = WARMUP, val startIdx: Int = 0,
@@ -160,7 +222,11 @@ data class BacktestDiag(
     // V17 (forensik periode): identitas & cakupan run. Data, bukan aturan.
     val warmupPrefix: Int = 0,
     val runId: String = "",
-    val finishedAt: Long = 0L
+    val finishedAt: Long = 0L,
+    // V34: sidik konfigurasi efektif — dihitung mesin dari parameter yang
+    // DISANITASI dan benar-benar dipakai simulasi. Dua run berkonfigurasi
+    // berbeda wajib bersidik beda; sama persis bila konfigurasi sama.
+    val cfgFp: String = ""
 )
 
 data class BacktestResult(

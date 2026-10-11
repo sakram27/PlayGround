@@ -145,6 +145,23 @@ private fun durText(ms: Long): String {
 }
 
 /**
+ * V33: bar mana yang dievaluasi tick ini (murni, teruji).
+ * Selalu bar tertutup terakhir (size-2); bar berjalan (size-1) HANYA bila
+ * plausibly sudah tutup (umur >= interval TF) — volumenya parsial dan
+ * indikatornya tak stabil, sehingga evaluasi membabi-buta mensistematiskan
+ * kegagalan filter volume (divergensi vs backtest yang tak pernah menilai
+ * bar berjalan). Tanpa look-ahead: hanya memakai waktu dinding + waktu bar.
+ */
+fun engineEvalIndices(size: Int, lastT: Long, nowMs: Long, tfMs: Long): List<Int> {
+    if (size < 2) return emptyList()
+    val out = ArrayList<Int>(2)
+    out.add(size - 2)
+    val tf = if (tfMs > 0) tfMs else 900000L
+    if (size >= 1 && lastT > 0 && nowMs - lastT >= tf) out.add(size - 1)
+    return out
+}
+
+/**
  * Teks panel diagnostik dari angka aktual. Semua input eksplisit (murni, teruji);
  * Activity hanya mengumpulkan nilainya. Tak ada angka karangan.
  */
@@ -205,8 +222,8 @@ fun formatEngineDiag(
         snap.running, snap.evalTotal, snap.evalOk, snap.candidates,
         snap.stored, snap.failCount, snap.openPositions, snap.pairs.size,
         snap.lastTickAt, nowMs, snap.blockedPosition))
-    b.append("\nCatatan: bar tertutup terakhir + bar berjalan dievaluasi tiap tick " +
-        "(90 dtk); sinyal baru memakai harga live saat ini.")
+    b.append("\nCatatan: bar tertutup terakhir dievaluasi tiap tick (90 dtk); " +
+        "bar berjalan hanya bila plausibly tutup; sinyal baru memakai harga live saat ini.")
     return b.toString()
 }
 

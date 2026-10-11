@@ -2022,6 +2022,8 @@ fun main() {
     v30()
     v31()
     v32()
+    v33()
+    v34()
     println("\nHASIL-AKHIR: $pass pass, $fail fail")
     if (fail > 0) kotlin.system.exitProcess(1)
 }
@@ -2496,12 +2498,200 @@ fun v32() {
             RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "", true, "none"),
             Regime("Tren naik", false, now), true, now).contains("via"))
         val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
-        ok("d32-dua-bar", be.contains("candles.size - 2") && be.contains("positions.any"))
+        ok("d32-dua-bar", be.contains("engineEvalIndices(candles.size") && be.contains("positions.any"))
         ok("d32-jaga-loop", be.contains("tak boleh membunuh scheduler") && be.contains("error scheduler"))
         ok("d32-jejak", be.contains("noteFilterReject") && be.contains("noteStored()")
             && be.contains("blockedPosition++") && be.contains("candLong++"))
         val dash = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/DashboardActivity.kt").readText()
         ok("d32-status-jujur", dash.contains("TERDEGRADASI") && dash.contains("TIDAK MERESPON"))
+    }
+}
+
+fun v33() {
+    // ===== V33 AKAR #1 (terbukti): dup pra-set memblokir diri sendiri.
+    // Mekanisme: evalFilter dup memakai ctx.lastSigT; bila ctx sudah diisi
+    // waktu bar yang SAMA sebelum applyFilters, selisih 0 < 5 bar → gagal.
+    run {
+        val cs = ArrayList<Candle>()
+        var t = 1700000000000L
+        for (k in 0 until 30) {
+            cs.add(Candle(t, 100.0, 101.0, 99.0, 100.0, 100.0)); t += 900000L
+        }
+        val i = cs.size - 1
+        val dupCfg = listOf(FilterCfg("dup", true))
+        // Urutan BENAR (cermin backtest): apply dulu dengan ctx lama.
+        val fxBersih = FilterCtx()
+        fxBersih.tfMs = 900000L
+        val frBersih = applyFilters(cs, i, cache = buildCache(cs), direction = "LONG",
+            active = dupCfg, ctx = fxBersih)
+        ok("d33-dup-bersih-lolos", frBersih.passed, frBersih.failed.joinToString(";"))
+        // Urutan SALAH (bug lama): ctx diisi waktu bar sama SEBELUM apply.
+        val fxKotor = FilterCtx()
+        fxKotor.tfMs = 900000L
+        fxKotor.lastSigT = cs[i].t; fxKotor.lastSigDirT = "LONG"
+        val frKotor = applyFilters(cs, i, cache = buildCache(cs), direction = "LONG",
+            active = dupCfg, ctx = fxKotor)
+        ok("d33-dup-praset-terblokir", !frKotor.passed
+            && frKotor.failed.any { it.contains("duplikat") }, frKotor.failed.joinToString(";"))
+        // Arah berlawanan tak terblokir (kunci searah saja).
+        val fxLawan = FilterCtx()
+        fxLawan.tfMs = 900000L
+        fxLawan.lastSigT = cs[i].t; fxLawan.lastSigDirT = "SHORT"
+        val frLawan = applyFilters(cs, i, cache = buildCache(cs), direction = "LONG",
+            active = dupCfg, ctx = fxLawan)
+        ok("d33-dup-lawan-lolos", frLawan.passed)
+        // Struktur sumber: catat SETELAH apply (cermin backtest).
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        val applyPos = be.indexOf("applyFilters(candles, i, cache, dec.direction")
+        val catatPos = be.indexOf("fx.lastSigT = sigBar.t", applyPos)
+        ok("d33-urutan-sumber", applyPos >= 0 && catatPos > applyPos)
+    }
+    // ===== V33 AKAR #2: bar berjalan hanya bila plausibly tutup. =====
+    run {
+        ok("d33-gate-tutup", engineEvalIndices(300, 1000L, 1000L + 900000L, 900000L) == listOf(298, 299))
+        ok("d33-gate-berjalan", engineEvalIndices(300, 1000L, 1000L + 60000L, 900000L) == listOf(298))
+        ok("d33-gate-kecil", engineEvalIndices(1, 1000L, 5000L, 900000L).isEmpty())
+        ok("d33-gate-min", engineEvalIndices(2, 1000L, 1000L + 900000L, 900000L) == listOf(0, 1))
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        ok("d33-gate-sumber", be.contains("engineEvalIndices(candles.size"))
+    }
+    // ===== V33 UJI B (live): helper + paritas A tetap hijau. =====
+    run {
+        val raw = demo(500)
+        val params = BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList())
+        val r = runBacktest(raw, params)
+        ok("parB-jalan", r.error == null && r.totalTrades > 0, "tr=${r.totalTrades}")
+        // Frekuensi ekspektasi jujur: 4 jam @15m ≈ 16 bar; bukan janji sinyal.
+        val evals4h = 2 * 16
+        val hitRate = r.totalTrades.toDouble() / (500 - 60)
+        ok("parB-jangkauan", hitRate in 0.0..1.0, "hit=${"%.4f".format(hitRate)}")
+        ok("parB-reconcile", reconcileResult(r).isEmpty())
+        // Tanpa filter dup, kandidat pertama lolos (regresi urutan).
+        val candles = normalizeCandles(raw)
+        val cache = buildCache(candles)
+        val fx = FilterCtx()
+        fx.tfMs = 900000L
+        var firstPass: Boolean? = null
+        for (i in 60 until candles.size - 1) {
+            val dec = decideAt(candles, i, cache, params)
+            if (!dec.passed) continue
+            val fr = applyFilters(candles, i, cache, dec.direction,
+                listOf(FilterCfg("dup", true)), fx)
+            fx.lastSigT = candles[i].t; fx.lastSigDirT = dec.direction
+            if (firstPass == null) firstPass = fr.passed
+            break
+        }
+        ok("parB-dup-pertama-lolos", firstPass == true)
+    }
+}
+
+fun v34() {
+    // ===== V34: sidik konfigurasi — stabil & sensitif. =====
+    run {
+        val b = sanitizeParams(BacktestParams(asset = "BTCUSDT", timeframe = "15m"))
+        ok("fp-stabil", configFingerprint(b) == configFingerprint(b.copy()))
+        ok("fp-strategi", configFingerprint(b) != configFingerprint(b.copy(strategy = "ema_cross")))
+        ok("fp-filter", configFingerprint(b) != configFingerprint(
+            b.copy(filters = listOf(FilterCfg("volume", true)))))
+        ok("fp-sl", configFingerprint(b) != configFingerprint(b.copy(slPercent = 0.05)))
+        ok("fp-risk", configFingerprint(b) != configFingerprint(b.copy(riskPerTrade = 0.02)))
+        ok("fp-tf", configFingerprint(b) != configFingerprint(b.copy(timeframe = "1h")))
+        val s = effectiveConfigSummary(b, null)
+        ok("fp-sum", s.contains("Strategi:") && s.contains("ema_trend") && s.contains("BTCUSDT") && s.contains("15m")
+            && s.contains("Filter aktif") && s.contains("SL:") && s.contains("Trailing:")
+            && s.contains("Modal:") && s.contains("konfigurasi manual"))
+        ok("fp-sum-hyper", effectiveConfigSummary(b, "Hyperopt terapan (SL 1.0% · TP 2.0% · Risiko 1.0%)")
+            .contains("Hyperopt terapan"))
+    }
+    // ===== V34 UJI A: strategi berbeda → identitas + sidik berubah. =====
+    run {
+        val d = demo(500)
+        val a = runBacktest(d, BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList()))
+        val b = runBacktest(d, BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_cross", filters = emptyList()))
+        ok("h34-A-jalan", a.error == null && b.error == null)
+        ok("h34-A-identitas", a.strategy != b.strategy
+            && a.strategy == "ema_trend" && b.strategy == "ema_cross",
+            "${a.strategy} vs ${b.strategy}")
+        ok("h34-A-sidik", a.diag.cfgFp.isNotEmpty() && a.diag.cfgFp != b.diag.cfgFp)
+        ok("h34-A-reconcile", reconcileResult(a).isEmpty() && reconcileResult(b).isEmpty())
+    }
+    // ===== V34 UJI B: filter terkontrol (volume mult ekstrem, data sama). =====
+    run {
+        val d = demo(500)
+        val base = BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList())
+        val r0 = runBacktest(d, base)
+        val blok = runBacktest(d, base.copy(filters = listOf(
+            FilterCfg("volume", true, mapOf("mult" to 1000.0)))))
+        val longgar = runBacktest(d, base.copy(filters = listOf(
+            FilterCfg("volume", true, mapOf("mult" to 0.0)))))
+        ok("h34-B-jalan", r0.error == null && blok.error == null && longgar.error == null
+            && r0.totalTrades > 0, "tr=${r0.totalTrades}")
+        ok("h34-B-blokir", blok.totalTrades == 0 && blok.diag.filteredOut > 0,
+            "tr=${blok.totalTrades} filtered=${blok.diag.filteredOut}")
+        ok("h34-B-lolos", longgar.totalTrades == r0.totalTrades && longgar.diag.filteredOut == 0,
+            "tr=${longgar.totalTrades}")
+        ok("h34-B-sidik", blok.diag.cfgFp != longgar.diag.cfgFp
+            && blok.diag.cfgFp != r0.diag.cfgFp)
+    }
+    // ===== V34 UJI C: Hyperopt Apply sampai ke mesin. =====
+    run {
+        val d = demo(500)
+        val base = BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList())
+        val out = hyperoptSearch(d, base)
+        ok("h34-C-hyper", out.isNotEmpty(), "n=${out.size}")
+        val best = out.first()
+        val applied = base.copy(slPercent = best.sl / 100, tpPercent = best.tp / 100,
+            riskPerTrade = best.risk / 100)
+        val r = runBacktest(d, applied)
+        ok("h34-C-sampai", r.error == null
+            && r.diag.cfgFp == configFingerprint(sanitizeParams(applied)),
+            "fp=${r.diag.cfgFp.take(40)}")
+        ok("h34-C-beda-basis", r.diag.cfgFp != runBacktest(d, base).diag.cfgFp)
+    }
+    // ===== V34 UJI D: parameter sampai ke mesin (SL 1% vs 5%). =====
+    run {
+        val d = demo(500)
+        val p1 = sanitizeParams(BacktestParams(timeframe = "15m", slPercent = 0.01, tpPercent = 0.02))
+        val p5 = sanitizeParams(BacktestParams(timeframe = "15m", slPercent = 0.05, tpPercent = 0.02))
+        val r1 = runBacktest(d, p1)
+        val r5 = runBacktest(d, p5)
+        ok("h34-D-sidik", r1.diag.cfgFp != r5.diag.cfgFp)
+        val cs = normalizeCandles(d)
+        val cx = buildCache(cs)
+        val lv1 = calcRiskLevels(100.0, "LONG", cx, 60, p1)!!
+        val lv5 = calcRiskLevels(100.0, "LONG", cx, 60, p5)!!
+        ok("h34-D-level", lv1.sl == 99.0 && lv5.sl == 95.0, "${lv1.sl}/${lv5.sl}")
+        ok("h34-D-reconcile", reconcileResult(r1).isEmpty() && reconcileResult(r5).isEmpty())
+    }
+    // ===== V34 UJI E: identitas run masing-masing. =====
+    run {
+        val d = demo(300)
+        val r1 = runBacktest(d, BacktestParams(strategy = "ema_trend", filters = emptyList()))
+        val r2 = runBacktest(d, BacktestParams(strategy = "rsi", filters = emptyList()))
+        ok("h34-E-id", r1.diag.runId.isNotEmpty() && r2.diag.runId.isNotEmpty())
+        ok("h34-E-sidik", r1.diag.cfgFp.isNotEmpty()
+            && r1.diag.cfgFp != r2.diag.cfgFp
+            && r1.strategy != r2.strategy)
+    }
+    // ===== V34: wiring sumber (bukan klaim). =====
+    run {
+        val bt = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("h34-commit", bt.contains("commitRiskInputs()"))
+        ok("h34-onresume", bt.contains("override fun onResume()") && bt.contains("syncSelectors()"))
+        ok("h34-effcfg", bt.contains("paintEffCfg(p") && bt.contains("Konfigurasi efektif: "))
+        ok("h34-sidik-ui", bt.contains("Sidik konfigurasi") && bt.contains("Sumber parameter"))
+        val lay = java.io.File("aether-app/app/src/main/res/layout/activity_backtest.xml").readText()
+        ok("h34-lay-eff", lay.contains("@+id/effCfg"))
+        val lb = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/LabActivity.kt").readText()
+        ok("h34-apply", lb.contains("lastHyperopt = Triple(") && lb.contains("Terapkan hasil #")
+            && lb.contains("Strategi & filter TIDAK diubah"))
+        val mo = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/engine/Models.kt").readText()
+        ok("h34-model", mo.contains("fun configFingerprint(") && mo.contains("fun effectiveConfigSummary("))
     }
 }
 

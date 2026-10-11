@@ -83,6 +83,8 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams,
     onStage: ((EngineStage) -> Unit)? = null): BacktestResult {
     val params = sanitizeParams(rawParams)
     var diag = BacktestDiag(rawCount = rawCandles.size)
+    // V34: sidik dari parameter sanitasi = yang benar-benar dipakai simulasi.
+    diag = diag.copy(cfgFp = configFingerprint(params))
     // V21: batas 2 tahun ditegakkan MESIN (bukan hanya UI) — tolak sebelum unduh/proses.
     if (exceedsTwoYears(params.startDate, params.endDate)) {
         diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())

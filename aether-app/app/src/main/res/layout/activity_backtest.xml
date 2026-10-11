@@ -445,6 +445,15 @@
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:fontFamily="monospace"
                     android:layout_marginTop="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="KONFIGURASI EFEKTIF (YANG DIKIRIM KE MESIN)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/effCfg" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Belum ada run — ringkasan muncul saat Backtest dimulai."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:layout_marginTop="2dp" />
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/segMode" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:layout_marginTop="8dp"

@@ -336,15 +336,13 @@ object BotEngine {
                         }
                     }
                 } else {
-                    // V32: evaluasi DUA bar — tertutup terakhir (size-2) + bar
-                    // berjalan (size-1). Akar perbedaan vs backtest: dulu HANYA
-                    // bar berjalan yang dievaluasi, sehingga setup yang selesai
-                    // tepat saat tutup terlewat (backtest mengevaluasi bar
-                    // tertutup). Harga entry = harga live saat ini; bar sinyal
-                    // = bar yang pola-nya lengkap. Entry pertama menang se-tick.
-                    val evalIdx = LinkedHashSet<Int>()
-                    if (candles.size >= 2) evalIdx.add(candles.size - 2)
-                    evalIdx.add(candles.size - 1)
+                    // V33: bar tertutup terakhir SELALU dievaluasi; bar berjalan
+                    // HANYA bila plausibly tutup (umur >= interval TF). Cermin
+                    // backtest yang tak pernah menilai bar berjalan (volume
+                    // parsial → gagal filter volume sistematis + indikator
+                    // tak stabil). Tanpa look-ahead.
+                    val nowMs = System.currentTimeMillis()
+                    val evalIdx = engineEvalIndices(candles.size, last.t, nowMs, tfMs)
                     for (i in evalIdx) {
                     if (positions.any { it.pair == sym }) break
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
@@ -356,7 +354,13 @@ object BotEngine {
                     // bar berjalan) — jendela cooldown/dup selaras backtest.
                     val sigBar = candles[i]
                     val fx = fctx[sym] ?: FilterCtx()
-                    fx.lastSigT = sigBar.t; fx.lastSigDirT = dec.direction; fx.tfMs = tfMs
+                    // V33 FIX (bug terbukti): cermin backtest — terapkan filter
+                    // DULU dengan ctx lama, BARU catat sinyal ke ctx (berlaku
+                    // untuk tick/bar berikut). Urutan lama (catat dulu) membuat
+                    // filter dup memblokir DIRINYA SENDIRI (selisih 0 < 5 bar)
+                    // sehingga SETIAP kandidat pertama per pair gagal dengan
+                    // "duplikat diblok" bila filter dup aktif.
+                    fx.tfMs = tfMs
                     fctx[sym] = fx
                     // V16 F1: jejak keputusan dari data aktual saat sinyal dibuat.
                     val activeIds = p.filters.filter { it.enabled }.map { it.name }
@@ -364,6 +368,7 @@ object BotEngine {
                     if (p.filters.isNotEmpty()) {
                         val fr = applyFilters(candles, i, cache, dec.direction, p.filters, fx)
                         failedIds = fr.failed.mapNotNull { filterIdForReasonKey(it) }.distinct()
+                        fx.lastSigT = sigBar.t; fx.lastSigDirT = dec.direction
                         if (!fr.passed) {
                             EngineDiag.filteredOut++
                             for (w in fr.failed) EngineDiag.noteFilterReject(w)

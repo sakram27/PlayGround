@@ -252,6 +252,7 @@ id del
 id diagBox
 id dir
 id drag
+id effCfg
 id empty
 id engDiag
 id engPairs

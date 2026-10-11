@@ -75,6 +75,14 @@ object App {
     var tpMode: Int = 1
     // Mode TP yang dipakai run terakhir (untuk label hasil; bukan konfigurasi aktif).
     var lastTpMode: Int = 1
+    // V34: penanda hasil Hyperopt terakhir yang diterapkan (session-only,
+    // seperti parameter risiko). Null = parameter manual/bawaan.
+    var lastHyperopt: Triple<Double, Double, Double>? = null
+    var lastHyperoptAt: Long = 0L
+    fun hyperoptSourceLine(): String? {
+        val h = lastHyperopt ?: return null
+        return "Hyperopt terapan (SL ${h.first}% · TP ${h.second}% · Risiko ${h.third}%)"
+    }
     var useAtr: Boolean = false
     var provider: String = "binance"
     var timeframe: String = "15m"

@@ -74,6 +74,75 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         super.onDestroy()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // V34: kembalikan dari Lab/Settings = App.* mungkin berubah (Hyperopt
+        // terapan, strategi, provider). Segarkan tampilan agar tak ada angka
+        // basi yang menimpa App.* saat field disentuh (focus-loss overwrite).
+        try { syncSelectors(); refreshAll() } catch (e: Exception) { /* abaikan */ }
+    }
+
+    /** V34: selaraskan dropdown & segmen dengan App.* tanpa menambah listener. */
+    private fun syncSelectors() {
+        try {
+            findViewById<MaterialAutoCompleteTextView>(R.id.spStrategy).setText(
+                STRATEGIES[App.strategy]?.first ?: App.strategy, false)
+            findViewById<MaterialAutoCompleteTextView>(R.id.spProv).setText(App.provider, false)
+            findViewById<MaterialAutoCompleteTextView>(R.id.spTf).setText(App.timeframe, false)
+            findViewById<MaterialButtonToggleGroup>(R.id.segMode)
+                .check(if (App.mode == "multi") R.id.segMulti else R.id.segSingle)
+            findViewById<MaterialButtonToggleGroup>(R.id.segPreset)
+                .check(if (App.presetCustom) R.id.segPresetCustom else R.id.segPresetDefault)
+            findViewById<MaterialButtonToggleGroup>(R.id.segCombo)
+                .check(listOf(R.id.segComboSingle, R.id.segComboOr, R.id.segComboAnd, R.id.segComboMaj)[comboIdx()])
+            findViewById<MaterialButtonToggleGroup>(R.id.segTp)
+                .check(listOf(R.id.segTpSingle, R.id.segTp2, R.id.segTp3)[App.tpMode.coerceIn(1, 3) - 1])
+            val limIds = listOf(R.id.segLimit200, R.id.segLimit500, R.id.segLimit1000)
+            findViewById<MaterialButtonToggleGroup>(R.id.segLimit)
+                .check(limIds[listOf(200, 500, 1000).indexOf(App.limit).coerceAtLeast(0)])
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    /**
+     * V34: baca SEMUA input angka ke App.* sebelum Run (akar #2). Di mode
+     * sentuh, menekan tombol tak memindahkan fokus EditText sehingga
+     * listener focus-loss bindNum tak jalan dan suntingan hilang diam-diam.
+     * Dipanggil sinkron di thread UI sebelum runBg/buildParams.
+     */
+    private fun commitRiskInputs() {
+        try {
+            fun num(id: Int): String? = try {
+                findViewById<TextInputEditText>(id).text?.toString()
+            } catch (e: Exception) { null }
+            num(R.id.inCapital)?.toDoubleOrNull()?.let { App.capital = it }
+            num(R.id.inRisk)?.toDoubleOrNull()?.let { App.riskPct = it }
+            num(R.id.inSl)?.toDoubleOrNull()?.let { App.slPct = it }
+            num(R.id.inTp)?.toDoubleOrNull()?.let { App.tpPct = it }
+            num(R.id.inTp2Pct)?.toDoubleOrNull()?.let { App.tp2Pct = it }
+            num(R.id.inTp3Pct)?.toDoubleOrNull()?.let { App.tp3Pct = it }
+            num(R.id.inTrailDist)?.toDoubleOrNull()?.let {
+                App.btTrailDistPct = sanitizeTrailPct(it, 1.0)
+            }
+            num(R.id.inTrailAct)?.toDoubleOrNull()?.let {
+                App.btTrailActPct = sanitizeTrailPct(it, 1.0)
+            }
+            paintRiskPreset(); paintTpSummary(); paintTrailSummary()
+        } catch (e: Exception) { /* abaikan — fallback nilai App.* aktif */ }
+    }
+
+    /** V34: ringkasan konfigurasi efektif dari parameter yang DIKIRIM ke mesin. */
+    private fun paintEffCfg(p: BacktestParams, extraPairs: List<String>? = null) {
+        try {
+            var txt = effectiveConfigSummary(p, App.hyperoptSourceLine())
+            if (extraPairs != null && extraPairs.size > 1) {
+                txt = txt.replaceFirst("Pair: ${p.asset}",
+                    "Pair: ${extraPairs.joinToString(", ")} (-engine per pair)")
+            }
+            txt += "\nSidik: ${configFingerprint(p).take(48)}…"
+            findViewById<TextView>(R.id.effCfg).text = txt
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
     // V27: status tombol Run mengikuti proses aktual.
     private fun paintBtButtons() {
         try {
@@ -699,6 +768,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun doSingle() {
+        // V34: komit suntingan field dulu (mode sentuh tak melepas fokus).
+        commitRiskInputs()
         if (!dateRangeOk()) return
         cancelled = false
         markRunning()
@@ -717,7 +788,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             try {
                 val p = App.buildParams(App.pair)
                 pErr = p
+                // V34: ringkasan EFEKTIF dari parameter yang dikirim ke mesin.
+                runOnUiThread { paintEffCfg(p) }
                 monId = MonitorBus.startRun(p.asset, p.timeframe, p.startDate, p.endDate, 1)
+                MonitorBus.pushLog(monId, 0, "Konfigurasi efektif: " +
+                    effectiveConfigSummary(p, App.hyperoptSourceLine()).replace("\n", " · "))
                 stage = "mengambil data"
                 MonitorBus.phase(monId, MonPhase.CHECKING_CACHE, "Memeriksa data lokal")
                 MonitorBus.pushLog(monId, 0, "Memeriksa data ${p.asset} · ${p.timeframe}")
@@ -880,6 +955,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun doMulti() {
+        // V34: komit suntingan field dulu (mode sentuh tak melepas fokus).
+        commitRiskInputs()
         if (!dateRangeOk()) return
         if (App.universe.isEmpty()) { reloadUniverse { doMulti() }; return }
         val sel = App.universe.filter { App.multiSel.contains(it) } + App.multiSel.filter { !App.universe.contains(it) }
@@ -903,6 +980,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             }
             if (App.csv != null && App.csv!!.size >= 60) setStatus("CSV diabaikan saat multi-pair.")
             val monId = MonitorBus.startRun(sel.joinToString("+"), p.timeframe, p.startDate, p.endDate, sel.size)
+            // V34: ringkasan EFEKTIF basis (per-pair disalin per aset).
+            runOnUiThread { paintEffCfg(p, sel) }
+            MonitorBus.pushLog(monId, 0, "Konfigurasi efektif: " +
+                effectiveConfigSummary(p, App.hyperoptSourceLine()).replace("\n", " · "))
             MonitorBus.phase(monId, MonPhase.CHECKING_CACHE, "Multi-pair: ${sel.size} pair")
             MonitorBus.pushLog(monId, 0, "Memulai Backtest multi (${sel.size} pair)")
             val items = sel.map { Triple(it, "·", 0xFF94A3B8.toInt()) }.toMutableList()
@@ -1464,6 +1545,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 "Lolos/filter" to (d.filterPassed.entries.sortedByDescending { it.value }.take(3)
                     .joinToString(" · ") { "${it.key}:${it.value}" }.ifEmpty { "—" }),
                 "Run" to if (d.runId.isNotEmpty()) "${d.runId} · ${App.fmtDate(d.finishedAt)}" else "—",
+                // V34: identitas konfigurasi run ini (bukan hasil lama).
+                "Sidik konfigurasi" to if (d.cfgFp.isNotEmpty()) d.cfgFp.take(64) + "…" else "—",
+                "Sumber parameter" to (App.hyperoptSourceLine() ?: "konfigurasi manual"),
                 "Cache" to (d.cacheUsed ?: "—")
             ))
         }
@@ -1531,6 +1615,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             head.setTextColor((if (warns.isEmpty()) 0xFF10B981 else 0xFFFBBF24).toInt())
             val sb = StringBuilder()
             sb.append("Run ${d.runId.ifEmpty { "—" }} · selesai ${if (d.finishedAt > 0) fmtUtc(d.finishedAt) else "—"}\n")
+            if (d.cfgFp.isNotEmpty()) sb.append("Sidik konfigurasi: ${d.cfgFp.take(80)}…\n")
             sb.append("Pair $sym · TF $tf · provider $prov · limit $lim · sumber ${meta?.source ?: d.source ?: "—"}\n")
             sb.append("Diminta: ${if (reqFrom > 0) fmtUtc(reqFrom) else "tanpa batas"} → " +
                 "${if (reqTo > 0) fmtUtc(reqTo) else "terkini"}\n")
