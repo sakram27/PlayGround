@@ -23,13 +23,14 @@
                     <Button android:id="@+id/btnSortTrades" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Δ Transaksi" style="@style/BtnSmall" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnSortNet" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Δ Net" style="@style/BtnSmall" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnSortDd" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Δ DD" style="@style/BtnSmall" android:textSize="11sp" />
-                </LinearLayout>
+                        android:text="Δ DD" style="@style/BtnSmall" android:textSize="11sp" /></LinearLayout>
                 <TextView android:id="@+id/ablCount" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />

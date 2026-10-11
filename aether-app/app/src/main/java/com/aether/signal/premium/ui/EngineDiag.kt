@@ -26,7 +26,14 @@ data class EngineDiagSnapshot(
     val failCount: Int,
     val pairErrors: List<Pair<String, String>>,
     val lastPhase: String,
-    val lastError: String
+    val lastError: String,
+    // V32: jejak per tahap (kumulatif tick berjalan + rincian tick terakhir).
+    val totalTicks: Int = 0,
+    val candLong: Int = 0,
+    val candShort: Int = 0,
+    val blockedPosition: Int = 0,
+    val filterTop: List<Pair<String, Int>> = emptyList(),
+    val lastSignalAt: Long = 0L
 )
 
 object EngineDiag {
@@ -43,14 +50,38 @@ object EngineDiag {
     @Volatile var notifCalls: Int = 0
     @Volatile var lastPhase: String = "belum berjalan"
     @Volatile var lastError: String = ""
+    // V32: kumulatif sesi + rincian tick terakhir (tak direset per tick).
+    @Volatile var totalTicks: Int = 0
+    @Volatile var candLong: Int = 0
+    @Volatile var candShort: Int = 0
+    @Volatile var blockedPosition: Int = 0
+    @Volatile var lastSignalAt: Long = 0L
     private val lock = Any()
     private val errors: LinkedHashMap<String, String> = LinkedHashMap()
+    private val freasons: LinkedHashMap<String, Int> = LinkedHashMap()
 
     fun beginTick() {
+        totalTicks++
         evalTotal = 0; evalOk = 0; candidates = 0; filteredOut = 0
         invalidLevels = 0; dupHeld = 0; stored = 0; notifCalls = 0
+        candLong = 0; candShort = 0; blockedPosition = 0
         lastPhase = "mengambil data"
-        synchronized(lock) { errors.clear() }
+        synchronized(lock) { errors.clear(); freasons.clear() }
+    }
+
+    /** Catat alasan penolakan filter satu kandidat (deduplikasi per tick). */
+    fun noteFilterReject(reason: String) {
+        val k = (reason ?: "filter").take(60)
+        synchronized(lock) {
+            freasons[k] = (freasons[k] ?: 0) + 1
+            while (freasons.size > 8) freasons.remove(freasons.keys.first())
+        }
+    }
+
+    /** Tandai satu rekaman engine tersimpan (entry/arsip exit) + waktunya. */
+    fun noteStored() {
+        stored++
+        lastSignalAt = System.currentTimeMillis()
     }
 
     fun pairError(sym: String, msg: String) {
@@ -67,12 +98,13 @@ object EngineDiag {
         pairs: List<String>, openPositions: Int, oldestOpenAgeMs: Long
     ): EngineDiagSnapshot {
         val errs = synchronized(lock) { errors.toList() }
+        val ftop = synchronized(lock) { freasons.toList().sortedByDescending { it.second }.take(3) }
         return EngineDiagSnapshot(
             running, startedAt, lastTickAt, lastDataAt, strategy, timeframe, pairs,
             evalTotal, evalOk, candidates, filteredOut, invalidLevels, dupHeld,
             stored, notifCalls, openPositions, oldestOpenAgeMs,
-            errs.size, errs, lastPhase, lastError
-        )
+            errs.size, errs, lastPhase, lastError,
+            totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt)
     }
 }
 
@@ -124,9 +156,14 @@ fun formatEngineDiag(
     tfMinutes: Int, nowMs: Long
 ): String {
     val b = StringBuilder()
+    // V32: loop macet terdeteksi dari umur tick (bukan klaim sehat karena hidup).
+    // Interval terjadwal 90 dtk; >5 mnt tanpa tick selesai = tidak merespons.
+    val tickStale = snap.running && snap.lastTickAt > 0 && nowMs - snap.lastTickAt > 5 * 60 * 1000L
     val state = when {
         !snap.running -> "BERHENTI"
+        tickStale -> "TIDAK MERESPON (loop macet?)"
         snap.lastError.isNotEmpty() && snap.evalOk == 0 -> "ERROR"
+        snap.running && snap.evalTotal > 0 && snap.evalOk == 0 -> "TERDEGRADASI (semua pair gagal)"
         else -> "BERJALAN"
     }
     b.append("Status: $state")
@@ -140,8 +177,15 @@ fun formatEngineDiag(
     b.append("\nJalan: ${strategy.ifEmpty { "—" }} · $timeframe · $provider")
     b.append("\nPair: ${if (snap.pairs.isEmpty()) "belum dipilih" else snap.pairs.joinToString(", ")}")
     b.append("\nTick: ${snap.evalOk}/${snap.evalTotal} pair OK")
-    b.append(" · kandidat ${snap.candidates}")
+    b.append(" · kandidat ${snap.candidates} (LONG ${snap.candLong}/SHORT ${snap.candShort})")
     b.append(" · lolos ${snap.candidates - snap.filteredOut}")
+    b.append("\nTotal tick sesi: ${snap.totalTicks}")
+    b.append(" · ditahan posisi: ${snap.blockedPosition}")
+    if (snap.filterTop.isNotEmpty()) {
+        b.append("\nPenolakan filter teratas: " +
+            snap.filterTop.joinToString(" · ") { "${it.first}×${it.second}" })
+    }
+    b.append("\nSinyal/rekaman terakhir: ${ageText(snap.lastSignalAt, nowMs)}")
     b.append("\nLevel tak valid: ${snap.invalidLevels} · duplikat ditahan: ${snap.dupHeld}")
     b.append(" · tersimpan: ${snap.stored} · notif dipanggil: ${snap.notifCalls}")
     b.append("\nNotifikasi: izin ${if (notifPermOk) "OK" else "BELUM"} · sistem " +
@@ -159,9 +203,10 @@ fun formatEngineDiag(
     if (snap.lastPhase.isNotEmpty()) b.append("\nTahap: ${snap.lastPhase}")
     b.append("\nAlasan: " + noSignalReason(
         snap.running, snap.evalTotal, snap.evalOk, snap.candidates,
-        snap.stored, snap.failCount, snap.openPositions, snap.pairs.size))
-    b.append("\nCatatan: candle terakhir dievaluasi apa adanya (dapat belum tutup); " +
-        "tick terjadwal tiap 90 dtk.")
+        snap.stored, snap.failCount, snap.openPositions, snap.pairs.size,
+        snap.lastTickAt, nowMs, snap.blockedPosition))
+    b.append("\nCatatan: bar tertutup terakhir + bar berjalan dievaluasi tiap tick " +
+        "(90 dtk); sinyal baru memakai harga live saat ini.")
     return b.toString()
 }
 
@@ -171,12 +216,17 @@ fun formatEngineDiag(
  */
 fun noSignalReason(
     running: Boolean, evalTotal: Int, evalOk: Int, candidates: Int,
-    stored: Int, failCount: Int, openPositions: Int, pairsTotal: Int
+    stored: Int, failCount: Int, openPositions: Int, pairsTotal: Int,
+    lastTickAt: Long = 0L, nowMs: Long = 0L, blockedPosition: Int = 0
 ): String = when {
     !running -> "Engine berhenti."
+    lastTickAt > 0 && nowMs - lastTickAt > 5 * 60 * 1000L ->
+        "Loop tidak merespons >5 menit — coba Stop lalu Start Engine."
     evalTotal == 0 -> "Belum ada evaluasi tick."
     evalOk == 0 -> "Menunggu data pasar (semua $evalTotal pair gagal diambil)."
-    candidates == 0 -> "Kondisi entry strategi belum terpenuhi pada candle terakhir."
+    candidates == 0 && blockedPosition > 0 && openPositions >= pairsTotal && pairsTotal > 0 ->
+        "Semua pair memiliki posisi terbuka (posisi menahan entry baru)."
+    candidates == 0 -> "Kondisi entry strategi belum terpenuhi pada bar tertutup/berjalan terakhir."
     stored == 0 && failCount == 0 ->
         "Kandidat ada tetapi belum menjadi sinyal (filter/level/duplikat) — lihat penghitung."
     stored == 0 ->

@@ -21,17 +21,19 @@
                     <Button android:id="@+id/btnWf2" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="2" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnWf3" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="3" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnWf4" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="4" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <TextView android:id="@+id/wfFolds" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
-                        android:gravity="center_vertical|end" />
-                </LinearLayout>
+                        android:gravity="center_vertical|end" /></LinearLayout>
                 <Button android:id="@+id/btnWfRun" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Jalankan"
                     style="@style/BtnCyan" android:layout_marginTop="8dp" />

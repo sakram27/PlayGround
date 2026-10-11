@@ -1,6 +1,7 @@
 package com.aether.signal.premium.ai
 
 import com.aether.signal.premium.engine.Trade
+import com.aether.signal.premium.engine.isWinTrade
 
 // Port interpreter deskriptif ui-premium.js aiAnalyze (bukan mesin AI eksternal):
 // agregat DATA → ANALYSIS/OPINION berlabel. Tanpa logika trading.
@@ -17,14 +18,14 @@ data class AiBlock(val title: String, val items: List<Pair<String, String>>) // 
 fun aiAnalyze(sigs: List<Sig>, hist: List<Trade>, summaryLine: String, deep: Boolean): List<AiBlock> {
     if (sigs.isEmpty() && hist.isEmpty() && (summaryLine.isBlank() || summaryLine == "Belum ada hasil."))
         return listOf(AiBlock("Kosong", listOf("DATA" to "Belum ada data engine. Jalankan backtest atau Start engine dulu.")))
-    val wins = hist.count { it.result == "WIN" }
+    val wins = hist.count { isWinTrade(it) }
     val net = hist.sumOf { it.pnl }
     val wr = if (hist.isNotEmpty()) wins.toDouble() / hist.size * 100 else Double.NaN
     val byPair = HashMap<String, Triple<Int, Int, Double>>()
     for (t in hist) {
         val k = t.asset
         val cur = byPair[k] ?: Triple(0, 0, 0.0)
-        byPair[k] = Triple(cur.first + 1, cur.second + (if (t.result == "WIN") 1 else 0), cur.third + t.pnl)
+        byPair[k] = Triple(cur.first + 1, cur.second + (if (isWinTrade(t)) 1 else 0), cur.third + t.pnl)
     }
     val pairs = byPair.keys.sortedByDescending { byPair[it]!!.third }
     val longs = sigs.count { it.dir == "LONG" }

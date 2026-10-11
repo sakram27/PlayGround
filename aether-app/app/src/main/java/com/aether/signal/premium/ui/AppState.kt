@@ -57,13 +57,22 @@ object App {
     var feePct: Double = 0.05
     var slipPct: Double = 0.02
     var maxHolding: Int = 100
-    var slPct: Double = 1.5
-    var tpPct: Double = 3.0
+    // V31: bawaan SL 1%, TP 2% (was 1.5/3.0). Session-only: hanya dipakai bila
+    // belum ada pengaturan tersimpan; nilai tersimpan (impor) tak ditimpa.
+    var slPct: Double = 1.0
+    var tpPct: Double = 2.0
+    // V31: input TP2/TP3 dalam PERSEN absolut (2.5 = 2,5%, bukan ×2,5 dan
+    // bukan 0,025). Dikonversi ke kelipatan via tpMultsFromPct di buildParams.
+    var tp2Pct: Double = 2.5
+    var tp3Pct: Double = 3.5
+    // V31: trailing stop BACKTEST (terpisah dari trailing virtual paper).
+    // Mati default; konfigurasi lama (tanpa kunci ini) tetap mati.
+    var btTrailOn: Boolean = false
+    var btTrailDistPct: Double = 1.0
+    var btTrailActPct: Double = 1.0
     // V26: skema TP (1 = Single TP, 2 = TP2, 3 = TP3). Session-only seperti
     // parameter risiko lain (tak dipersist/diimpor — konsisten dgn slPct).
     var tpMode: Int = 1
-    var tp2Mult: Double = TP2_MULT_DEFAULT
-    var tp3Mult: Double = TP3_MULT_DEFAULT
     // Mode TP yang dipakai run terakhir (untuk label hasil; bukan konfigurasi aktif).
     var lastTpMode: Int = 1
     var useAtr: Boolean = false
@@ -211,12 +220,15 @@ object App {
             if (set.size < 2) throw IllegalArgumentException("Combo butuh minimal 2 strategi.")
             Combo(comboMode, set.toList().take(5))
         } else null
+        // V31: TP2/TP3 persen → kelipatan (2,5% atas TP 2% = 1,25×). Tepat sekali.
+        val (m2, m3) = tpMultsFromPct(tpPct, tp2Pct, tp3Pct)
         return BacktestParams(
             asset = asset, timeframe = timeframe, initialCapital = capital,
             riskPerTrade = riskPct / 100, leverage = leverage,
             feePercent = feePct / 100, slippagePercent = slipPct / 100,
             slPercent = slPct / 100, tpPercent = tpPct / 100, maxHolding = maxHolding,
-            tpMode = tpMode, tp2Mult = tp2Mult, tp3Mult = tp3Mult,
+            tpMode = tpMode, tp2Mult = m2, tp3Mult = m3,
+            trailOn = btTrailOn, trailDistPct = btTrailDistPct / 100, trailActPct = btTrailActPct / 100,
             strategy = strategy, combo = combo, filters = activeFilterCfgs(),
             startDate = fromDate, endDate = toDate, useAtr = useAtr
         )
@@ -569,7 +581,7 @@ object App {
         if (!v.isFinite()) return "—"
         return String.format(Locale("id", "ID"), "%,.${d}f", v)
     }
-    fun fmtD(v: Double): String = if (!v.isFinite()) "—" else if (v >= 999) "∞" else fmt(v)
+    fun fmtD(v: Double): String = if (v.isNaN()) "—" else if (v.isInfinite() || v >= 999) "∞" else fmt(v)
     fun fmtMoney(v: Double): String {
         if (!v.isFinite()) return "—"
         return (if (v < 0) "-" else "") + "$" + fmt(abs(v))

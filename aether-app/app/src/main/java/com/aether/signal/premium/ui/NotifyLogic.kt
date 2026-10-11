@@ -135,6 +135,9 @@ fun notifKindLabel(kind: String): String = when (kind) {
     "entry" -> "Sinyal entry"
     "tp" -> "Take profit"
     "sl" -> "Stop loss"
+    "trail_on" -> "Trailing stop aktif"
+    "trail_move" -> "Trailing stop bergerak"
+    "trail_hit" -> "Trailing stop hit"
     "uji" -> "Uji notifikasi (bukan sinyal)"
     else -> kind
 }
@@ -200,7 +203,8 @@ fun buildNotifCsv(list: List<NotifRec>): String {
 /**
  * Saring riwayat aktual (urutan dipertahankan: terbaru dulu, seperti penyimpanan).
  * - query: cocokkan simbol (tak peduli huruf besar/kecil); kosong = semua.
- * - kind: "all" | "entry" | "tp" | "sl" (hanya jenis yang benar-benar dicatat).
+ * - kind: "all" | "entry" | "tp" | "sl" | "trail" (hanya jenis yang benar-benar dicatat;
+ *   "trail" mencakup trail_on/trail_move/trail_hit).
  * - status: "all" | "sent"(DIKIRIM) | "held"(DITAHAN) | "failed"(GAGAL/GAGAL_IZIN).
  * Tidak menghapus/mengubah catatan maupun status.
  */
@@ -213,7 +217,7 @@ fun filterNotifHistory(
     val q = query.trim().lowercase()
     return list.filter { r ->
         (q.isEmpty() || r.pair.lowercase().contains(q)) &&
-            (kind == "all" || r.kind == kind) &&
+            (kind == "all" || r.kind == kind || (kind == "trail" && r.kind.startsWith("trail_"))) &&
             when (status) {
                 "all" -> true
                 "sent" -> r.status == "DIKIRIM"

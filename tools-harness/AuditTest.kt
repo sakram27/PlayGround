@@ -660,7 +660,9 @@ fun main() {
         ok("fixA-nol", r.winRate == 0.0 && r.profitFactor == 0.0 && r.netProfit == 0.0
             && r.expectancy == 0.0 && r.finalCapital == 1000.0)
     }
-    // D: campur 2W/2L/1E + impas-by-trigger (T5 pnl 0 hasil WIN)
+    // D: campur +100(WIN)/-50(LOSS)/+10(EXPIRED)/-50(LOSS)/0(WIN-label).
+    // V30: kategori berbasis TANDA pnl — EXPIRED +10 = untung (tak dibuang),
+    // pnl 0 = impas (bukan menang). Net = 110-100 = 10 ✓ konsisten.
     run {
         val ts = listOf(
             mkT("LONG", 100.0, "WIN", 2.0, 0.0, 100.0, 90.0, 120.0, 1000L, 2000L),
@@ -669,23 +671,27 @@ fun main() {
             mkT("SHORT", -50.0, "LOSS", -1.0, 0.0, 200.0, 210.0, 180.0, 7000L, 8000L),
             mkT("LONG", 0.0, "WIN", 0.0, 0.0, 100.0, 90.0, 120.0, 9000L, 10000L))
         val r = buildResult(mkP(), mkC(), ts, emptyList(), 0.0)
-        ok("fixD-cacah", r.totalTrades == 5 && r.wins == 2 && r.losses == 2 && r.expired == 1)
-        ok("fixD-winrate", r.winRate == 40.0 && r.lossRate == 40.0) // penyebut termasuk kedaluwarsa
-        ok("fixD-gross", r.grossProfit == 100.0 && r.grossLoss == -100.0)
+        ok("fixD-cacah", r.totalTrades == 5 && r.wins == 2 && r.losses == 2 && r.breakeven == 1 && r.expired == 1)
+        ok("fixD-rekonsiliasi-cacah", r.wins + r.losses + r.breakeven == r.totalTrades)
+        ok("fixD-winrate", r.winRate == 40.0 && r.lossRate == 40.0) // penyebut = semua kaki
+        ok("fixD-gross", r.grossProfit == 110.0 && r.grossLoss == -100.0)
         ok("fixD-net", r.netProfit == 10.0 && r.finalCapital == 1010.0 && r.netProfitPercent == 1.0)
-        ok("fixD-pf", r.profitFactor == 1.0)
+        ok("fixD-net-konsisten", r.netProfit == r.grossProfit + r.grossLoss) // biaya sudah dalam pnl
+        ok("fixD-pf", kotlin.math.abs(r.profitFactor - 1.1) < 1e-9)
         ok("fixD-expectancy", r.expectancy == 2.0)
-        ok("fixD-avg", r.averageWin == 50.0 && r.averageLoss == -50.0)
+        ok("fixD-avg", r.averageWin == 55.0 && r.averageLoss == -50.0)
         ok("fixD-avgR", kotlin.math.abs(r.averageR - 0.04) < 1e-9)
         ok("fixD-avgRR", r.averageRR == 2.0)
         ok("fixD-streak", r.longestWinStreak == 1 && r.longestLossStreak == 1)
+        ok("fixD-reconcile", reconcileResult(r).isEmpty(), reconcileResult(r).joinToString(";"))
         ok("fixD-uid-kosong-manual", ts.all { it.uid == "" }) // fixture tangan tanpa uid
     }
-    // B: semua menang → PF 999 (cap) + label jujur. C: semua kalah → PF 0.
+    // B: semua menang → PF +∞ (bukan 999) + label jujur. C: semua kalah → PF 0.
     run {
         val b = buildResult(mkP(), mkC(), listOf(mkT("LONG", 10.0, "WIN", 1.0), mkT("LONG", 20.0, "WIN", 2.0), mkT("SHORT", 30.0, "WIN", 3.0)), emptyList(), 0.0)
-        ok("fixB-pf-cap", b.profitFactor == 999.0 && b.winRate == 100.0 && b.netProfit == 60.0)
+        ok("fixB-pf-inf", b.profitFactor.isInfinite() && b.profitFactor > 0 && b.winRate == 100.0 && b.netProfit == 60.0)
         ok("fixB-label", describePF(b.profitFactor, b.wins, b.losses).contains("tak terdefinisi"))
+        ok("fixB-tampil", App.fmtD(b.profitFactor) == "∞")
         val c = buildResult(mkP(), mkC(), listOf(mkT("LONG", -10.0, "LOSS", -1.0), mkT("SHORT", -20.0, "LOSS", -2.0)), emptyList(), 0.0)
         ok("fixC-pf-nol", c.profitFactor == 0.0 && c.netProfit == -30.0 && c.lossRate == 100.0 && c.averageLoss == -15.0)
         ok("fixC-label", describePF(c.profitFactor, c.wins, c.losses) == "0,00")
@@ -700,12 +706,16 @@ fun main() {
         ok("fixF-fee", a.totalFees == 8.0 && a.grossBeforeFees == 18.0)
         ok("fixF-share", kotlin.math.abs(a.feeSharePct!! - 8.0 / 18.0 * 100) < 1e-9)
     }
-    // Sharpe/Sortino hitungan tangan: rets [0.1, -0.05] → SR=1/3, So=√2/2.
+    // Sharpe/Sortino hitungan tangan (V30: mean/sd per-transaksi, tanpa √N,
+    // tanpa risk-free): rets [0.1, -0.05] → m=0.025, sd=√0.01125 → SR≈0.2357;
+    // downside=[-0.05] → dsd=0.05 → So=0.5.
     run {
-        ok("fix-sharpe", kotlin.math.abs(sharpeRatio(listOf(0.1, -0.05)) - 1.0 / 3.0) < 1e-9)
-        ok("fix-sortino", kotlin.math.abs(sortinoRatio(listOf(0.1, -0.05)) - kotlin.math.sqrt(2.0) / 2.0) < 1e-9)
-        ok("fix-sharpe-kecil", sharpeRatio(listOf(0.1)) == 0.0 && sharpeRatio(emptyList()) == 0.0)
-        ok("fix-sortino-tanpa-negatif", sortinoRatio(listOf(0.1, 0.2)) == 99.0)
+        ok("fix-sharpe", kotlin.math.abs(sharpeRatio(listOf(0.1, -0.05)) - 0.025 / kotlin.math.sqrt(0.01125)) < 1e-9)
+        ok("fix-sortino", kotlin.math.abs(sortinoRatio(listOf(0.1, -0.05)) - 0.5) < 1e-9)
+        ok("fix-sharpe-kecil", sharpeRatio(listOf(0.1)).isNaN() && sharpeRatio(emptyList()).isNaN())
+        ok("fix-sortino-tanpa-negatif", sortinoRatio(listOf(0.1, 0.2)).isInfinite())
+        ok("fix-recovery", recoveryFactor(300.0, 150.0) == 2.0 && recoveryFactor(50.0, 0.0).isInfinite()
+            && recoveryFactor(0.0, 0.0).isNaN() && recoveryFactor(-20.0, 100.0) == -0.2)
     }
     // DD: jendela murni + konsistensi kurva mesin.
     run {
@@ -848,11 +858,11 @@ fun main() {
         val e2 = runBacktest(emptyList(), BacktestParams())
         ok("fixT-kosong", e2.error != null && e2.totalTrades == 0)
     }
-    // PF agregat konsisten (cap 999 seperti single).
+    // PF agregat konsisten (+∞ seperti single, bukan 999).
     run {
         val b = buildResult(mkP(), mkC(), listOf(mkT("LONG", 10.0, "WIN", 1.0), mkT("SHORT", 5.0, "WIN", 1.0)), emptyList(), 0.0)
         val agg = aggregateOverall(listOf(PairRow("BTCUSDT", b)), null)
-        ok("fixAgg-pf", agg.profitFactor == 999.0 && agg.totalTrades == 2 && agg.netProfit == 15.0)
+        ok("fixAgg-pf", agg.profitFactor.isInfinite() && agg.totalTrades == 2 && agg.netProfit == 15.0)
         ok("fixAgg-winrate", agg.winRate == 100.0)
     }
     // Mata uang kuotasi.
@@ -1481,7 +1491,7 @@ fun main() {
         ok("pair-modal", rBtc1.initialCapital == 1000.0 && rEth.initialCapital == 1000.0)
     }
     run {
-        // TF mengalir ke hasil & trade; breakeven-WIN tetap WIN; EXPIRED di penyebut
+        // TF mengalir ke hasil & trade; kategori laba berbasis tanda pnl
         var t = 1700000000000L; var p = 50000.0
         val up = (0 until 130).map {
             val o = p; val c = o * 1.001
@@ -1492,10 +1502,10 @@ fun main() {
             mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
         }, BacktestParams(timeframe = "1h", strategy = "ema_trend", filters = emptyList()))
         ok("tf-mengalir", r.timeframe == "1h" && r.trades.all { it.timeframe == "1h" })
-        // Klasifikasi impas-by-trigger: pnl 0 hasil WIN tetap WIN
+        // V30: pnl 0 = impas (bukan menang) — kategori berbasis tanda pnl.
         fun mkT(pnl: Double, res: String) = Trade("LONG", "BTCUSDT", "15m", 100.0, 101.0, 99.0, 102.0, 1L, 2L, "s", 0.5, emptyList(), 1.0, 10.0, 0.0, pnl, 1.0, 1.0, res, 1)
         val rB = buildResult(BacktestParams(), listOf(Candle(1L, 1.0, 1.0, 1.0, 1.0, 1.0)), listOf(mkT(0.0, "WIN"), mkT(-5.0, "LOSS")), emptyList(), 0.0)
-        ok("tf-impas", rB.wins == 1 && rB.winRate == 50.0) // penyebut termasuk semua selesai
+        ok("tf-impas", rB.breakeven == 1 && rB.wins == 0 && rB.losses == 1 && rB.winRate == 0.0) // impas di penyebut, bukan pembilang
     }
     run {
         // Konfigurasi berubah → identitas & isi berubah
@@ -2009,6 +2019,9 @@ fun main() {
     v27()
     v28()
     v29()
+    v30()
+    v31()
+    v32()
     println("\nHASIL-AKHIR: $pass pass, $fail fail")
     if (fail > 0) kotlin.system.exitProcess(1)
 }
@@ -2151,7 +2164,9 @@ fun v29() {
         val abl = java.io.File("aether-app/app/src/main/res/layout/activity_ablation.xml").readText()
         ok("small-sort", abl.contains("@+id/btnSortTrades") && abl.contains("@style/BtnSmall"))
         val set = java.io.File("aether-app/app/src/main/res/layout/activity_settings.xml").readText()
-        ok("small-stepper", set.contains("@style/BtnSmall"))
+        // V31: trailing virtual dihapus dari Settings (tak ada BtnSmall tersisa).
+        ok("v31-tanpa-stepper", !set.contains("swTrail") && !set.contains("trailLockTxt")
+            && !set.contains("btnTrailMinus") && !set.contains("btnTrailPlus"))
         val icp = java.io.File("aether-app/app/src/main/res/layout/item_custompair.xml").readText()
         ok("small-del", icp.contains("@style/BtnSmallDanger"))
     }
@@ -2173,6 +2188,320 @@ fun v29() {
         ok("prov-emerald", provStateColor(true, true, false) == 0xFF10B981.toInt())
         ok("prov-merah", provStateColor(false, true, false) == 0xFFF87171.toInt())
         ok("prov-amber", provStateColor(false, false, false) == 0xFFFBBF24.toInt())
+    }
+}
+
+fun v30() {
+    // ===== V30 BAGIAN 6: contoh spesifikasi, dihitung tangan. =====
+    fun mkT(pnl: Double) = Trade("LONG", "BTCUSDT", "15m", 100.0, 101.0, 99.0, 102.0,
+        1L, 2L, "s", 0.5, emptyList(), 1.0, 10.0, 0.0, pnl, 1.0, 1.0,
+        if (pnl > 0) "WIN" else if (pnl < 0) "LOSS" else "EXPIRED", 1)
+    fun mkC() = listOf(Candle(1L, 1.0, 1.0, 1.0, 1.0, 1.0), Candle(86400001L, 1.0, 1.0, 1.0, 1.0, 1.0))
+    run {
+        // 100 selesai: 60 untung (+5), 35 rugi (-2), 5 impas (0) → WR 60%.
+        val ts = (1..60).map { mkT(5.0) } + (1..35).map { mkT(-2.0) } + (1..5).map { mkT(0.0) }
+        val r = buildResult(BacktestParams(), mkC(), ts, emptyList(), 0.0)
+        ok("s30-winrate60", r.winRate == 60.0 && r.wins == 60 && r.losses == 35 && r.breakeven == 5)
+        ok("s30-reconcile60", reconcileResult(r).isEmpty(), reconcileResult(r).joinToString(";"))
+    }
+    run {
+        // PF: GP 300 / GL 150 → 2.0.
+        val ts = listOf(mkT(300.0), mkT(-150.0))
+        val r = buildResult(BacktestParams(), mkC(), ts, emptyList(), 0.0)
+        ok("s30-pf2", r.profitFactor == 2.0 && r.grossProfit == 300.0 && r.grossLoss == -150.0)
+    }
+    run {
+        // DD: 1000 → 1200 → 900 → maks 300 / 25%.
+        val curve = listOf(EquityPoint(1L, 1000.0), EquityPoint(2L, 1200.0), EquityPoint(3L, 900.0))
+        val w = ddWindows(curve)!!
+        ok("s30-dd", w.ddPct == 25.0 && w.peakT == 2L && w.troughT == 3L)
+        val r = buildResult(BacktestParams(initialCapital = 1000.0), mkC(),
+            listOf(mkT(200.0), mkT(-300.0)), curve, 0.25)
+        ok("s30-dd-nominal", r.maxDrawdown == 250.0 && r.maxDrawdownPercent == 25.0)
+        ok("s30-dd-reconcile", reconcileResult(r).isEmpty(), reconcileResult(r).joinToString(";"))
+    }
+    run {
+        // Ekuitas: 1000 + 150 → 1150.
+        val r = buildResult(BacktestParams(initialCapital = 1000.0), mkC(),
+            listOf(mkT(200.0), mkT(-50.0)),
+            listOf(EquityPoint(1L, 1000.0), EquityPoint(2L, 1200.0), EquityPoint(3L, 1150.0)), 50.0 / 1200.0)
+        ok("s30-equity", r.finalCapital == 1150.0 && r.netProfit == 150.0 && r.netProfitPercent == 15.0)
+    }
+    // Kasus batas: tanpa trade / hanya untung / hanya rugi / semua impas.
+    run {
+        val n0 = buildResult(BacktestParams(), mkC(), emptyList(), emptyList(), 0.0)
+        ok("s30-nol", n0.totalTrades == 0 && n0.profitFactor == 0.0 && reconcileResult(n0).isEmpty())
+        val wOnly = buildResult(BacktestParams(), mkC(), listOf(mkT(10.0)), emptyList(), 0.0)
+        ok("s30-hanya-untung", wOnly.profitFactor.isInfinite() && wOnly.averageLoss == 0.0)
+        val lOnly = buildResult(BacktestParams(), mkC(), listOf(mkT(-10.0)), emptyList(), 0.0)
+        ok("s30-hanya-rugi", lOnly.profitFactor == 0.0 && lOnly.averageWin == 0.0 && lOnly.winRate == 0.0)
+        val be = buildResult(BacktestParams(), mkC(), listOf(mkT(0.0), mkT(0.0)), emptyList(), 0.0)
+        ok("s30-impas", be.breakeven == 2 && be.wins == 0 && be.losses == 0 && be.winRate == 0.0
+            && be.profitFactor == 0.0 && reconcileResult(be).isEmpty())
+    }
+    // Pembatalan kooperatif mesin: langsung + di tengah jalan.
+    run {
+        val d = demo(300)
+        val langsung = runBacktest(d, BacktestParams(), isCancelled = { true })
+        ok("s30-batal-langsung", langsung.error?.startsWith("Dibatalkan") == true && langsung.totalTrades == 0)
+        var n = 0
+        val tengah = runBacktest(d, BacktestParams(), isCancelled = { ++n > 50 })
+        ok("s30-batal-tengah", tengah.error?.startsWith("Dibatalkan") == true)
+        val normal = runBacktest(d, BacktestParams())
+        ok("s30-tak-batal", normal.error == null && normal.totalTrades > 0)
+        ok("s30-reconcile-demo", reconcileResult(normal).isEmpty(), reconcileResult(normal).joinToString(";"))
+        // TP2: kaki ganda tetap berekonsiliasi (definisi: 1 kaki = 1 baris).
+        val tp2 = runBacktest(d, BacktestParams(tpMode = 2))
+        ok("s30-tp2-reconcile", tp2.error == null && reconcileResult(tp2).isEmpty(),
+            reconcileResult(tp2).joinToString(";") + " tr=${tp2.totalTrades}")
+    }
+    // Wiring sumber (bukan klaim): runSeq, clearEquity, isCancelled, Batal, DIBATALKAN, agregat.
+    run {
+        val bt = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("s30-runseq", bt.contains("mySeq != runSeq") && bt.contains("val mySeq = ++runSeq"))
+        ok("s30-clear", bt.contains("clearEquityForNewRun("))
+        ok("s30-iscancel", bt.contains("isCancelled = { cancelled }"))
+        ok("s30-batal-idle", bt.contains("Tidak ada backtest yang berjalan"))
+        ok("s30-dibatalkan", bt.contains("DIBATALKAN") && bt.contains("bukan hasil lengkap"))
+        ok("s30-agregat", bt.contains("aggregateOverall(App.multiRows") && bt.contains("MULTI ("))
+        ok("s30-id-nama", bt.contains("Jumlah Transaksi (Total Trades)")
+            && bt.contains("Tingkat Kemenangan (Win Rate)")
+            && bt.contains("Faktor Profitabilitas (Profit Factor)")
+            && bt.contains("Penurunan Ekuitas Maksimum (Max Drawdown)"))
+        ok("s30-reconcile-ui", bt.contains("reconcileResult(r)"))
+        val uk = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/UiKit.kt").readText()
+        ok("s30-cancel-state", uk.contains("btnCancel.isEnabled = false") && uk.contains("btnCancel.isEnabled = true"))
+        val lay = java.io.File("aether-app/app/src/main/res/layout/activity_backtest.xml").readText()
+        val rowRun = lay.substringAfter("@+id/btnRun").substringBefore("@+id/status")
+        ok("s30-run-batal-setara", rowRun.contains("@+id/btnCancel") && rowRun.contains("layout_weight=\"1\""))
+    }
+    // Jarak tombol: semua baris horizontal berisi ≥2 tombol wajib berjarak 8dp.
+    run {
+        val dir = java.io.File("aether-app/app/src/main/res/layout")
+        var rapat = 0
+        val rowRe = Regex("""<LinearLayout\b[^>]*orientation="horizontal"[^>]*>(.*?)</LinearLayout>""", RegexOption.DOT_MATCHES_ALL)
+        val btnRe = Regex("""<Button\b""")
+        for (f in dir.listFiles()!!.filter { it.name.endsWith(".xml") }) {
+            for (m in rowRe.findAll(f.readText())) {
+                val body = m.groupValues[1]
+                if (body.contains("<LinearLayout")) continue
+                if (btnRe.findAll(body).count() >= 2 && !body.contains("<Space")) {
+                    rapat++
+                    println("  RAPAT ${f.name}")
+                }
+            }
+        }
+        ok("s30-jarak", rapat == 0, "baris-rapat=$rapat")
+    }
+}
+
+fun v31() {
+    // ===== V31 BAGIAN 6: default + desimal + trailing + notif + settings. =====
+    run {
+        // Default persen → kelipatan: TP 2%, TP2 2,5% → 1,25× (bukan 25%/0,025).
+        val (m2, m3) = tpMultsFromPct(2.0, 2.5, 3.5)
+        ok("d31-mult", m2 == 1.25 && m3 == 1.75, "$m2/$m3")
+        ok("d31-desimal", 2.5 / 100 == 0.025 && 2.5 / 100 != 0.25 && 2.5 / 100 != 0.00025)
+        val p = sanitizeParams(BacktestParams(slPercent = 0.01, tpPercent = 0.02,
+            tp2Mult = m2, tp3Mult = m3, trailDistPct = 0.01, trailActPct = 0.01))
+        ok("d31-sanitize", p.slPercent == 0.01 && p.tpPercent == 0.02
+            && p.tp2Mult == 1.25 && p.tp3Mult == 1.75
+            && p.trailDistPct == 0.01 && p.trailActPct == 0.01)
+        // Batas clamp fraksi (0,05%–50%).
+        val c = sanitizeParams(BacktestParams(trailDistPct = 99.0, trailActPct = -1.0))
+        ok("d31-clamp", c.trailDistPct == 0.5 && c.trailActPct == 0.0005)
+    }
+    run {
+        // trailExitPrice LONG: tak aktif di bawah ambang; aktif lalu ratchet.
+        val st = TrailSim()
+        ok("t31-gate", trailExitPrice("LONG", 100.0, 100.5, 99.5, 0.01, 0.01, st) == null && !st.active)
+        ok("t31-aktif", trailExitPrice("LONG", 100.0, 101.5, 100.8, 0.01, 0.01, st) == null
+            && st.active && st.extreme == 101.5 && st.stop == 101.5 * 0.99)
+        // Harga berbalik 101.5→100.9: stop tetap (tak turun), belum sentuh.
+        ok("t31-tahan", trailExitPrice("LONG", 100.0, 100.9, 100.7, 0.01, 0.01, st) == null
+            && st.stop == 101.5 * 0.99)
+        trailRatchet("LONG", 100.9, 100.7, 0.01, st)
+        ok("t31-ratchet-tetap", st.extreme == 101.5 && st.stop == 101.5 * 0.99)
+        // Kenaikan ke 103: extreme + stop naik.
+        trailRatchet("LONG", 103.0, 102.0, 0.01, st)
+        ok("t31-ratchet-naik", st.extreme == 103.0 && st.stop == 103.0 * 0.99)
+        // Sentuh: low ≤ stop → keluar pada stop.
+        ok("t31-sentuh", trailExitPrice("LONG", 100.0, 102.5, 101.0, 0.01, 0.01, st) == 103.0 * 0.99)
+        // SHORT cermin: tak aktif, aktif, tak naik saat berbalik, sentuh.
+        val ss = TrailSim()
+        ok("t31S-gate", trailExitPrice("SHORT", 100.0, 100.5, 99.5, 0.01, 0.01, ss) == null && !ss.active)
+        ok("t31S-aktif", trailExitPrice("SHORT", 100.0, 98.5, 98.0, 0.01, 0.01, ss) == null
+            && ss.active && ss.extreme == 98.0 && ss.stop == 98.0 * 1.01)
+        trailRatchet("SHORT", 99.0, 98.5, 0.01, ss)
+        ok("t31S-tak-naik", ss.extreme == 98.0 && ss.stop == 98.0 * 1.01)
+        trailRatchet("SHORT", 97.5, 96.0, 0.01, ss)
+        ok("t31S-turun", ss.extreme == 96.0 && ss.stop == 96.0 * 1.01)
+        ok("t31S-sentuh", trailExitPrice("SHORT", 100.0, 97.5, 96.5, 0.01, 0.01, ss) == 96.0 * 1.01)
+    }
+    run {
+        // Ujung-ke-ujung deterministik (pola rising62 terbukti): 61 bar naik
+        // +0,1% → sinyal LONG ema_trend di i=60, entry di open bar 61.
+        // Ekor bar 61: high +1,2% (aktivasi ≥1%), low −0,05% (sentuh stop
+        // +0,19% tanpa menyentuh SL −1% / TP +2%) → kaki TRAIL.
+        var t = 1700000000000L; var p = 90.0
+        val cs = ArrayList<Candle>()
+        for (k in 0..60) {
+            val o = p; val c = o * 1.001
+            cs.add(Candle(t, o, c * 1.001, o * 0.9995, c, 100.0)); t += 900000L; p = c
+        }
+        val o61 = p
+        cs.add(Candle(t, o61, o61 * 1.012, o61 * 0.9995, o61 * 1.005, 100.0))
+        val raw = cs.map {
+            mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any?
+        }
+        val base = BacktestParams(asset = "BTCUSDT", timeframe = "15m", strategy = "ema_trend",
+            filters = emptyList(), slPercent = 0.01, tpPercent = 0.02)
+        val off = runBacktest(raw, base.copy(trailOn = false))
+        ok("t31-off-bukan-trail", off.error == null && off.totalTrades == 1
+            && off.trades.first().result == "EXPIRED")
+        val on = runBacktest(raw, base.copy(trailOn = true, trailDistPct = 0.01, trailActPct = 0.01))
+        ok("t31-on-satu", on.error == null && on.totalTrades == 1, "err=${on.error} tr=${on.totalTrades}")
+        val tr = on.trades.firstOrNull()
+        val entry = o61 * 1.0002
+        val stopPx = o61 * 1.012 * 0.99
+        ok("t31-trail-leg", tr != null && tr.result == "TRAIL" && tr.exitTime == cs[61].t
+            && kotlin.math.abs(tr.exit - stopPx * 0.9998) < 1e-9 * stopPx,
+            "res=${tr?.result} exit=${tr?.exit} exp=${stopPx * 0.9998}")
+        ok("t31-trail-alasan", tr != null && tr.reasons.any { r -> r.contains("TRAIL") })
+        ok("t31-trail-untung", tr != null && tr.pnl > 0)
+        ok("t31-reconcile", reconcileResult(on).isEmpty(), reconcileResult(on).joinToString(";"))
+        // Replay cermin identik dengan trailing aktif.
+        val sess = com.aether.signal.premium.ui.ReplaySession(cs, base.copy(trailOn = true,
+            trailDistPct = 0.01, trailActPct = 0.01))
+        var guard = 0
+        while (sess.step() != null && guard++ < 5000) { /* maju */ }
+        val rt = sess.tradesSoFar()
+        ok("t31-replay-sama", rt.size == 1 && rt.first().result == "TRAIL"
+            && rt.first().exit == on.trades.first().exit && rt.first().pnl == on.trades.first().pnl)
+        // Demo multi-trade + trailing: tetap berekonsiliasi.
+        val d = demo(300)
+        val dm = runBacktest(d, BacktestParams(strategy = "ema_trend", filters = emptyList(),
+            slPercent = 0.01, tpPercent = 0.02, trailOn = true, trailDistPct = 0.01, trailActPct = 0.01))
+        ok("t31-demo-reconcile", dm.error == null && reconcileResult(dm).isEmpty(),
+            (dm.error ?: reconcileResult(dm).joinToString(";")) + " tr=${dm.totalTrades}" +
+                " trail=${dm.trades.count { it.result == "TRAIL" }}")
+        // Notifikasi: label + filter riwayat mencakup trail.
+        ok("t31-label", notifKindLabel("trail_on") == "Trailing stop aktif"
+            && notifKindLabel("trail_move") == "Trailing stop bergerak"
+            && notifKindLabel("trail_hit") == "Trailing stop hit")
+        val recs = listOf(
+            com.aether.signal.premium.ui.NotifRec(1L, "trail_on", "BTCUSDT", "15m", "LONG", 1.0, "DIKIRIM"),
+            com.aether.signal.premium.ui.NotifRec(2L, "entry", "BTCUSDT", "15m", "LONG", 1.0, "DIKIRIM"))
+        ok("t31-filter", filterNotifHistory(recs, "", "trail", "all").size == 1
+            && filterNotifHistory(recs, "", "all", "all").size == 2)
+        ok("t31-win", isWinTrade(Trade("LONG", "BTCUSDT", "15m", 100.0, 101.0, 99.0, 102.0,
+            1L, 2L, "s", 0.5, emptyList(), 1.0, 10.0, 0.0, 5.0, 1.0, 1.0, "TRAIL", 1)))
+    }
+    // Wiring sumber: layout + kode + impor/ekspor + BotEngine utuh.
+    run {
+        val bt = java.io.File("aether-app/app/src/main/res/layout/activity_backtest.xml").readText()
+        ok("t31-lay-trail", bt.contains("@+id/swTrailBt") && bt.contains("@+id/inTrailDist")
+            && bt.contains("@+id/inTrailAct") && bt.contains("@+id/trailSummary")
+            && bt.contains("TP2 %") && bt.contains("TP3 %"))
+        val ba = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("t31-ui-trail", ba.contains("App.btTrailOn") && ba.contains("paintTrailSummary()"))
+        val ap = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/AppState.kt").readText()
+        ok("t31-default", ap.contains("var slPct: Double = 1.0") && ap.contains("var tpPct: Double = 2.0")
+            && ap.contains("var tp2Pct: Double = 2.5") && ap.contains("var tp3Pct: Double = 3.5"))
+        val nb = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/NotifBus.kt").readText()
+        ok("t31-notif", nb.contains("trailNotifOn") && nb.contains("dryrun-trail")
+            && nb.contains("fun trailEvent("))
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        ok("t31-engine-utuh", be.contains("App.trailOn") && be.contains("trailDistance(open.entry, open.tp, App.trailLockPct)")
+            && be.contains("forgetTrailNotify"))
+        val se = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/SettingsActivity.kt").readText()
+        ok("t31-export", se.contains("\"btTrail\"") && se.contains("App.btTrailOn"))
+        val ci = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/ConfigImport.kt").readText()
+        ok("t31-import", ci.contains("btTrail") && ci.contains("\"trail\""))
+    }
+}
+
+fun v32() {
+    // ===== V32 UJI A: paritas backtest vs evaluasi gaya-engine, data sama.
+    // Fungsi bersama (decideAt/applyFilters) harus mendeteksi entry yang sama
+    // pada bar yang sama — kaki backtest ⊆ bar lolos evaluasi engine.
+    run {
+        val raw = demo(500)
+        val params = BacktestParams(asset = "BTCUSDT", timeframe = "15m",
+            strategy = "ema_trend", filters = emptyList())
+        val r = runBacktest(raw, params)
+        ok("parA-jalan", r.error == null && r.totalTrades > 0, "tr=${r.totalTrades}")
+        val candles = normalizeCandles(raw)
+        val cache = buildCache(candles)
+        val times = candles.map { it.t }
+        val fx = FilterCtx(lastExit = -1000000000)
+        val passes = HashSet<Int>()
+        for (i in 60 until candles.size - 1) {
+            val dec = decideAt(candles, i, cache, params)
+            if (!dec.passed) continue
+            val fr = applyFilters(candles, i, cache, dec.direction, emptyList(), fx)
+            if (fr.passed) passes.add(i)
+        }
+        var kurang = 0
+        for (t in r.trades) {
+            val j = times.indexOf(t.entryTime)
+            if (j < 1 || !passes.contains(j - 1)) kurang++
+        }
+        ok("parA-subset", kurang == 0, "di-luar=${kurang} kaki=${r.totalTrades}")
+        ok("parA-reconcile", reconcileResult(r).isEmpty())
+    }
+    // ===== V32: telemetri + alasan baru (numerik). =====
+    run {
+        EngineDiag.beginTick()
+        val t0 = EngineDiag.totalTicks
+        EngineDiag.beginTick()
+        ok("d32-ticks", EngineDiag.totalTicks == t0 + 1)
+        EngineDiag.noteFilterReject("volume lemah")
+        EngineDiag.noteFilterReject("volume lemah")
+        EngineDiag.noteFilterReject("cooldown")
+        EngineDiag.noteStored()
+        val s = EngineDiag.snapshot(true, "s", "15m", listOf("BTCUSDT"), 0, 0)
+        ok("d32-top", s.filterTop.isNotEmpty() && s.filterTop[0].first == "volume lemah"
+            && s.filterTop[0].second == 2)
+        ok("d32-signal-at", s.lastSignalAt > 0 && s.stored == 1)
+        EngineDiag.beginTick()
+        val s2 = EngineDiag.snapshot(true, "s", "15m", emptyList(), 0, 0)
+        ok("d32-reset-pertick", s2.filterTop.isEmpty() && s2.stored == 0 && s2.totalTicks == s.totalTicks + 1)
+        // Loop macet: tick >5 mnt lalu.
+        ok("d32-macet", noSignalReason(true, 2, 2, 0, 0, 0, 0, 2, 1000L, 1000L + 400000L)
+            .contains("tidak merespons"))
+        // Posisi penuh tanpa kandidat → pesan posisi (bukan "entry belum").
+        ok("d32-penuh", noSignalReason(true, 2, 2, 0, 0, 0, 2, 2, 5000L, 6000L, 2)
+            .contains("posisi terbuka"))
+        val tM = formatEngineDiag(
+            EngineDiagSnapshot(true, 1000L, 1000L, 2000L, "ema_trend", "15m", listOf("BTCUSDT"),
+                2, 2, 3, 1, 0, 0, 0, 0, 0, 0L, 0, emptyList(), "selesai", "",
+                9, 2, 1, 0, listOf("volume lemah" to 2), 0L),
+            "ema_trend", "15m", "binance", true, true, false, 0, 0, 0, 15, 1000L + 400000L)
+        ok("d32-tidak-merespons", tM.contains("TIDAK MERESPON"))
+        ok("d32-longs", tM.contains("LONG 2/SHORT 1") && tM.contains("Total tick sesi: 9"))
+        val tD = formatEngineDiag(
+            EngineDiagSnapshot(true, 1000L, 59000L, 59000L, "ema_trend", "15m", listOf("BTCUSDT", "ETHUSDT"),
+                2, 0, 0, 0, 0, 0, 0, 0, 0, 0L, 2, listOf("BTCUSDT" to "451", "ETHUSDT" to "451"), "selesai", ""),
+            "ema_trend", "15m", "binance", true, true, false, 0, 0, 0, 15, 60000L)
+        ok("d32-degraded", tD.contains("TERDEGRADASI"))
+    }
+    // ===== V32: sumber data + wiring (bukan klaim). =====
+    run {
+        val now = 1700000000000L
+        ok("d32-via", regimeLine("BTCUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "", true, "disk-cache 12:00"),
+            Regime("Tren naik", false, now), true, now).contains("via disk-cache"))
+        ok("d32-tanpa-via", !regimeLine("BTCUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "", true, "none"),
+            Regime("Tren naik", false, now), true, now).contains("via"))
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        ok("d32-dua-bar", be.contains("candles.size - 2") && be.contains("positions.any"))
+        ok("d32-jaga-loop", be.contains("tak boleh membunuh scheduler") && be.contains("error scheduler"))
+        ok("d32-jejak", be.contains("noteFilterReject") && be.contains("noteStored()")
+            && be.contains("blockedPosition++") && be.contains("candLong++"))
+        val dash = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/DashboardActivity.kt").readText()
+        ok("d32-status-jujur", dash.contains("TERDEGRADASI") && dash.contains("TIDAK MERESPON"))
     }
 }
 

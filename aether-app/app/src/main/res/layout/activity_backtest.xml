@@ -59,14 +59,15 @@
                     <Button android:id="@+id/btnComboAll" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Pilih Semua" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnComboClear" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Hapus Semua" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <TextView android:id="@+id/comboCount" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
-                        android:gravity="center_vertical|end" />
-                </LinearLayout>
+                        android:gravity="center_vertical|end" /></LinearLayout>
                 <ListView android:id="@+id/comboList" android:layout_width="match_parent"
                     android:layout_height="220dp" android:layout_marginTop="8dp"
                     android:choiceMode="multipleChoice" android:fastScrollEnabled="true"
@@ -162,26 +163,28 @@
                     <Button android:id="@+id/presetLoose" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Longgar" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/presetBal" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Seimbang" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/presetStrict" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Ketat" style="@style/BtnViolet" />
-                </LinearLayout>
+                        android:text="Ketat" style="@style/BtnViolet" /></LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnFilterAll" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Pilih Semua" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnFilterClear" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Hapus Semua" style="@style/BtnSlate" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <TextView android:id="@+id/filterCount" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:textColor="@color/mut" android:textSize="12sp"
-                        android:gravity="center_vertical|end" />
-                </LinearLayout>
+                        android:gravity="center_vertical|end" /></LinearLayout>
                 <ListView android:id="@+id/filterList" android:layout_width="match_parent"
                     android:layout_height="240dp" android:layout_marginTop="8dp"
                     android:choiceMode="multipleChoice" android:fastScrollEnabled="true"
@@ -206,15 +209,16 @@
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Konservatif" style="@style/BtnViolet"
                         android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnPresetBalanced" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Seimbang" style="@style/BtnViolet"
                         android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnPresetAggressive" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Agresif" style="@style/BtnViolet"
-                        android:textSize="11sp" />
-                </LinearLayout>
+                        android:textSize="11sp" /></LinearLayout>
                 <TextView android:id="@+id/riskPresetStatus" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
@@ -260,28 +264,62 @@
                         android:layout_weight="1" android:id="@+id/segTp3" android:text="TP3" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="TP2 menutup 50/50 di TP1→TP2. TP3 menutup sepertiga di TP1→TP2→TP3. TP2 = kelipatan jarak TP1 di bawah; SL menutup seluruh sisa."
+                    android:text="TP2 menutup 50/50 di TP1→TP2. TP3 menutup sepertiga di TP1→TP2→TP3. TP2/TP3 = jarak persen absolut dari entry (bukan harga). SL menutup seluruh sisa."
                     android:textColor="@color/mut" android:textSize="11sp"
                     android:layout_marginTop="4dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" style="@style/Field" android:hint="TP2 × jarak">
+                        android:layout_weight="1" style="@style/Field" android:hint="TP2 %">
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/inTp2m" android:layout_width="match_parent"
+                            android:id="@+id/inTp2Pct" android:layout_width="match_parent"
                             android:layout_height="wrap_content" android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" style="@style/Field" android:hint="TP3 × jarak">
+                        android:layout_weight="1" style="@style/Field" android:hint="TP3 %">
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/inTp3m" android:layout_width="match_parent"
+                            android:id="@+id/inTp3Pct" android:layout_width="match_parent"
                             android:layout_height="wrap_content" android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
                 <TextView android:id="@+id/tpSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="TRAILING STOP BACKTEST" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swTrailBt" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Aktifkan Trailing Stop"
+                    android:textColor="@color/txt" android:layout_marginTop="4dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Mati = SL/TP biasa. Aktif = stop mengikuti extreme setelah untung ≥ aktivasi; hanya menguat; menutup seluruh sisa (bukan TP biasa)."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Jarak trailing %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTrailDist" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Aktivasi untung %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTrailAct" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <TextView android:id="@+id/trailSummary" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
                 <Button android:id="@+id/btnRiskReset" android:layout_width="match_parent"
@@ -424,8 +462,9 @@
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="▶  Run Backtest" style="@style/BtnPrimary" />
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnCancel" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Batal"
+                    <Button android:id="@+id/btnCancel" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Batal"
                         style="@style/BtnGhost" />
                 </LinearLayout>
                 <TextView android:id="@+id/status" android:layout_width="match_parent"
@@ -549,15 +588,17 @@
                     android:gravity="center_vertical">
                     <Button android:id="@+id/tradePrev" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="‹" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <TextView android:id="@+id/tradePage" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:gravity="center" android:textColor="@color/mut"
                         android:textSize="12sp" android:fontFamily="monospace" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnCyan" />
-                </LinearLayout>
+                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnCyan" /></LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />

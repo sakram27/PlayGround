@@ -29,16 +29,18 @@
                     <Button android:id="@+id/btnCol1" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="1 bln" style="@style/BtnViolet" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnCol3" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="3 bln" style="@style/BtnViolet" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnCol6" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="6 bln" style="@style/BtnViolet" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnCol12" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="12 bln" style="@style/BtnViolet" android:textSize="11sp" />
-                </LinearLayout>
+                        android:text="12 bln" style="@style/BtnViolet" android:textSize="11sp" /></LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnColTf" android:layout_width="0dp"

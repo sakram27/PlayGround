@@ -3372,8 +3372,6 @@ id btnTfA
 id btnTfB
 id btnTfC
 id btnTop5
-id btnTrailMinus
-id btnTrailPlus
 id btnWalkFwd
 id btnWatchLimit
 id btnWf2
@@ -3585,6 +3583,7 @@ id histKindEntry
 id histKindGroup
 id histKindSl
 id histKindTp
+id histKindTrail
 id histList
 id histSearch
 id histStatus
@@ -3612,8 +3611,10 @@ id inRisk
 id inSl
 id inTo
 id inTp
-id inTp2m
-id inTp3m
+id inTp2Pct
+id inTp3Pct
+id inTrailAct
+id inTrailDist
 id inWatchLimit
 id included
 id indeterminate
@@ -3941,10 +3942,11 @@ id swNotifEntry
 id swNotifSl
 id swNotifSound
 id swNotifTp
+id swNotifTrail
 id swNotifVibrate
 id swQuiet
 id swSaver
-id swTrail
+id swTrailBt
 id sym
 id tabMode
 id tabs
@@ -3994,7 +3996,7 @@ id tradeList
 id tradeNext
 id tradePage
 id tradePrev
-id trailLockTxt
+id trailSummary
 id transitionToEnd
 id transitionToStart
 id transition_clip

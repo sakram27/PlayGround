@@ -25,9 +25,14 @@ data class ReplayOpen(
     val targets: List<Double> = emptyList(),
     val fracs: List<Double> = emptyList(),
     val leg: Int = 0,
-    val remaining: Double = Double.NaN
+    val remaining: Double = Double.NaN,
+    // V31: cermin trailing mesin (default = mati/awal, kompatibel).
+    val trailActive: Boolean = false,
+    val trailExtreme: Double = Double.NaN,
+    val trailStop: Double = Double.NaN
 ) {
     fun rem(qtyOrig: Double): Double = if (remaining.isFinite()) remaining else qtyOrig
+    fun tst(): TrailSim = TrailSim(trailActive, trailExtreme, trailStop)
 }
 
 /** Ringkasan indikator pada satu bar (NaN = belum siap → UI tampil "—"). */
@@ -292,27 +297,56 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             slHit = b.h >= op.sl
             tpHit = op.leg < tgts.size && b.l <= tgts[op.leg]
         }
+        // V31: cermin trailing mesin (cek stop lama → menang = harga terburuk).
+        var trailHit = false
+        var trailPx = Double.NaN
+        val tst = op.tst()
+        if (params.trailOn) {
+            val hit = trailExitPrice(op.dir, op.entry, b.h, b.l,
+                params.trailActPct, params.trailDistPct, tst)
+            if (hit != null && hit.isFinite() && hit > 0) {
+                trailHit = true
+                trailPx = if (op.dir == "LONG") hit * (1 - params.slippagePercent)
+                    else hit * (1 + params.slippagePercent)
+            }
+        }
         // kind==null → tahan (atau EXPIRED bila di/past lastJ dengan sisa).
         var kind: String? = null
         var ex = 0.0
         var qClose = 0.0
         var tgt = op.tp
-        if (slHit) {
-            ex = if (op.dir == "LONG") op.sl * (1 - params.slippagePercent) else op.sl * (1 + params.slippagePercent)
-            kind = "SL"; qClose = rem
-        } else if (tpHit) {
-            val isLast = op.leg >= tgts.size - 1
-            qClose = if (isLast) rem else qtyOrig * frs.getOrElse(op.leg) { 1.0 }
-            ex = if (op.dir == "LONG") tgts[op.leg] * (1 - params.slippagePercent) else tgts[op.leg] * (1 + params.slippagePercent)
-            kind = "TP${op.leg + 1}"; tgt = tgts[op.leg]
+        var newTrail = tst
+        if (slHit || tpHit || trailHit) {
+            data class Cand(val px: Double, val k: String)
+            val cands = ArrayList<Cand>()
+            if (slHit) cands.add(Cand(
+                if (op.dir == "LONG") op.sl * (1 - params.slippagePercent) else op.sl * (1 + params.slippagePercent), "SL"))
+            if (tpHit) cands.add(Cand(
+                if (op.dir == "LONG") tgts[op.leg] * (1 - params.slippagePercent) else tgts[op.leg] * (1 + params.slippagePercent), "TP${op.leg + 1}"))
+            if (trailHit) cands.add(Cand(trailPx, "TRAIL"))
+            val rank = mapOf("SL" to 0, "TRAIL" to 1)
+            val win = if (op.dir == "LONG") cands.minWithOrNull(compareBy({ it.px }, { rank[it.k] ?: 2 }))
+                else cands.maxWithOrNull(compareBy({ it.px }, { -(rank[it.k] ?: 2) }))
+            if (win != null && (win.k == "SL" || win.k == "TRAIL")) {
+                ex = win.px; kind = win.k; qClose = rem
+            } else if (win != null) {
+                val isLast = op.leg >= tgts.size - 1
+                qClose = if (isLast) rem else qtyOrig * frs.getOrElse(op.leg) { 1.0 }
+                ex = win.px
+                kind = "TP${op.leg + 1}"; tgt = tgts[op.leg]
+            }
         } else if (i >= op.lastJ && rem / qtyOrig > 1e-9) {
             val lb = cs[op.lastJ]
             ex = if (op.dir == "LONG") lb.c * (1 - params.slippagePercent) else lb.c * (1 + params.slippagePercent)
             kind = "EXPIRED"; qClose = rem
+        } else if (params.trailOn) {
+            trailRatchet(op.dir, b.h, b.l, params.trailDistPct, tst)
+            newTrail = tst
         }
         cursor++
         if (kind == null) {
-            val f = base.copy(open = open, equity = equity)
+            val f = base.copy(open = open?.copy(trailActive = newTrail.active,
+                trailExtreme = newTrail.extreme, trailStop = newTrail.stop), equity = equity)
             frames.add(f)
             return f
         }
@@ -336,6 +370,7 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
         val result = when (kind) {
             "SL" -> "LOSS"
             "EXPIRED" -> "EXPIRED"
+            "TRAIL" -> "TRAIL"
             else -> "WIN"
         }
         val legNo = op.leg
@@ -350,8 +385,11 @@ class ReplaySession(rawCandles: List<Candle>, rawParams: BacktestParams) {
             uid = "${params.asset}|${op.dir}|${cs[op.entryIdx].t}|${cs[i].t}|leg$legNo"
         )
         trades.add(t)
-        open = if (kind == "SL" || kind == "EXPIRED" || op.leg >= tgts.size - 1) null
-        else op.copy(leg = op.leg + 1, remaining = rem - qClose)
+        open = if (kind == "SL" || kind == "TRAIL" || kind == "EXPIRED" || op.leg >= tgts.size - 1) null
+        else op.copy(leg = op.leg + 1, remaining = rem - qClose,
+            // V31: aktivasi trailing bar ini terbawa (cermin mesin: state
+            // tst termutasi walau TP yang menang; ratchet hanya di bar hold).
+            trailActive = newTrail.active, trailExtreme = newTrail.extreme, trailStop = newTrail.stop)
         if (open == null) fctx.lastExit = i // cermin mesin: cooldown dihitung dari exit final
         val f = base.copy(closed = t, open = open, equity = equity)
         frames.add(f)

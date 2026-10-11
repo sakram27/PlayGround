@@ -53,7 +53,7 @@ fun driftReport(liveWins: Int, liveLosses: Int, exp: DriftExpect?): DriftReport 
     val liveWR = liveWins.toDouble() / n * 100
     val dWR = liveWR - exp.winRate
     // PF live dalam satuan peristiwa: menang=+1, kalah=−1.
-    val livePF = if (liveLosses > 0) liveWins.toDouble() / liveLosses else if (liveWins > 0) 999.0 else 0.0
+    val livePF = if (liveLosses > 0) liveWins.toDouble() / liveLosses else if (liveWins > 0) Double.POSITIVE_INFINITY else 0.0
     val dPF = if (exp.profitFactor.isFinite() && exp.profitFactor > 0 && livePF.isFinite()) {
         (livePF - exp.profitFactor) / exp.profitFactor * 100
     } else null

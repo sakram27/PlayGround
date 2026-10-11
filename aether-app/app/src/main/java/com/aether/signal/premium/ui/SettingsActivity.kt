@@ -103,16 +103,19 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         val swE = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifEntry)
         val swS = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifSl)
         val swT = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifTp)
+        val swTrN = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifTrail)
         val swSo = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifSound)
         val swV = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swNotifVibrate)
         swE.isChecked = NotifBus.entryOn
         swS.isChecked = NotifBus.slOn
         swT.isChecked = NotifBus.tpOn
+        swTrN.isChecked = NotifBus.trailNotifOn
         swSo.isChecked = NotifBus.soundOn
         swV.isChecked = NotifBus.vibrateOn
         swE.setOnCheckedChangeListener { _, on -> NotifBus.entryOn = on; paintNotifStatus() }
         swS.setOnCheckedChangeListener { _, on -> NotifBus.slOn = on; paintNotifStatus() }
         swT.setOnCheckedChangeListener { _, on -> NotifBus.tpOn = on; paintNotifStatus() }
+        swTrN.setOnCheckedChangeListener { _, on -> NotifBus.trailNotifOn = on; paintNotifStatus() }
         swSo.setOnCheckedChangeListener { _, on -> NotifBus.soundOn = on; paintNotifStatus() }
         swV.setOnCheckedChangeListener { _, on -> NotifBus.vibrateOn = on; paintNotifStatus() }
         findViewById<MaterialButton>(R.id.btnNotifPerm).setOnClickListener { requestNotifPerm() }
@@ -132,29 +135,12 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             snack(this, if (on) "Digest per jam aktif: entry digabung, SL/TP tetap langsung."
             else "Digest mati: tiap entry berbunyi sendiri.")
         }
-        val swTr = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.swTrail)
-        swTr.setOnCheckedChangeListener(null)
-        swTr.isChecked = App.trailOn
-        swTr.setOnCheckedChangeListener { _, on ->
-            App.trailOn = on
-            snack(this, if (on) "Trailing virtual aktif (paper saja)."
-            else "Trailing mati. State tersimpan dipertahankan.")
-        }
-        paintTrailLock()
-        findViewById<MaterialButton>(R.id.btnTrailMinus).setOnClickListener {
-            App.trailLockPct = App.trailLockPct - 5; paintTrailLock()
-        }
-        findViewById<MaterialButton>(R.id.btnTrailPlus).setOnClickListener {
-            App.trailLockPct = App.trailLockPct + 5; paintTrailLock()
-        }
+        // V31: opsi Trailing Stop Virtual DIHAPUS dari UI (membingungkan).
+        // Mesin internal (App.trailOn/trailLockPct + BotEngine) + impor/ekspor
+        // dipertahankan; nilai lama tersimpan tak mengaktifkan trailing BARU
+        // (kunci prefs terpisah). Pengaturan trailing yang jelas ada di
+        // card Risiko & Biaya Backtest Console.
         paintNotifStatus()
-    }
-
-    private fun paintTrailLock() {
-        try {
-            findViewById<TextView>(R.id.trailLockTxt).text =
-                "Kunci ${App.fmt(App.trailLockPct, 0)}% jarak entry→TP"
-        } catch (e: Exception) { /* abaikan */ }
     }
 
     private fun paintNotifStatus() {
@@ -457,10 +443,12 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
                 .put("batterySaver", App.batterySaver)
                 .put("notif", JSONObject()
                     .put("entry", NotifBus.entryOn).put("sl", NotifBus.slOn)
-                    .put("tp", NotifBus.tpOn).put("sound", NotifBus.soundOn)
+                    .put("tp", NotifBus.tpOn).put("trail", NotifBus.trailNotifOn).put("sound", NotifBus.soundOn)
                     .put("vibrate", NotifBus.vibrateOn).put("digest", NotifBus.digestOn))
                 .put("trail", JSONObject()
                     .put("on", App.trailOn).put("lockPct", App.trailLockPct))
+                .put("btTrail", JSONObject()
+                    .put("on", App.btTrailOn).put("distPct", App.btTrailDistPct).put("actPct", App.btTrailActPct))
                 .put("quiet", JSONObject()
                     .put("enabled", NotifBus.quietEnabled)
                     .put("start", NotifBus.quietStartMin)
@@ -522,12 +510,16 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
                     "entry" -> NotifBus.entryOn = v
                     "sl" -> NotifBus.slOn = v
                     "tp" -> NotifBus.tpOn = v
+                    "trail" -> NotifBus.trailNotifOn = v
                     "sound" -> NotifBus.soundOn = v
                     "vibrate" -> NotifBus.vibrateOn = v
                     "digest" -> NotifBus.digestOn = v
                 }
             }
             plan.trail?.let { App.trailOn = it.first; App.trailLockPct = it.second }
+            plan.btTrail?.let {
+                App.btTrailOn = it.first; App.btTrailDistPct = it.second; App.btTrailActPct = it.third
+            }
             plan.quiet?.let { q ->
                 NotifBus.quietEnabled = q.enabled
                 NotifBus.quietStartMin = q.startMin

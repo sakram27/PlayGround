@@ -97,7 +97,9 @@ data class RegimeDiag(
     val timeframe: String = "",
     val updatedAt: Long = 0L,
     val error: String = "",
-    val indicatorOk: Boolean = false
+    val indicatorOk: Boolean = false,
+    // V32: asal data aktual (live vs cache disk/memory) dari FetchMeta.
+    val source: String = ""
 )
 
 /**
@@ -120,7 +122,9 @@ fun regimeLine(
     if (r == null || r.label.isEmpty()) return "$sym: Indikator gagal dihitung."
     val ageMin = ((nowMs - r.at).coerceAtLeast(0) / 60000)
     val stale = if (ageMin > 30) " · data ${ageMin} mnt (mungkin basi)" else ""
-    return "$sym: ${regimeText(r)}$stale"
+    // V32: asal data (live vs cache) bila tercatat — tanpa mengubah label inti.
+    val via = if (d.source.isNotEmpty() && d.source != "none") " · via ${d.source}" else ""
+    return "$sym: ${regimeText(r)}$stale$via"
 }
 
 fun regimeText(r: Regime?): String =

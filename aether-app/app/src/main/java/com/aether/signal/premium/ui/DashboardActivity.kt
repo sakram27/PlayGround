@@ -7,6 +7,7 @@ import android.widget.TextView
 import androidx.core.widget.addTextChangedListener
 import com.aether.signal.premium.R
 import com.aether.signal.premium.data.*
+import com.aether.signal.premium.engine.isWinTrade
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 
@@ -56,7 +57,7 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
     }
 
     private fun paintHero() {
-        val wins = App.hist.count { it.result == "WIN" }
+        val wins = App.hist.count { isWinTrade(it) }
         val net = App.hist.sumOf { it.pnl }
         findViewById<android.widget.TextView>(R.id.heroNet).apply {
             text = App.fmtMoney(net)
@@ -73,6 +74,14 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         // dan teks menunjukkan "0/N pair data OK".
         findViewById<android.widget.TextView>(R.id.engStatus).text = when {
             MonitorService.running -> "Selalu Siaga · ${MonitorService.statusText()}"
+            // V32: degradasi jujur — 0 OK bukan RUN normal; loop macet terdeteksi
+            // dari umur tick (bukan klaim sehat karena flag hidup).
+            App.engRunning && BotEngine.lastTotalPairs > 0 && BotEngine.lastOkPairs == 0 ->
+                "RUN TERDEGRADASI · 0/${BotEngine.lastTotalPairs} pair data OK\n" +
+                "Dipantau: ${App.engPairs.joinToString(", ")}\n${EngineDiag.lastError.ifEmpty { BotEngine.lastScan }}"
+            App.engRunning && EngineDiag.lastTickAt > 0 &&
+                System.currentTimeMillis() - EngineDiag.lastTickAt > 5 * 60 * 1000L ->
+                "RUN TIDAK MERESPON · tick terakhir >5 mnt lalu — Stop lalu Start.\n${BotEngine.lastScan}"
             App.engRunning -> "RUN · ${BotEngine.lastOkPairs}/${BotEngine.lastTotalPairs} pair data OK\n" +
                 "Dipantau: ${App.engPairs.joinToString(", ")}\n${BotEngine.lastScan}"
             else -> "Engine berhenti."

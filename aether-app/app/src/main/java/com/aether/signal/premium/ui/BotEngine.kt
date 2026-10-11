@@ -28,6 +28,14 @@ object BotEngine {
     private val exec = Executors.newSingleThreadScheduledExecutor()
     private val fctx = HashMap<String, FilterCtx>()
     var onTick: (() -> Unit)? = null
+    // V31 OBSERVASI trailing (bukan ekonomi): kunci posisi yang sudah
+    // diberitakan aktif + stop terakhir (memory sesi; sentuh = Hit via onSignal).
+    private val trailActiveNotified = HashSet<String>()
+    private val trailLastStop = HashMap<String, Double>()
+    private fun forgetTrailNotify(key: String) {
+        trailActiveNotified.remove(key)
+        trailLastStop.remove(key)
+    }
     /** Telemetri jujur per tick (E): berapa pair berhasil diproses. Bukan logika sinyal. */
     @Volatile var lastOkPairs: Int = 0
     @Volatile var lastTotalPairs: Int = 0
@@ -56,12 +64,28 @@ object BotEngine {
             EngineDiag.startedAt = System.currentTimeMillis()
             if (MonitorService.running || externallyDriven) {
                 // Selalu Siaga sudah memantau: jangan buat scheduler kedua.
-                exec.execute { tick(true); onTick?.invoke() }
+                exec.execute {
+                    try { tick(true); onTick?.invoke() } catch (e: Exception) {
+                        EngineDiag.lastError = (e.message ?: "gagal").take(160)
+                    }
+                }
                 return "Dipantau Selalu Siaga."
             }
-            exec.execute { tick(true); onTick?.invoke() }
+            exec.execute {
+                try { tick(true); onTick?.invoke() } catch (e: Exception) {
+                    EngineDiag.lastError = (e.message ?: "gagal").take(160)
+                }
+            }
             sched?.cancel(false)
-            sched = exec.scheduleAtFixedRate({ if (App.engRunning) { tick(false); onTick?.invoke() } }, 90, 90, TimeUnit.SECONDS)
+            // V32: tugas terjadwal tak boleh mati diam-diam bila melempar.
+            sched = exec.scheduleAtFixedRate({
+                try {
+                    if (App.engRunning) { tick(false); onTick?.invoke() }
+                } catch (e: Exception) {
+                    EngineDiag.lastError = (e.message ?: "gagal").take(160)
+                    EngineDiag.lastPhase = "error scheduler: ${(e.message ?: "gagal").take(80)}"
+                }
+            }, 90, 90, TimeUnit.SECONDS)
             return "Jalan."
         } finally {
             busy = false
@@ -93,6 +117,10 @@ object BotEngine {
 
     fun tick(manual: Boolean) {
         if (!App.engRunning && !manual) return
+        // V32: tick tak boleh membunuh scheduler — exception di luar
+        // try-per-pair dicatat di sini, loop tetap hidup. (scheduleAtFixedRate
+        // berhenti diam-diam bila tugas melempar.)
+        try {
         val p: BacktestParams
         try { p = App.buildParams(App.engPairs.firstOrNull() ?: return) } catch (e: Exception) { lastScan = "Dry run error: ${e.message}"; return }
         if (equity == null) equity = p.initialCapital
@@ -113,7 +141,10 @@ object BotEngine {
                 // meminta tepat 200 membuat e200[idx-20] selalu NaN (EMA menyemai
                 // pada indeks 199), sehingga indikator tak pernah valid walau data
                 // sempurna. Lihat REGIME_MIN_CANDLES=220 di AblationRegime.kt.
-                val raw = getCandles(App.provider, sym, p.timeframe, ENGINE_CANDLES).candles
+                val fr = getCandles(App.provider, sym, p.timeframe, ENGINE_CANDLES)
+                val raw = fr.candles
+                // V32: asal data (live vs cache) dicatat — bukan diklaim live.
+                val srcName = try { fr.meta.cacheUsed } catch (e: Exception) { "" }
                 val candles = normalizeCandles(raw.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? })
                 if (candles.isEmpty()) {
                     EngineDiag.pairError(sym, "data kosong")
@@ -141,16 +172,21 @@ object BotEngine {
                     App.regimeDiag[sym] = RegimeDiag(
                         requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
                         provider = App.provider, timeframe = p.timeframe,
-                        updatedAt = System.currentTimeMillis(), error = "", indicatorOk = indOk)
+                        updatedAt = System.currentTimeMillis(), error = "", indicatorOk = indOk,
+                        source = srcName)
                 } catch (e: Exception) {
                     App.regimeDiag[sym] = RegimeDiag(
                         requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
                         provider = App.provider, timeframe = p.timeframe,
                         updatedAt = System.currentTimeMillis(),
-                        error = (e.message ?: "gagal").take(120), indicatorOk = false)
+                        error = (e.message ?: "gagal").take(120), indicatorOk = false,
+                        source = srcName)
                 }
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
+                    // V32: posisi terbuka menahan entry baru pair ini (desain,
+                    // bukan bug) — dihitung agar panel jujur.
+                    EngineDiag.blockedPosition++
                     open.mark = last.c
                     open.upl = (if (open.dir == "LONG") last.c - open.entry else open.entry - last.c) * open.qty
                     val fresh = candles.filter { it.t > open.entryT }
@@ -172,6 +208,30 @@ object BotEngine {
                                     val cl = if (open.dir == "LONG") maxOf(ns, open.sl) else minOf(ns, open.sl)
                                     App.trailAll()[key] = TrailState(cl, ne)
                                     App.saveTrail()
+                                    // V31 OBSERVASI (ekonomi tak berubah): "Aktif" =
+                                    // stop pertama kali mengunci di atas/di bawah SL
+                                    // awal; "Bergerak" = stop berubah ke arah untung.
+                                    // Keduanya peristiwa nyata tick ini.
+                                    val locked = if (open.dir == "LONG") cl > open.sl else cl < open.sl
+                                    if (locked && trailActiveNotified.add(key)) {
+                                        try {
+                                            NotifBus.trailEvent("trail_on", "ton|$key", sym, p.timeframe, open.dir, cl,
+                                                "Trailing Stop Aktif",
+                                                "$sym ${open.dir} — Trailing Stop aktif pada harga ${App.fmt(cl, 4)}. " +
+                                                    "Harga acuan ${if (open.dir == "LONG") "tertinggi" else "terendah"}: ${App.fmt(ne, 4)}. " +
+                                                    "Jarak trailing: ${App.fmt(App.trailLockPct, 0)}%.")
+                                        } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
+                                    }
+                                    val prevStop = trailLastStop[key]
+                                    if (locked && prevStop != null && prevStop != cl) {
+                                        try {
+                                            NotifBus.trailEvent("trail_move", "tmv|$key", sym, p.timeframe, open.dir, cl,
+                                                "Trailing Stop Diperbarui",
+                                                "$sym ${open.dir} — Harga trailing stop bergerak dari ${App.fmt(prevStop, 4)} ke ${App.fmt(cl, 4)}.",
+                                                dedupe = false)
+                                        } catch (e: Exception) { /* abaikan */ }
+                                    }
+                                    if (locked) trailLastStop[key] = cl
                                     val touchPx = if (open.dir == "LONG") b.l else b.h
                                     if (trailTouched(open.dir, touchPx, cl)) {
                                         // Keluar pada level stop (harga stop, bukan fill
@@ -190,8 +250,9 @@ object BotEngine {
                                         fx2.lastExitT = b.t; fx2.tfMs = tfMs
                                         fctx[sym] = fx2
                                         App.clearTrail(key)
-                                        // src khusus: NotifBus mengabaikan (tanpa notifikasi),
-                                        // tercatat di daftar sinyal + dapat dibuka di detail.
+                                        forgetTrailNotify(key)
+                                        // src khusus: trailing paper NYATA — arsip +
+                                        // notifikasi Hit via onSignal (cermin SL/TP).
                                         val tsig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t,
                                             "dryrun-trail", "t${b.t}${sym}",
                                             strategy = "", confidence = 0.0,
@@ -200,9 +261,10 @@ object BotEngine {
                                         if (App.signals.any { it.pair == tsig.pair && it.tf == tsig.tf && it.t == tsig.t && it.dir == tsig.dir }) {
                                             EngineDiag.dupHeld++
                                         } else {
-                                            EngineDiag.stored++
+                                            EngineDiag.noteStored()
                                         }
                                         App.pushSignal(tsig)
+                                        try { NotifBus.onSignal(tsig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                                         break
                                     }
                                 }
@@ -219,6 +281,7 @@ object BotEngine {
                         val pnl = gross - fees
                         equity = (equity ?: p.initialCapital) + pnl
                         positions.remove(open)
+                        forgetTrailNotify(positionKey(sym, open.dir, open.entryT))
                         closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, if (win) "WIN" else "LOSS", open.entryT, b.t))
                         if (closed.size > 300) { closed.subList(300, closed.size).clear() }
                         val fx = fctx[sym] ?: FilterCtx()
@@ -228,7 +291,7 @@ object BotEngine {
                         if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
                             EngineDiag.dupHeld++
                         } else {
-                            EngineDiag.stored++
+                            EngineDiag.noteStored()
                         }
                         App.pushSignal(sig)
                         // Notifikasi SL/TP NYATA (level tersentuh per definisi mesin) + dedup.
@@ -256,6 +319,7 @@ object BotEngine {
                             fx3.lastExitT = bx.t; fx3.tfMs = tfMs
                             fctx[sym] = fx3
                             App.clearTrail(positionKey(sym, open.dir, open.entryT))
+                            forgetTrailNotify(positionKey(sym, open.dir, open.entryT))
                             // Arsip Engine tanpa notifikasi (seperti trail): keluar
                             // kedaluwarsa bukan TP/SL, jadi tidak dibunyikan.
                             val esig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, bx.t,
@@ -266,19 +330,33 @@ object BotEngine {
                             if (App.signals.any { it.pair == esig.pair && it.tf == esig.tf && it.t == esig.t && it.dir == esig.dir }) {
                                 EngineDiag.dupHeld++
                             } else {
-                                EngineDiag.stored++
+                                EngineDiag.noteStored()
                             }
                             App.pushSignal(esig)
                         }
                     }
                 } else {
-                    val i = candles.size - 1
+                    // V32: evaluasi DUA bar — tertutup terakhir (size-2) + bar
+                    // berjalan (size-1). Akar perbedaan vs backtest: dulu HANYA
+                    // bar berjalan yang dievaluasi, sehingga setup yang selesai
+                    // tepat saat tutup terlewat (backtest mengevaluasi bar
+                    // tertutup). Harga entry = harga live saat ini; bar sinyal
+                    // = bar yang pola-nya lengkap. Entry pertama menang se-tick.
+                    val evalIdx = LinkedHashSet<Int>()
+                    if (candles.size >= 2) evalIdx.add(candles.size - 2)
+                    evalIdx.add(candles.size - 1)
+                    for (i in evalIdx) {
+                    if (positions.any { it.pair == sym }) break
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
-                    if (!dec.passed) { markPairOk(); continue }
+                    if (!dec.passed) continue
                     EngineDiag.candidates++
+                    if (dec.direction == "LONG") EngineDiag.candLong++ else EngineDiag.candShort++
+                    // Bar acuan = bar yang dievaluasi (waktu setup, bukan
+                    // bar berjalan) — jendela cooldown/dup selaras backtest.
+                    val sigBar = candles[i]
                     val fx = fctx[sym] ?: FilterCtx()
-                    fx.lastSigT = last.t; fx.lastSigDirT = dec.direction; fx.tfMs = tfMs
+                    fx.lastSigT = sigBar.t; fx.lastSigDirT = dec.direction; fx.tfMs = tfMs
                     fctx[sym] = fx
                     // V16 F1: jejak keputusan dari data aktual saat sinyal dibuat.
                     val activeIds = p.filters.filter { it.enabled }.map { it.name }
@@ -288,7 +366,7 @@ object BotEngine {
                         failedIds = fr.failed.mapNotNull { filterIdForReasonKey(it) }.distinct()
                         if (!fr.passed) {
                             EngineDiag.filteredOut++
-                            markPairOk()
+                            for (w in fr.failed) EngineDiag.noteFilterReject(w)
                             continue
                         }
                     }
@@ -302,14 +380,14 @@ object BotEngine {
                     val maxNot = (equity ?: p.initialCapital) * p.leverage
                     if (qty * entry > maxNot) qty = maxNot / entry
                     if (!(qty > 0)) { EngineDiag.invalidLevels++; continue }
-                    positions.add(PaperPos(sym, dec.direction, entry, last.t, sl, tp, qty, last.c, 0.0))
+                    positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
                     val slPctV = if (entry > 0) Math.abs(entry - sl) / entry * 100 else Double.NaN
                     val tpPctV = if (entry > 0) Math.abs(entry - tp) / entry * 100 else Double.NaN
                     val sc = signalScore(passedIds.size, activeIds.size, dec.confidence,
                         slPctV.takeIf { it.isFinite() }, tpPctV.takeIf { it.isFinite() })
-                    val sig = Sig(sym, p.timeframe, dec.direction, entry, sl, tp, last.t, "dryrun-entry", "e${last.t}${sym}",
+                    val sig = Sig(sym, p.timeframe, dec.direction, entry, sl, tp, sigBar.t, "dryrun-entry", "e${sigBar.t}${sym}",
                         strategy = dec.strategy, confidence = dec.confidence,
                         reasons = cleanStrList(dec.reasons),
                         passedFilters = passedIds, failedFilters = failedIds,
@@ -319,12 +397,13 @@ object BotEngine {
                     if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
                         EngineDiag.dupHeld++
                     } else {
-                        EngineDiag.stored++
+                        EngineDiag.noteStored()
                     }
                     App.pushSignal(sig)
                     // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
                     EngineDiag.notifCalls++
                     try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
+                    }
                 }
                 // V28: sampai sini = data valid + evaluasi selesai tanpa exception.
                 markPairOk()
@@ -335,7 +414,8 @@ object BotEngine {
                 App.regimeDiag[sym] = RegimeDiag(
                     requested = ENGINE_CANDLES, provider = App.provider, timeframe = p.timeframe,
                     updatedAt = System.currentTimeMillis(),
-                    error = (e.message ?: "gagal").take(120), indicatorOk = false)
+                    error = (e.message ?: "gagal").take(120), indicatorOk = false,
+                    source = "")
                 /* lanjut pair berikut */
             }
         }
@@ -345,6 +425,12 @@ object BotEngine {
         try { App.saveRegime() } catch (e: Exception) { /* abaikan */ }
         try { App.saveRegimeDiag() } catch (e: Exception) { /* abaikan */ }
         lastScan = "Jalan · equity $${App.fmt(equity ?: 0.0)} · ${java.util.Date()}"
+        } catch (e: Exception) {
+            EngineDiag.lastError = (e.message ?: "gagal").take(160)
+            EngineDiag.lastPhase = "error: ${(e.message ?: "gagal").take(80)}"
+            EngineDiag.lastTickAt = System.currentTimeMillis()
+            lastScan = "Error tick: ${e.message}"
+        }
     }
 
     fun netClosed(): Double = closed.sumOf { it.pnl }

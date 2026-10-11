@@ -87,6 +87,8 @@ fun paintRunButtons(
             btnCancel.backgroundTintList = android.content.res.ColorStateList.valueOf(0xFFF87171.toInt())
             btnCancel.setTextColor(0xFFFFFFFF.toInt())
             btnCancel.strokeColor = android.content.res.ColorStateList.valueOf(0xFFF87171.toInt())
+            btnCancel.isEnabled = true
+            btnCancel.isClickable = true
         } else {
             btnRun.text = "▶  Run Backtest"
             try {
@@ -101,6 +103,9 @@ fun paintRunButtons(
             btnRun.isClickable = true
             btnCancel.backgroundTintList = null
             btnCancel.setTextColor(0xFFF1F5F9.toInt())
+            // V30: saat idle Batal nonaktif (tak ada yang dibatalkan).
+            btnCancel.isEnabled = false
+            btnCancel.isClickable = false
             try {
                 btnCancel.strokeColor = android.content.res.ColorStateList.valueOf(
                     btnCancel.context.getColor(com.aether.signal.premium.R.color.line))

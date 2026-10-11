@@ -4,6 +4,7 @@ import android.view.View
 import android.widget.TextView
 import com.aether.signal.premium.R
 import com.aether.signal.premium.engine.parseTimeframe
+import com.aether.signal.premium.engine.isWinTrade
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 
@@ -124,7 +125,7 @@ class SignalsActivity : BaseActivity(0) {
                 paintEngineDiag()
             }
             2 -> { // History
-                val wins = App.hist.count { it.result == "WIN" }
+                val wins = App.hist.count { isWinTrade(it) }
                 val net = App.hist.sumOf { it.pnl }
                 findViewById<TextView>(R.id.hero).apply {
                     visibility = View.VISIBLE

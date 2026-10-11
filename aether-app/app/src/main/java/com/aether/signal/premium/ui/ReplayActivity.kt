@@ -234,7 +234,7 @@ class ReplayActivity : BaseActivity(0) {
                 val xi = t2i[t.exitTime]
                 if (ei != null && ei in from..f.idx) marks.add(StripMarker(ei - from, "entry"))
                 if (xi != null && xi in from..f.idx) marks.add(StripMarker(xi - from,
-                    when (t.result) { "WIN" -> "win"; "LOSS" -> "loss"; else -> "expired" }))
+                    when (t.result) { "WIN" -> "win"; "LOSS" -> "loss"; "TRAIL" -> if (t.pnl >= 0) "win" else "loss"; else -> "expired" }))
             }
             findViewById<ReplayStripView>(R.id.rpStrip).setData(closes, marks)
         } catch (e: Exception) { /* abaikan */ }

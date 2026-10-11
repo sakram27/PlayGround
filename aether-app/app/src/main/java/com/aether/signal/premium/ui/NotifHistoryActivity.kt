@@ -33,6 +33,7 @@ class NotifHistoryActivity : BaseActivity(0) {
                         R.id.histKindEntry -> "entry"
                         R.id.histKindTp -> "tp"
                         R.id.histKindSl -> "sl"
+                        R.id.histKindTrail -> "trail"
                         else -> "all"
                     }
                     paint()

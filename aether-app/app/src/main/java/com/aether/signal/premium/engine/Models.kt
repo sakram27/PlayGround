@@ -24,6 +24,20 @@ fun tpModeLabel(mode: Int): String = when (mode.coerceIn(1, 3)) {
     else -> "Single TP"
 }
 
+/**
+ * V31: konversi input persen TP2/TP3 (angka persen: 2.5 = 2,5%) menjadi
+ * kelipatan jarak TP1 untuk mesin. tp2Mult = tp2Pct/tpPct. Bukan fraksi:
+ * 2,5% TIDAK pernah menjadi 0,025 atau 25% — pembagian oleh tpPct dilakukan
+ * tepat sekali di sini/di buildParams; mesin menerima hasil akhirnya.
+ * Guard: tpPct ≤ 0 → default (2.5/2.0, 3.5/2.0 terhadap TP bawaan).
+ */
+fun tpMultsFromPct(tpPct: Double, tp2Pct: Double, tp3Pct: Double): Pair<Double, Double> {
+    if (!tpPct.isFinite() || tpPct <= 0) return 1.25 to 1.75
+    val m2 = if (tp2Pct.isFinite() && tp2Pct > 0) tp2Pct / tpPct else TP2_MULT_DEFAULT
+    val m3 = if (tp3Pct.isFinite() && tp3Pct > 0) tp3Pct / tpPct else TP3_MULT_DEFAULT
+    return m2 to m3
+}
+
 /** Fraksi penutupan per kaki (terakhir = sisa). Selalu dijumlahkan ≈ 1. */
 fun tpFractions(mode: Int): List<Double> = when (mode.coerceIn(1, 3)) {
     2 -> TP2_FRACS
@@ -90,6 +104,12 @@ data class BacktestParams(
     // Kelipatan jarak TP1 untuk TP2/TP3 (TP1 = jarak TP bawaan |tp - entry|).
     val tp2Mult: Double = TP2_MULT_DEFAULT,
     val tp3Mult: Double = TP3_MULT_DEFAULT,
+    // V31: trailing stop backtest (terpisah dari trailing virtual paper
+    // BotEngine). trailOn=false → perilaku lama utuh. Satuan FRAKSI seperti
+    // slPercent (0.01 = 1%) — konversi /100 tepat sekali di buildParams.
+    val trailOn: Boolean = false,
+    val trailDistPct: Double = 0.01,
+    val trailActPct: Double = 0.01,
     val filters: List<FilterCfg> = emptyList()
 )
 
@@ -116,6 +136,13 @@ data class Trade(
 
 data class EquityPoint(val t: Long, val equity: Double)
 
+/**
+ * V31: satu kaki dihitung MENANG bila berlabel WIN, atau berlabel TRAIL
+ * dengan laba bersih positif (konsisten dengan kategorisasi pnl buildResult).
+ * Dipakai penghitung tampilan riwayat (hist memuat kaki backtest + paper).
+ */
+fun isWinTrade(t: Trade): Boolean = t.result == "WIN" || (t.result == "TRAIL" && t.pnl > 0)
+
 data class BacktestDiag(
     val rawCount: Int = 0, val normalizedCount: Int = 0, val dateFilteredCount: Int = 0,
     val warmup: Int = WARMUP, val startIdx: Int = 0,
@@ -141,6 +168,9 @@ data class BacktestResult(
     val asset: String = "", val timeframe: String = "", val strategy: String = "",
     val initialCapital: Double = 0.0, val finalCapital: Double = 0.0,
     val totalTrades: Int = 0, val wins: Int = 0, val losses: Int = 0, val expired: Int = 0,
+    // V30: transaksi impas (laba bersih tepat nol) — kategori sendiri, bukan
+    // untung/rugi. wins+losses+breakeven = totalTrades selalu.
+    val breakeven: Int = 0,
     val winRate: Double = 0.0, val lossRate: Double = 0.0,
     val grossProfit: Double = 0.0, val grossLoss: Double = 0.0,
     val netProfit: Double = 0.0, val netProfitPercent: Double = 0.0,

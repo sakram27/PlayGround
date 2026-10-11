@@ -23,16 +23,17 @@ data class OverallAgg(
 fun aggregateOverall(rows: List<PairRow>, combinedDD: Double? = null): OverallAgg {
     val ok = rows.filter { it.res != null && it.res.error == null }
     val trades = ok.flatMap { it.res!!.trades }
-    val wins = trades.filter { it.result == "WIN" }
-    val losses = trades.filter { it.result == "LOSS" }
+    // V30: sama seperti buildResult — kategorisasi berbasis tanda pnl.
+    val wins = trades.filter { it.pnl > 0 }
+    val losses = trades.filter { it.pnl < 0 }
     val gp = wins.sumOf { it.pnl }
     val gl = abs(losses.sumOf { it.pnl })
     val net = trades.sumOf { it.pnl }
     return OverallAgg(
         totalTrades = trades.size, wins = wins.size, losses = losses.size,
         winRate = if (trades.isNotEmpty()) wins.size.toDouble() / trades.size * 100 else Double.NaN,
-        // V18: samakan cakupan buildResult (tak hingga → 999) agar label "∞" konsisten.
-        profitFactor = if (gl > 0) gp / gl else if (gp > 0) 999.0 else 0.0,
+        // V30: tanpa kerugian → +∞ (bukan 999), konsisten dengan single.
+        profitFactor = if (gl > 0) gp / gl else if (gp > 0) Double.POSITIVE_INFINITY else 0.0,
         netProfit = net,
         averageWin = if (wins.isNotEmpty()) gp / wins.size else 0.0,
         averageLoss = if (losses.isNotEmpty()) -gl / losses.size else 0.0,

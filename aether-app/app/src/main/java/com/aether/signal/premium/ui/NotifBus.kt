@@ -48,6 +48,10 @@ object NotifBus {
     var tpOn: Boolean
         get() = prefs().getBoolean("tp", true)
         set(v) = prefs().edit().putBoolean("tp", v).apply()
+    // V31: notifikasi trailing stop paper (default aktif seperti SL/TP).
+    var trailNotifOn: Boolean
+        get() = prefs().getBoolean("trail", true)
+        set(v) = prefs().edit().putBoolean("trail", v).apply()
     var soundOn: Boolean
         get() = prefs().getBoolean("sound", true)
         set(v) {
@@ -323,7 +327,63 @@ object NotifBus {
                     "Stop loss tercapai · ${s.dir} ${s.pair}",
                     "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
             }
+            // V31: penutupan trailing paper NYATA dari BotEngine (bukan simulasi
+            // historis). Sig tak membawa pnl/qty → hanya tampilkan yang tersedia,
+            // tanpa mengarang laba/rugi.
+            s.src == "dryrun-trail" -> {
+                if (!trailNotifOn) return
+                val key = "x|${s.pair}|${s.t}|${s.dir}|TRAIL"
+                if (!markSeen(key)) return
+                dispatch("trail_hit", CH_SLTP, key.hashCode(),
+                    "Trailing Stop Hit · ${s.dir} ${s.pair}",
+                    "${s.tf} · posisi ditutup @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)} · alasan: Trailing Stop", s)
+            }
             else -> { /* sumber Engine lain tanpa bunyi (mis. trail/expired): hanya arsip */ }
+        }
+    }
+
+    /**
+     * V31: peristiwa trailing paper NYATA dari BotEngine (aktivasi & gerakan
+     * stop — penutupan lewat onSignal dryrun-trail). Hanya dipanggil saat
+     * peristiwa benar-benar terjadi; dedup via [key] (satu peristiwa = satu
+     * bunyi). Tanpa Sig (bukan sinyal entry) — riwayat + bunyi langsung.
+     */
+    fun trailEvent(
+        kind: String, // "trail_on" | "trail_move"
+        key: String, pair: String, tf: String, dir: String, price: Double,
+        title: String, text: String,
+        // V31: gerakan stop memakai penjaga memory pemanggil (berubah = bunyi),
+        // bukan dedup persisten — cegah penumpukan kunci per tick trend.
+        dedupe: Boolean = true
+    ) {
+        if (!trailNotifOn) return
+        if (dedupe && !markSeen(key)) return
+        val c = appCtx ?: return
+        val rec = NotifRec(System.currentTimeMillis(), kind, pair, tf, dir, price, "DIKIRIM")
+        if (quietNow()) {
+            addNotifRec(history(), rec.copy(status = "DITAHAN")); persistHistory()
+            return
+        }
+        if (!systemEnabled()) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+            return
+        }
+        ensureChannels(c)
+        val b = NotificationCompat.Builder(c, CH_SLTP)
+            .setSmallIcon(R.drawable.ic_notif)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+        tapIntent()?.let { b.setContentIntent(it) }
+        try {
+            NotificationManagerCompat.from(c).notify(key.hashCode(), b.build())
+            addNotifRec(history(), rec); persistHistory()
+        } catch (e: SecurityException) {
+            addNotifRec(history(), rec.copy(status = "GAGAL_IZIN")); persistHistory()
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
         }
     }
 

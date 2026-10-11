@@ -21,13 +21,14 @@
                     <Button android:id="@+id/btnTfA" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="15m·1h·4h" style="@style/BtnViolet" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnTfB" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="5m·15m·1h" style="@style/BtnViolet" android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <Button android:id="@+id/btnTfC" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="1h·4h·1d" style="@style/BtnViolet" android:textSize="11sp" />
-                </LinearLayout>
+                        android:text="1h·4h·1d" style="@style/BtnViolet" android:textSize="11sp" /></LinearLayout>
                 <Button android:id="@+id/btnCsRun" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="Jalankan"
                     style="@style/BtnCyan" android:layout_marginTop="8dp" />

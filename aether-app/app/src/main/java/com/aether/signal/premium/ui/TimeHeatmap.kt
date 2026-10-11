@@ -1,6 +1,7 @@
 package com.aether.signal.premium.ui
 
 import com.aether.signal.premium.engine.Trade
+import com.aether.signal.premium.engine.isWinTrade
 import com.aether.signal.premium.engine.epochDay
 import com.aether.signal.premium.engine.utcHour
 
@@ -33,7 +34,7 @@ fun dayOfWeekMon0(ts: Long): Int = (((epochDay(ts) + 3) % 7) + 7).toInt() % 7
 
 private fun bucketOf(label: String, ts: List<Trade>): TimeBucket {
     if (ts.isEmpty()) return TimeBucket(label, 0, 0.0, null)
-    val wins = ts.count { it.result == "WIN" }
+    val wins = ts.count { isWinTrade(it) }
     return TimeBucket(label, ts.size, ts.sumOf { it.pnl }, wins.toDouble() / ts.size * 100)
 }
 

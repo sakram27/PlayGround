@@ -36,6 +36,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private var cancelled = false
     // V27: cegah run ganda — tombol Run nonaktif selama proses berjalan.
     private var btRunning = false
+    // V30: identitas run — hasil bg yang basi (run lama selesai setelah run
+    // baru/cancel) tidak boleh menimpa UI. Setiap start menaikkan runSeq;
+    // penyelesaian hanya diterapkan bila seq masih cocok.
     // V22 monitor: polling ringan 400ms, berhenti di onDestroy (anti-bocor).
     private var monitorOpen = false
     private var lastMonSeq: Long = -1
@@ -49,6 +52,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private var tradePage = 0
     private var tradeRows: List<Trade> = emptyList()
     private var staged: LinkedHashSet<String> = LinkedHashSet()
+    private var runSeq = 0
 
     override fun build() {
         setBar("Backtest Console", "Kuantitatif · engine terverifikasi")
@@ -99,7 +103,17 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             if (btRunning) { snack(this, "Backtest masih berjalan — tunggu selesai atau Batal."); return@setOnClickListener }
             if (App.mode == "multi") doMulti() else doSingle()
         }
-        findViewById<View>(R.id.btnCancel).setOnClickListener { cancelled = true }
+        findViewById<View>(R.id.btnCancel).setOnClickListener {
+            // V30: Batal hanya bermakna saat proses berjalan; cegah kesan
+            // "membatalkan" saat idle + cegah tekan ganda.
+            if (!btRunning) { snack(this, "Tidak ada backtest yang berjalan."); return@setOnClickListener }
+            if (cancelled) return@setOnClickListener
+            cancelled = true
+            setStatus("Membatalkan…", false)
+            try {
+                findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCancel).isEnabled = false
+            } catch (e: Exception) { /* abaikan */ }
+        }
         paintBtButtons()
         toggle(R.id.segPreset, listOf(R.id.segPresetDefault, R.id.segPresetCustom), if (App.presetCustom) 1 else 0) {
             App.presetCustom = it == 1; refreshAll()
@@ -176,17 +190,30 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<View>(R.id.btnPresetAggressive).setOnClickListener { confirmPreset("aggressive") }
         bindNum(R.id.inCapital, App.capital.toString()) { App.capital = it.toDoubleOrNull() ?: 1000.0; paintRiskPreset() }
         bindNum(R.id.inRisk, App.riskPct.toString()) { App.riskPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
-        bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.5; paintRiskPreset() }
-        bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 3.0; paintRiskPreset() }
+        bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
+        bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 2.0; paintRiskPreset() }
         findViewById<SwitchMaterial>(R.id.swAtr).apply {
             isChecked = App.useAtr
             setOnCheckedChangeListener { _, on -> App.useAtr = on }
         }
+        // V31: trailing stop backtest — saklar + 2 input persen, di kartu
+        // Risiko & Biaya dekat SL/TP. Mati default; tak tersentuh = mati.
+        findViewById<SwitchMaterial>(R.id.swTrailBt).apply {
+            isChecked = App.btTrailOn
+            setOnCheckedChangeListener { _, on ->
+                App.btTrailOn = on
+                paintTrailSummary()
+                snack(this@BacktestActivity, if (on) "Trailing backtest AKTIF — berlaku pada run berikutnya."
+                    else "Trailing backtest mati — SL/TP biasa.")
+            }
+        }
+        bindNum(R.id.inTrailDist, App.btTrailDistPct.toString()) { App.btTrailDistPct = sanitizeTrailPct(it.toDoubleOrNull() ?: 1.0, 1.0); paintTrailSummary() }
+        bindNum(R.id.inTrailAct, App.btTrailActPct.toString()) { App.btTrailActPct = sanitizeTrailPct(it.toDoubleOrNull() ?: 1.0, 1.0); paintTrailSummary() }
         toggle(R.id.segTp, listOf(R.id.segTpSingle, R.id.segTp2, R.id.segTp3), (App.tpMode - 1).coerceIn(0, 2)) {
             App.tpMode = it + 1; paintTpSummary(); paintRiskPreset()
         }
-        bindNum(R.id.inTp2m, App.tp2Mult.toString()) { App.tp2Mult = it.toDoubleOrNull() ?: TP2_MULT_DEFAULT; paintTpSummary() }
-        bindNum(R.id.inTp3m, App.tp3Mult.toString()) { App.tp3Mult = it.toDoubleOrNull() ?: TP3_MULT_DEFAULT; paintTpSummary() }
+        bindNum(R.id.inTp2Pct, App.tp2Pct.toString()) { App.tp2Pct = it.toDoubleOrNull() ?: 2.5; paintTpSummary() }
+        bindNum(R.id.inTp3Pct, App.tp3Pct.toString()) { App.tp3Pct = it.toDoubleOrNull() ?: 3.5; paintTpSummary() }
         findViewById<View>(R.id.btnRiskReset).setOnClickListener { resetRisk(); paintConfig() }
         setupCharts()
     }
@@ -232,14 +259,18 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun resetRisk() {
         App.capital = 1000.0; App.riskPct = 1.0; App.leverage = 1
         App.feePct = 0.05; App.slipPct = 0.02; App.maxHolding = 100
-        App.slPct = 1.5; App.tpPct = 3.0; App.useAtr = false
-        App.tpMode = 1; App.tp2Mult = TP2_MULT_DEFAULT; App.tp3Mult = TP3_MULT_DEFAULT
+        App.slPct = 1.0; App.tpPct = 2.0; App.useAtr = false
+        App.tpMode = 1; App.tp2Pct = 2.5; App.tp3Pct = 3.5
+        App.btTrailOn = false; App.btTrailDistPct = 1.0; App.btTrailActPct = 1.0
         try {
             // Set langsung tanpa toggle() agar listener tidak menumpuk.
             findViewById<MaterialButtonToggleGroup>(R.id.segTp).check(R.id.segTpSingle)
-            findViewById<TextInputEditText>(R.id.inTp2m).setText(App.tp2Mult.toString())
-            findViewById<TextInputEditText>(R.id.inTp3m).setText(App.tp3Mult.toString())
-            paintTpSummary()
+            findViewById<TextInputEditText>(R.id.inTp2Pct).setText(App.tp2Pct.toString())
+            findViewById<TextInputEditText>(R.id.inTp3Pct).setText(App.tp3Pct.toString())
+            findViewById<TextInputEditText>(R.id.inTrailDist).setText(App.btTrailDistPct.toString())
+            findViewById<TextInputEditText>(R.id.inTrailAct).setText(App.btTrailActPct.toString())
+            findViewById<SwitchMaterial>(R.id.swTrailBt).isChecked = App.btTrailOn
+            paintTpSummary(); paintTrailSummary()
         } catch (e: Exception) { /* abaikan */ }
         snack(this, "Parameter risiko dikembalikan ke bawaan.")
     }
@@ -248,15 +279,37 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun paintTpSummary() {
         try {
             val m = App.tpMode.coerceIn(1, 3)
+            // V31: TP2/TP3 = persen absolut; tampilkan juga kelipatan efektif.
+            val (m2, m3) = tpMultsFromPct(App.tpPct, App.tp2Pct, App.tp3Pct)
+            val ladder = "TP1 ${App.fmt(App.tpPct)}% · TP2 ${App.fmt(App.tp2Pct)}% (${App.fmt(m2)}×) · TP3 ${App.fmt(App.tp3Pct)}% (${App.fmt(m3)}×)"
+            val warn = when {
+                App.tp2Pct < App.tpPct || App.tp3Pct < App.tp2Pct ->
+                    " PERINGATAN: tangga tak menanjak — anak tangga di bawah TP1/TP2 diabaikan mesin (lihat tpTargets)."
+                else -> ""
+            }
             val txt = when (m) {
-                2 -> "Mode: TP2 — tutup 50% di TP1 (jarak TP), 50% di TP2 (${App.tp2Mult}× jarak TP1). SL menutup sisa."
-                3 -> "Mode: TP3 — tutup ⅓ di TP1, TP2 (${App.tp2Mult}×), TP3 (${App.tp3Mult}× jarak TP1). SL menutup sisa."
-                else -> "Mode: Single TP — seluruh posisi ditutup pada TP1."
+                2 -> "Mode: TP2 — tutup 50% di TP1, 50% di TP2. $ladder. SL menutup sisa.$warn"
+                3 -> "Mode: TP3 — tutup ⅓ di TP1, TP2, TP3. $ladder. SL menutup sisa.$warn"
+                else -> "Mode: Single TP — seluruh posisi ditutup pada TP1 (${App.fmt(App.tpPct)}%)."
             }
             findViewById<TextView>(R.id.tpSummary).text = txt
             val g = findViewById<MaterialButtonToggleGroup>(R.id.segTp)
             val want = listOf(R.id.segTpSingle, R.id.segTp2, R.id.segTp3)[m - 1]
             if (g.checkedButtonId != want) g.check(want)
+        } catch (e: Exception) { /* layout belum siap */ }
+    }
+
+    /** V31: ringkasan trailing jujur dari konfigurasi aktual. */
+    private fun paintTrailSummary() {
+        try {
+            findViewById<TextView>(R.id.trailSummary).text = if (!App.btTrailOn) {
+                "Trailing stop: MATI — SL/TP biasa."
+            } else {
+                "Trailing stop: AKTIF — aktif saat untung ≥ ${App.fmt(App.btTrailActPct)}%, " +
+                    "jarak ${App.fmt(App.btTrailDistPct)}% dari extreme, hanya menguat, " +
+                    "menutup SELURUH sisa (alasan: Trailing Stop). " +
+                    "Prioritas satu candle: harga keluar terburuk (SL > TRAIL > TP seri)."
+            }
         } catch (e: Exception) { /* layout belum siap */ }
     }
 
@@ -440,10 +493,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<TextInputEditText>(R.id.inRisk).setText(App.riskPct.toString())
         findViewById<TextInputEditText>(R.id.inSl).setText(App.slPct.toString())
         findViewById<TextInputEditText>(R.id.inTp).setText(App.tpPct.toString())
-        findViewById<TextInputEditText>(R.id.inTp2m).setText(App.tp2Mult.toString())
-        findViewById<TextInputEditText>(R.id.inTp3m).setText(App.tp3Mult.toString())
+        findViewById<TextInputEditText>(R.id.inTp2Pct).setText(App.tp2Pct.toString())
+        findViewById<TextInputEditText>(R.id.inTp3Pct).setText(App.tp3Pct.toString())
+        findViewById<TextInputEditText>(R.id.inTrailDist).setText(App.btTrailDistPct.toString())
+        findViewById<TextInputEditText>(R.id.inTrailAct).setText(App.btTrailActPct.toString())
+        findViewById<SwitchMaterial>(R.id.swTrailBt).isChecked = App.btTrailOn
         paintRiskPreset()
         paintTpSummary()
+        paintTrailSummary()
     }
 
     private fun paintComboCount() {
@@ -645,13 +702,18 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         if (!dateRangeOk()) return
         cancelled = false
         markRunning()
-        equityBusy("Menyiapkan backtest…")
+        // V30: kurva lama dibersihkan saat run baru dimulai — grafik tak boleh
+        // memamerkan hasil basi seolah hasil berjalan. Status sibuk eksplisit.
+        clearEquityForNewRun("Menyiapkan backtest…")
+        val mySeq = ++runSeq
         setStatus("Menyiapkan…")
         runBg {
             val tAll = System.nanoTime()
             var stage = "menyiapkan"
             var pErr: BacktestParams? = null
             var monId = ""
+            // V30: hasil bg basi (mis. run lama selesai belakangan) diabaikan.
+            fun stale(): Boolean = mySeq != runSeq
             try {
                 val p = App.buildParams(App.pair)
                 pErr = p
@@ -667,18 +729,38 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     App.csv!! to FetchMeta("csv", p.asset, p.timeframe, App.limit, App.csv!!.size, "csv-file", "CSV")
                 else if (p.startDate > 0 || p.endDate > 0) fetchDated(p)
                 else getCandles(App.provider, p.asset, p.timeframe, App.limit).let { it.candles to it.meta }
-                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); finishRun(); return@runBg }
+                if (cancelled) {
+                    MonitorBus.cancel(monId)
+                    App.result = errorResult(p, "Dibatalkan oleh pengguna saat mengambil data — bukan hasil lengkap.")
+                    App.multiRows = emptyList()
+                    setStatus("Dibatalkan.", false)
+                    runOnUiThread { paintQuick(); paintChart(); paintResult() }
+                    finishRun()
+                    return@runBg
+                }
                 reportFetch(monId, meta, candles.size)
                 App.candles = candles; App.params = p; App.lastFetchMeta = meta; App.lastFetchAt = System.currentTimeMillis()
                 setStatus("Backtest ${candles.size}c…")
                 val t0 = System.nanoTime()
                 stage = "simulasi"
                 MonitorBus.phase(monId, MonPhase.VALIDATING_DATA, "Validasi + indikator")
-                val res = runBacktest(candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }, p) { ev ->
-                    onEngineStage(monId, ev)
-                }
+                val res = runBacktest(candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }, p,
+                    isCancelled = { cancelled },
+                    onStage = { ev -> onEngineStage(monId, ev) })
                 val engMs = (System.nanoTime() - t0) / 1e6
-                if (cancelled) { MonitorBus.cancel(monId); setStatus("Dibatalkan."); finishRun(); return@runBg }
+                if (stale()) return@runBg // run baru sudah dimulai — jangan timpa
+                // V30: batal = hasil error "Dibatalkan" (kurva dibersihkan,
+                // bukan kurva lama), tanpa arsip/history/sinyal/drift.
+                if (cancelled || (res.error?.startsWith("Dibatalkan") == true)) {
+                    MonitorBus.cancel(monId)
+                    App.result = if (res.error?.startsWith("Dibatalkan") == true) res
+                        else errorResult(p, "Dibatalkan oleh pengguna — bukan hasil lengkap.")
+                    App.multiRows = emptyList()
+                    setStatus("Dibatalkan.", false)
+                    runOnUiThread { paintQuick(); paintChart(); paintResult() }
+                    finishRun()
+                    return@runBg
+                }
                 stage = "menyimpan"
                 App.result = res; App.lastTpMode = p.tpMode
                 val st = classifyResult(res)
@@ -707,6 +789,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 setStatus(if (res.error != null) "$st: ${res.error}" else "Selesai ${engMs.toLong()}ms · ${res.totalTrades} trade · Net ${mQ(res.netProfit, p.asset)} · cache:${meta.cacheUsed}", res.error != null)
                 finishRun()
             } catch (e: Exception) {
+                if (stale()) return@runBg
                 // V21: gagal = hasil error eksplisit (tahap tercatat), bukan hasil lama.
                 val msg = if (stage == "mengambil data") "Pengunduhan gagal: ${e.message}"
                 else "Backtest gagal ($stage): ${e.message}"
@@ -803,8 +886,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         if (sel.isEmpty()) { setStatus("Please select at least one pair.", true); return }
         cancelled = false
         markRunning()
-        equityBusy("Menyiapkan multi-pair…")
+        clearEquityForNewRun("Menyiapkan multi-pair…")
+        val mySeq = ++runSeq
         runBg {
+            fun stale(): Boolean = mySeq != runSeq
             val tAll = System.nanoTime()
             val p: BacktestParams
             try { p = App.buildParams(sel.first()) } catch (e: Exception) {
@@ -852,9 +937,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     reportFetch(monId, fr.meta, fr.candles.size)
                     val t0 = System.nanoTime()
                     MonitorBus.phase(monId, MonPhase.VALIDATING_DATA, "Validasi $sym")
-                    val res = runBacktest(fr.candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }, p.copy(asset = sym)) { ev ->
-                        onEngineStage(monId, ev)
-                    }
+                    val res = runBacktest(fr.candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }, p.copy(asset = sym),
+                        isCancelled = { cancelled },
+                        onStage = { ev -> onEngineStage(monId, ev) })
                     if (res.error != null) {
                         MonitorBus.pushLog(monId, 1, "$sym gagal: ${res.error}")
                     } else {
@@ -879,11 +964,30 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             }
             rows.sortByDescending { it.res?.netProfit ?: Double.NEGATIVE_INFINITY }
             App.multiCache = cache; App.multiRows = rows
+            if (stale()) return@runBg
+            val wasCancelled = cancelled || rows.any { it.res?.error?.startsWith("Dibatalkan") == true }
             val okN = rows.count { it.res != null && it.res.error == null }
-            val overall = if (okN == rows.size) "SUCCESS" else if (okN > 0) "PARTIAL SUCCESS" else "FAILED"
-            App.saveApplied("backtest-multi", p, sel, overall, okN > 0)
+            // V30: batal ≠ sukses parsial. Hasil parsial disimpan transparan
+            // (per-pair apa adanya) tetapi dilabel DIBATALKAN; hero = error
+            // Dibatalkan (bukan pair pertama seolah sukses); tanpa drift/
+            // history/sinyal.
+            val overall = if (wasCancelled) "DIBATALKAN"
+                else if (okN == rows.size && rows.size == sel.size) "SUCCESS"
+                else if (okN > 0) "PARTIAL SUCCESS" else "FAILED"
+            App.saveApplied("backtest-multi", p, sel, overall, okN > 0 && !wasCancelled)
             val all = rows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime }
             val first = rows.firstOrNull { it.res?.error == null }
+            if (wasCancelled) {
+                App.result = errorResult(p, "Dibatalkan oleh pengguna — $okN/${sel.size} pair selesai (parsial, bukan hasil lengkap).")
+                App.lastTpMode = p.tpMode
+                tradeRows = all
+                MonitorBus.cancel(monId)
+                MonitorBus.pairProgress(monId, done, "")
+                runOnUiThread { paintQuick(); paintChart(); paintResult() }
+                setStatus("Dibatalkan: $okN dari ${sel.size} pair selesai.", false)
+                finishRun()
+                return@runBg
+            }
             App.result = first?.res; App.lastTpMode = p.tpMode
             tradeRows = all
             if (first != null) { App.candles = cache[first.sym]!!.first; App.params = p.copy(asset = first.sym); App.lastFetchMeta = metas[first.sym]; App.lastFetchAt = System.currentTimeMillis() }
@@ -899,9 +1003,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         strategy = first.res.strategy, decidedAt = System.currentTimeMillis()))
                 }
             }
-            if (cancelled) {
-                MonitorBus.cancel(monId)
-            } else if (overall == "FAILED") {
+            if (overall == "FAILED") {
                 MonitorBus.finish(monId, false, "Semua pair gagal")
             } else {
                 MonitorBus.counters(monId, rows.sumOf { it.res?.diag?.signalsRaw ?: 0 },
@@ -946,13 +1048,29 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
     }
 
+    /** V30: bersihkan kurva lama saat run baru dimulai + tunjukkan sibuk.
+     *  Mencegah grafik basi dipamerkan sebagai hasil berjalan. */
+    private fun clearEquityForNewRun(msg: String) {
+        runOnUiThread {
+            try {
+                findViewById<LineChart>(R.id.equity).apply { clear(); invalidate() }
+                findViewById<TextView>(R.id.equityMeta).text = ""
+                findViewById<TextView>(R.id.equityMsg).apply {
+                    visibility = View.VISIBLE; text = msg
+                }
+            } catch (e: Exception) { /* abaikan */ }
+        }
+    }
+
     /** Equity curve dari hasil aktual (bukan contoh). Titik = (waktu, ekuitas). */
     private fun paintChart() {
         val r = App.result
         if (App.multiRows.isNotEmpty()) {
             val cmb = buildCombinedEquity(App.multiRows, App.params?.initialCapital ?: 1000.0)
+            // V30: label parsial jujur bila run dibatalkan (App.result = error).
+            val partial = if (r?.error?.contains("Batal") == true) " (parsial — dibatalkan)" else ""
             paintEquityCurve(cmb.curve, App.params?.initialCapital ?: 1000.0,
-                "Gabungan ${cmb.n} transaksi")
+                "Gabungan ${cmb.n} transaksi$partial")
         } else {
             val eq = r?.equityCurve ?: emptyList()
             paintEquityCurve(eq, r?.initialCapital ?: (App.params?.initialCapital ?: 1000.0),
@@ -1042,23 +1160,79 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             return
         }
         val noTr = r.totalTrades <= 0
+        // V30: mode multi sukses → hero + KV = AGREGAT gabungan semua pair
+        // (sebelumnya hero menampilkan pair pertama saja sementara kurva
+        // menampilkan gabungan — angka tak cocok). "—" = belum tersedia,
+        // bukan nol.
+        val isMulti = App.multiRows.isNotEmpty()
+        val agg = if (isMulti) aggregateOverall(App.multiRows,
+            buildCombinedEquity(App.multiRows, r.initialCapital).maxDDPct) else null
+        val hNet = agg?.netProfit ?: r.netProfit
+        val hAsset = if (agg != null) mixedQuoteOf(App.multiRows.map { it.sym }) else r.asset
+        val hWR = agg?.winRate ?: r.winRate
+        val hPF = agg?.profitFactor ?: r.profitFactor
+        val hDD = agg?.maxDD ?: r.maxDrawdownPercent
+        val hN = agg?.totalTrades ?: r.totalTrades
+        val hNoTr = hN <= 0
+        val hWins = agg?.wins ?: r.wins
+        val hLosses = agg?.losses ?: r.losses
+        val hBE = hN - hWins - hLosses
         findViewById<TextView>(R.id.heroNet).apply {
-            text = mQ(r.netProfit, r.asset)
-            setTextColor(if (noTr) 0xFFF1F5F9.toInt() else if (r.netProfit >= 0) 0xFF10B981.toInt() else 0xFFF87171.toInt())
+            text = if (hNoTr && agg == null) mQ(r.netProfit, r.asset) else mQ(hNet, hAsset)
+            setTextColor(if (hNoTr) 0xFFF1F5F9.toInt() else if (hNet >= 0) 0xFF10B981.toInt() else 0xFFF87171.toInt())
         }
         findViewById<TextView>(R.id.heroSub).text =
-            "${r.asset} ${r.timeframe} · ${r.strategy} · ${if (noTr) "NO TRADES" else "Win " + App.fmt(r.winRate, 1) + "%"} · PF ${App.fmtD(r.profitFactor)} · DD ${App.fmt(r.maxDrawdownPercent)}%"
+            (if (agg != null) "MULTI (${App.multiRows.size} pair)" else "${r.asset} ${r.timeframe} · ${r.strategy}") +
+            " · ${if (hNoTr) "NO TRADES" else "Win " + App.fmt(hWR, 1) + "%"} · PF ${App.fmtD(hPF)} · DD ${App.fmt(hDD)}%"
         findViewById<TextView>(R.id.sumLine).text =
-            "Net ${App.fmt(r.netProfitPercent)}% · Final ${mQ(r.finalCapital, r.asset)} · Expectancy ${mQ(r.expectancy, r.asset)} · TP: ${tpModeLabel(App.lastTpMode)}"
+            (if (agg != null) "Gabungan ${agg.pairsOk}/${App.multiRows.size} pair · " else "") +
+            "Net ${App.fmt(if (agg != null) (if (r.initialCapital != 0.0) hNet / r.initialCapital * 100 else 0.0) else r.netProfitPercent)}% · " +
+            "Final ${mQ(r.initialCapital + hNet, hAsset)} · TP: ${tpModeLabel(App.lastTpMode)}"
+        // V30: nama lengkap Indonesia + singkatan; kategori pnl (untung/rugi/
+        // impas); "—" bila tak terdefinisi. Definisi di panel Validasi Data.
+        val kvAsset = hAsset
+        val kvTrades = if (isMulti) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
+        val kvGP = kvTrades.filter { it.pnl > 0 }.sumOf { it.pnl }
+        val kvGL = -abs(kvTrades.filter { it.pnl < 0 }.sumOf { it.pnl })
+        val kvFees = kvTrades.sumOf { it.fees }
+        val kvMaxW = kvTrades.maxOfOrNull { it.pnl }
+        val kvMaxL = kvTrades.minOfOrNull { it.pnl }
+        val kvExp = if (hN > 0) hNet / hN else 0.0
+        val kvAvgW = if (hWins > 0) kvGP / hWins else Double.NaN
+        val kvAvgL = if (hLosses > 0) kvGL / hLosses else Double.NaN
+        val kvPF = if (hLosses > 0 || kvGL != 0.0) hPF else hPF // ∞ bila tanpa rugi
         paintKv(listOf(
-            "Total Trades" to r.totalTrades.toString(),
-            "Win Rate" to if (noTr) "NO TRADES" else App.fmt(r.winRate, 1) + "%",
-            "Profit Factor" to App.fmtD(r.profitFactor),
-            "Max Drawdown" to App.fmt(r.maxDrawdownPercent) + "%",
-            "Avg Win" to mQ(r.averageWin, r.asset),
-            "Avg Loss" to mQ(r.averageLoss, r.asset),
-            "Tersaring filter" to r.filtered.toString(),
-            "Exposure" to App.fmt(r.exposure, 1) + "%"
+            "Jumlah Transaksi (Total Trades)" to hN.toString(),
+            "Transaksi Untung / Rugi / Impas" to "$hWins / $hLosses / $hBE",
+            "Keluar via Trailing Stop (kaki)" to kvTrades.count { it.result == "TRAIL" }.toString(),
+            "Tingkat Kemenangan (Win Rate)" to if (hNoTr) "Belum tersedia" else App.fmt(hWR, 1) + "%",
+            "Total Laba Kotor (Gross Profit)" to mQ(kvGP, kvAsset),
+            "Total Kerugian Kotor (Gross Loss)" to mQ(kvGL, kvAsset),
+            "Laba Bersih (Net Profit)" to mQ(hNet, kvAsset),
+            "Faktor Profitabilitas (Profit Factor)" to
+                if (hLosses == 0 && hWins > 0) "∞ (tak terdefinisi — belum ada rugi)"
+                else App.fmtD(kvPF),
+            "Penurunan Ekuitas Maksimum (Max Drawdown)" to App.fmt(hDD) + "% · " +
+                mQ(if (agg != null) -abs(hDD / 100 * r.initialCapital) else -abs(r.maxDrawdown), kvAsset),
+            "Rata-Rata Transaksi Untung (Average Win)" to if (hWins > 0) mQ(kvAvgW, kvAsset) else "—",
+            "Rata-Rata Transaksi Rugi (Average Loss)" to if (hLosses > 0) mQ(kvAvgL, kvAsset) else "—",
+            "Rata-Rata Hasil per Transaksi (Average Trade)" to if (hNoTr) "—" else mQ(kvExp, kvAsset),
+            "Ekspektasi Hasil per Transaksi (Expectancy)" to if (hNoTr) "—" else mQ(kvExp, kvAsset),
+            "Rasio Rata-Rata Laba/Rugi Aktual" to if (hWins > 0 && hLosses > 0) App.fmt(kvAvgW / abs(kvAvgL)) else "—",
+            "Rasio Risiko-Imbalan Terencana (Average Planned RR)" to
+                if (hNoTr) "—" else if (agg != null) "— (per-pair, lihat daftar)" else App.fmt(r.averageRR),
+            "Faktor Pemulihan (Recovery Factor)" to App.fmtD(recoveryFactor(hNet, if (agg != null) abs(hDD / 100 * r.initialCapital) else abs(r.maxDrawdown))),
+            "Sharpe per-Transaksi (tanpa risk-free)" to if (agg != null) "— (per-pair)" else App.fmtD(r.sharpe),
+            "Sortino per-Transaksi (tanpa target)" to if (agg != null) "— (per-pair)" else App.fmtD(r.sortino),
+            "Laba Terbesar / Kerugian Terbesar" to
+                if (hNoTr) "—" else "${mQ(kvMaxW ?: 0.0, kvAsset)} / ${mQ(kvMaxL ?: 0.0, kvAsset)}",
+            "Total Biaya (Total Fees)" to mQ(kvFees, kvAsset),
+            "Beruntun Menang / Kalah Terpanjang" to
+                if (agg != null) "— (per-pair)" else "${r.longestWinStreak} / ${r.longestLossStreak}",
+            "Rata-Rata Durasi (Avg Holding)" to
+                if (hNoTr) "—" else App.fmt(if (agg != null) kvTrades.sumOf { it.holding }.toDouble() / hN else r.avgHolding, 1) + " bar",
+            "Tersaring filter" to (if (agg != null) App.multiRows.sumOf { it.res?.diag?.filteredOut ?: 0 } else r.filtered).toString(),
+            "Exposure" to if (agg != null) "— (per-pair)" else App.fmt(r.exposure, 1) + "%"
         ))
         paintPairs(App.multiRows)
         tradeRows = if (App.multiRows.isNotEmpty()) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
@@ -1272,10 +1446,15 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun paintTech(r: BacktestResult) {        val d = r.diag
+        // V30: rekonsiliasi kartu vs catatan transaksi — dihitung ulang, bukan klaim.
+        val rec = try { reconcileResult(r) } catch (e: Exception) { listOf("cek gagal: ${e.message}") }
         findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.techList).apply {
             vertical(this@BacktestActivity)
             adapter = KvAdapter(listOf(
                 "Status" to classifyResult(r),
+                "Rekonsiliasi kartu↔transaksi" to
+                    if (r.error != null) "—" else if (rec.isEmpty()) "OK (${r.totalTrades} kaki dicek)"
+                    else "SELISIH ${rec.size}: ${rec.first()}",
                 "Strategi" to r.strategy,
                 "Dimuat" to d.dateFilteredCount.toString(),
                 "Pemanasan (pra-start)" to d.warmupPrefix.toString(),
@@ -1386,16 +1565,25 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val ddw = ddWindows(r.equityCurve)
             sb.append("Mata uang pelaporan: $quote" +
                 (if (quote == "XXX") " (PERINGATAN: agregat lintas mata uang, tak dikonsolidasi)" else "") + "\n")
-            sb.append("Win ${App.fmt(r.winRate, 1)}% dari ${r.totalTrades} selesai " +
-                "(menang ${r.wins} · kalah ${r.losses} · kedaluwarsa ${r.expired}; penyebut termasuk kedaluwarsa)\n")
+            sb.append("Win ${App.fmt(r.winRate, 1)}% dari ${r.totalTrades} kaki selesai " +
+                "(untung ${r.wins} · rugi ${r.losses} · impas ${r.breakeven} · pemicu EXPIRED ${r.expired}; " +
+                "kategori berbasis tanda laba bersih, penyebut = semua kaki)\n")
             sb.append("PF: ${describePF(r.profitFactor, r.wins, r.losses)}" +
-                (if (r.losses == 0 && r.wins > 0) " (nilai mesin 999/∞)" else "") + "\n")
-            sb.append("Klasifikasi exit: WIN/LOSS/EXPIRED by pemicu (tanpa kategori impas)\n")
-            sb.append("MaxDD ${App.fmt(r.maxDrawdownPercent, 1)}% dari kurva titik-tutup" +
+                (if (r.losses == 0 && r.wins > 0) " (∞ — tak terdefinisi, bukan bukti hebat)" else "") + "\n")
+            sb.append("Satu posisi multi-TP = beberapa kaki (satu baris per kaki TP/SL/EXPIRED); " +
+                "Total Transaksi = jumlah kaki tertutup\n")
+            sb.append("Klasifikasi laba: pnl>0 untung · pnl<0 rugi · pnl=0 impas (label pemicu WIN/LOSS/EXPIRED tersimpan per kaki)\n")
+            sb.append("MaxDD ${App.fmt(r.maxDrawdownPercent, 1)}% dari kurva titik-tutup (saldo setelah kaki ditutup; " +
+                "bukan intratransaksi)" +
                 (if (ddw != null && ddw.ddPct > 0) " · puncak ${fmtUtc(ddw.peakT)} → lembah ${fmtUtc(ddw.troughT)}" else "") + "\n")
+            sb.append("Ekuitas akhir = modal awal + laba bersih kumulatif (tanpa setoran/penarikan)\n")
+            sb.append("Sharpe/Sortino = per-transaksi (tanpa risk-free, tanpa annualisasi); ∞ = tak terdefinisi positif\n")
             sb.append("Posisi terbuka akhir periode: 0 (mesin selalu menutup EXPIRED di bar terakhir)\n")
             sb.append("Asumsi: tanpa funding fee (valid untuk spot) · slippage ±kedua sisi · " +
                 "SL didahulukan bila satu candle menyentuh SL+TP · satu posisi dalam satu waktu\n")
+            val rp = App.params
+            sb.append("Trailing backtest run ini: ${if (rp?.trailOn == true) "AKTIF (aktivasi ${App.fmt(rp.trailActPct * 100)}%, jarak ${App.fmt(rp.trailDistPct * 100)}%)" else "mati"} · " +
+                "prioritas satu candle = harga keluar terburuk (SL > TRAIL > TP seri) · kaki TRAIL menutup seluruh sisa\n")
             if (warns.size > 1) {
                 sb.append("Peringatan lain:\n")
                 for (w in warns.drop(1)) sb.append("• $w\n")
