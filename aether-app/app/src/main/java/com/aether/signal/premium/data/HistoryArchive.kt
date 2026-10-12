@@ -140,10 +140,13 @@ private fun fetchRangePage(
         "6h" to "360", "12h" to "720", "1d" to "D", "1w" to "W")
     return try {
         if (provider == "binance") {
-            val txt = fetchText(
-                "https://api.binance.com/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}" +
+            // V36: pakai failover host + timeout provider (dulu hardcode satu
+            // host api.binance.com + timeout default 15 dtk).
+            val (_, txt) = binanceFetch(
+                "/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}" +
                     "&interval=${java.net.URLEncoder.encode(timeframe, "UTF-8")}" +
-                    "&startTime=$startMs&endTime=$endMs&limit=$RANGE_PAGE_LIMIT")
+                    "&startTime=$startMs&endTime=$endMs&limit=$RANGE_PAGE_LIMIT",
+                timeoutFor("binance"))
             val j = JSONArray(txt)
             List(j.length()) { k ->
                 val a = j.getJSONArray(k)
@@ -154,7 +157,8 @@ private fun fetchRangePage(
             val txt = fetchText(
                 "https://api.bybit.com/v5/market/kline?category=spot&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}" +
                     "&interval=${java.net.URLEncoder.encode(tf, "UTF-8")}" +
-                    "&start=$startMs&end=$endMs&limit=$RANGE_PAGE_LIMIT")
+                    "&start=$startMs&end=$endMs&limit=$RANGE_PAGE_LIMIT",
+                timeoutFor("bybit"))
             val list = JSONObject(txt).getJSONObject("result").getJSONArray("list")
             List(list.length()) { k ->
                 val a = list.getJSONArray(k)
@@ -204,9 +208,11 @@ fun fetchFunding(provider: String, symbol: String, limit: Int = 200): List<Fundi
     if (sym.isEmpty()) throw RuntimeException("Pilih pair dulu.")
     return when (provider) {
         "binance" -> parseFundingJson(fetchText(
-            "https://fapi.binance.com/fapi/v1/fundingRate?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&limit=${limit.coerceIn(1, 1000)}"))
+            "https://fapi.binance.com/fapi/v1/fundingRate?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&limit=${limit.coerceIn(1, 1000)}",
+            timeoutFor("binance")))
         "bybit" -> parseFundingJson(fetchText(
-            "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&limit=${limit.coerceIn(1, 200)}"))
+            "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&limit=${limit.coerceIn(1, 200)}",
+            timeoutFor("bybit")))
         else -> throw RuntimeException("Funding hanya tersedia untuk Binance/Bybit (Yahoo/Demo tak punya funding).")
     }.sortedBy { it.t }
 }
@@ -222,10 +228,12 @@ fun fetchFundingRange(provider: String, symbol: String, fromMs: Long, toMs: Long
     return when (provider) {
         "binance" -> parseFundingJson(fetchText(
             "https://fapi.binance.com/fapi/v1/fundingRate?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}" +
-                "&startTime=$fromMs&endTime=$toMs&limit=1000"))
+                "&startTime=$fromMs&endTime=$toMs&limit=1000",
+            timeoutFor("binance")))
         "bybit" -> parseFundingJson(fetchText(
             "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}" +
-                "&start=$fromMs&end=$toMs&limit=200"))
+                "&start=$fromMs&end=$toMs&limit=200",
+            timeoutFor("bybit")))
         else -> throw RuntimeException("Funding hanya tersedia untuk Binance/Bybit (Yahoo/Demo tak punya funding).")
     }.filter { it.t in fromMs..toMs }.sortedBy { it.t }
 }

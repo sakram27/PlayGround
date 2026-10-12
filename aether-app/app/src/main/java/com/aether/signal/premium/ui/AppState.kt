@@ -79,9 +79,21 @@ object App {
     // seperti parameter risiko). Null = parameter manual/bawaan.
     var lastHyperopt: Triple<Double, Double, Double>? = null
     var lastHyperoptAt: Long = 0L
+    // V36: basis konfigurasi saat optimasi berjalan (kunci V36). Bila basis
+    // berubah sesudahnya, hasil dianggap basi → peringatan di ringkasan.
+    var lastHyperoptBasis: String = ""
+    var lastHyperoptBasisDesc: String = ""
     fun hyperoptSourceLine(): String? {
         val h = lastHyperopt ?: return null
         return "Hyperopt terapan (SL ${h.first}% · TP ${h.second}% · Risiko ${h.third}%)"
+    }
+    /**
+     * V36: true bila basis konfigurasi [p] masih sama dengan basis saat
+     * Hyperopt berjalan (atau tak ada hasil terapan). Murni, teruji.
+     */
+    fun hyperoptBasisFresh(p: BacktestParams): Boolean {
+        if (lastHyperopt == null || lastHyperoptBasis.isEmpty()) return true
+        return hyperoptBasisKey(p) == lastHyperoptBasis
     }
     var useAtr: Boolean = false
     var provider: String = "binance"

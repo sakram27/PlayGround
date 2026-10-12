@@ -134,6 +134,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun paintEffCfg(p: BacktestParams, extraPairs: List<String>? = null) {
         try {
             var txt = effectiveConfigSummary(p, App.hyperoptSourceLine())
+            // V36: peringatan kebasian Hyperopt — basis berubah sesudah terapkan.
+            if (App.lastHyperopt != null && !App.hyperoptBasisFresh(p)) {
+                txt += "\nPERINGATAN: konfigurasi berubah sejak Hyperopt diterapkan " +
+                    "(basis: ${App.lastHyperoptBasisDesc.ifEmpty { "—" }}) — " +
+                    "hasil optimasi mungkin basi. Jalankan ulang Hyperopt bila perlu."
+            }
             if (extraPairs != null && extraPairs.size > 1) {
                 txt = txt.replaceFirst("Pair: ${p.asset}",
                     "Pair: ${extraPairs.joinToString(", ")} (-engine per pair)")
@@ -814,6 +820,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     return@runBg
                 }
                 reportFetch(monId, meta, candles.size)
+                // V36: cakupan terpotong (batas 12 halaman) = peringatan eksplisit,
+                // bukan angka "cap" yang lewat diam-diam.
+                if (meta.source.contains("cap")) {
+                    MonitorBus.pushLog(monId, 1, "Peringatan: cakupan data terpotong (batas 12 halaman) — hasil hanya mencakup data yang diterima.")
+                }
                 App.candles = candles; App.params = p; App.lastFetchMeta = meta; App.lastFetchAt = System.currentTimeMillis()
                 setStatus("Backtest ${candles.size}c…")
                 val t0 = System.nanoTime()
@@ -960,7 +971,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         if (!dateRangeOk()) return
         if (App.universe.isEmpty()) { reloadUniverse { doMulti() }; return }
         val sel = App.universe.filter { App.multiSel.contains(it) } + App.multiSel.filter { !App.universe.contains(it) }
-        if (sel.isEmpty()) { setStatus("Please select at least one pair.", true); return }
+        if (sel.isEmpty()) { setStatus("Pilih minimal satu pair.", true); return }
         cancelled = false
         markRunning()
         clearEquityForNewRun("Menyiapkan multi-pair…")
@@ -1016,6 +1027,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         FetchResult(ens.candles, meta)
                     } else getCandles(App.provider, sym, p.timeframe, App.limit)
                     reportFetch(monId, fr.meta, fr.candles.size)
+                    if (fr.meta.source.contains("cap")) {
+                        MonitorBus.pushLog(monId, 1, "$sym: cakupan data terpotong (batas 12 halaman) — hasil pair ini hanya mencakup data yang diterima.")
+                    }
                     val t0 = System.nanoTime()
                     MonitorBus.phase(monId, MonPhase.VALIDATING_DATA, "Validasi $sym")
                     val res = runBacktest(fr.candles.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }, p.copy(asset = sym),

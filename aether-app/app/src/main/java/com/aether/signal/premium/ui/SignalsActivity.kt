@@ -88,13 +88,27 @@ class SignalsActivity : BaseActivity(0) {
                     BotEngine.positions.clear(); BotEngine.closed.clear(); BotEngine.equity = null; paint()
                 }
                 findViewById<TextView>(R.id.hero).apply {
-                    visibility = View.VISIBLE
-                    text = if (App.engRunning) "RUN · equity ${App.fmtMoney(BotEngine.equity ?: 0.0)} · net ${App.fmtMoney(BotEngine.netClosed())}"
-                    else "Berhenti · equity ${App.fmtMoney(BotEngine.equity ?: 0.0)} · net ${App.fmtMoney(BotEngine.netClosed())}  — paper trading, bukan order sungguhan"
+                    visibility = View.GONE
                 }
+                // V35 FIX scroll Positions: hero (RUN/equity) + panel diagnostik
+                // yang dulu TextView fixed DI LUAR RecyclerView kini menjadi
+                // baris header DI DALAM RecyclerView. Akar bug: gesture dari
+                // area atas tak menggulir apa-apa (view di luar scroll), dan
+                // panel diagnostik yang panjang menekan tinggi list. Kini satu
+                // area scroll utuh dari atas sampai bawah; recycling tetap.
+                val heroText = if (App.engRunning) "RUN · equity ${App.fmtMoney(BotEngine.equity ?: 0.0)} · net ${App.fmtMoney(BotEngine.netClosed())}"
+                    else "Berhenti · equity ${App.fmtMoney(BotEngine.equity ?: 0.0)} · net ${App.fmtMoney(BotEngine.netClosed())}"
                 val items = ArrayList<SigItem>()
-                // Target sejajar baris: null untuk baris grup "···" (bukan sinyal).
+                // Target sejajar baris: null untuk baris grup/info (bukan sinyal).
                 val targets = ArrayList<com.aether.signal.premium.ai.Sig?>()
+                items.add(SigItem("···", heroText, "Paper trading — bukan order sungguhan", ""))
+                targets.add(null)
+                for (line in engineDiagText().split("\n")) {
+                    val t = line.trim()
+                    if (t.isEmpty()) continue
+                    items.add(SigItem("···", t, "", ""))
+                    targets.add(null)
+                }
                 if (BotEngine.positions.isNotEmpty()) {
                     items.add(SigItem("···", "Terbuka · ${BotEngine.positions.size}", "", ""))
                     targets.add(null)
@@ -116,13 +130,19 @@ class SignalsActivity : BaseActivity(0) {
                 }
                 list().adapter = SigAdapter(items, onClick = { pos ->
                     val s = targets.getOrNull(pos)
-                    if (s == null) snack(this, "Baris grup / arsip tanpa sinyal tersimpan.")
+                    if (s == null) snack(this, "Baris grup / info / arsip tanpa sinyal tersimpan.")
                     else openSignalDetail(s.id)
-                })
-                if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {
-                    visibility = View.VISIBLE; text = "Belum ada posisi paper."
+                }, wrapMain = true)
+                if (BotEngine.positions.isEmpty() && BotEngine.closed.isEmpty()) {
+                    // Header ringkasan selalu ada di atas, jadi baris info ini
+                    // ikut tergulir (empty view fixed tak dipakai di mode ini).
+                    items.add(SigItem("···", "Belum ada posisi paper.", "", ""))
+                    targets.add(null)
+                    (list().adapter as? SigAdapter)?.let {
+                        it.items = items
+                        try { it.notifyDataSetChanged() } catch (_: Exception) { }
+                    }
                 }
-                paintEngineDiag()
             }
             2 -> { // History
                 val wins = App.hist.count { isWinTrade(it) }
@@ -204,9 +224,10 @@ class SignalsActivity : BaseActivity(0) {
         list().adapter = SigAdapter(lines)
     }
 
-    /** Panel diagnostik Engine: angka aktual tick terakhir + status notifikasi. */
-    private fun paintEngineDiag() {
-        val v = findViewById<TextView>(R.id.engDiag)
+    /** Panel diagnostik Engine sebagai teks (V35: dipakai sebagai baris header
+     *  di dalam RecyclerView Positions agar ikut tergulir — bukan TextView
+     *  fixed di luar scroll). Isi = angka aktual tick terakhir + notifikasi. */
+    private fun engineDiagText(): String {
         try {
             val now = System.currentTimeMillis()
             val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
@@ -216,7 +237,7 @@ class SignalsActivity : BaseActivity(0) {
                 pairs = App.engPairs.toList(), openPositions = BotEngine.positions.size,
                 oldestOpenAgeMs = oldest)
             val hist = try { NotifBus.history() } catch (e: Exception) { emptyList() }
-            v.text = formatEngineDiag(
+            return formatEngineDiag(
                 snap, App.strategy, App.timeframe, App.provider,
                 !NotifBus.needsRuntimePermission(), NotifBus.systemEnabled(),
                 try { NotifBus.quietHours().enabled } catch (e: Exception) { false },
@@ -224,9 +245,8 @@ class SignalsActivity : BaseActivity(0) {
                 hist.count { it.status == "DITAHAN" },
                 hist.count { it.status == "GAGAL" || it.status == "GAGAL_IZIN" },
                 tfMin, now)
-            v.visibility = View.VISIBLE
         } catch (e: Exception) {
-            try { v.visibility = View.GONE } catch (_: Exception) { /* abaikan */ }
+            return ""
         }
     }
 

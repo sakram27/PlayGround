@@ -2024,6 +2024,9 @@ fun main() {
     v32()
     v33()
     v34()
+    v35()
+    v36()
+    v37()
     println("\nHASIL-AKHIR: $pass pass, $fail fail")
     if (fail > 0) kotlin.system.exitProcess(1)
 }
@@ -2692,6 +2695,161 @@ fun v34() {
             && lb.contains("Strategi & filter TIDAK diubah"))
         val mo = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/engine/Models.kt").readText()
         ok("h34-model", mo.contains("fun configFingerprint(") && mo.contains("fun effectiveConfigSummary("))
+    }
+}
+
+fun v35() {
+    // ===== V35: satu area scroll Positions — hero+diag jadi header RV. =====
+    run {
+        val sg = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/SignalsActivity.kt").readText()
+        // Header ringkasan + diagnostik dibangun sebagai baris adapter.
+        ok("pos35-header", sg.contains("engineDiagText()") && sg.contains("SigItem(\"···\", heroText"))
+        // Adapter Positions mengizinkan bungkus baris panjang (diag multi-baris).
+        ok("pos35-wrap", sg.contains("wrapMain = true"))
+        // Mode Positions tak lagi menampilkan TextView fixed (di luar scroll).
+        val mode1 = sg.substringAfter("1 -> {").substringBefore("2 -> {")
+        ok("pos35-tanpa-fixed", !mode1.contains("visibility = View.VISIBLE"))
+        ok("pos35-refactor", sg.contains("private fun engineDiagText(): String")
+            && !sg.contains("paintEngineDiag()"))
+        // Navigasi/tab lain tak tersentuh: mode 0/2/3 + TabLayout tetap ada.
+        ok("pos35-regresi", sg.contains("0 -> {") && sg.contains("2 -> { // History")
+            && sg.contains("else -> { // Drift") && sg.contains("addTab"))
+        // Layout: satu-satunya kontainer scroll = RecyclerView (tanpa
+        // NestedScrollView/ScrollView bersarang baru).
+        val lay = java.io.File("aether-app/app/src/main/res/layout/activity_signals.xml").readText()
+        ok("pos35-layout", lay.contains("RecyclerView") && !lay.contains("NestedScrollView")
+            && !lay.contains("<ScrollView"))
+    }
+}
+
+fun v36() {
+    // ===== V36 TAHAP C: pemetaan error HTTP murni (semua provider). =====
+    run {
+        ok("e36-code", httpCodeOf("HTTP 451 dari api.binance.com") == "451"
+            && httpCodeOf("HTTP 429 rate") == "429" && httpCodeOf("ok") == null)
+        ok("e36-hint-block", (fetchErrorHint("451") ?: "").contains("wilayah")
+            && (fetchErrorHint("403") ?: "").contains("wilayah"))
+        ok("e36-hint-rate", (fetchErrorHint("429") ?: "").contains("1 menit"))
+        ok("e36-hint-null", fetchErrorHint("500") == null && fetchErrorHint(null) == null
+            && fetchErrorHint("422")!!.contains("ditolak"))
+        ok("e36-kind", classifyFetchError("HTTP 451 blocked") == FetchErrorKind.PERMANENT
+            && classifyFetchError("HTTP 403 x") == FetchErrorKind.PERMANENT
+            && classifyFetchError("HTTP 429 slow") == FetchErrorKind.TRANSIENT)
+    }
+    // ===== V36 TAHAP C: cache memori terbatas (30 kunci berbeda tetap jalan). =====
+    run {
+        var n = 0
+        for (l in 60..89) {
+            val r = getCandles("demo", "BTCUSDT", "15m", l)
+            if (r.candles.size == l) n++
+        }
+        ok("e36-memcap", n == 30, "n=$n")
+        // Batas 24 entri: kunci lama (60) di-evict lalu regenerasi benar;
+        // kunci baru (89) masih hit memori.
+        val r2 = getCandles("demo", "BTCUSDT", "15m", 89)
+        ok("e36-memhit", r2.meta.cacheUsed == "memory" && r2.candles.size == 89)
+        val r3 = getCandles("demo", "BTCUSDT", "15m", 60)
+        ok("e36-memregen", r3.candles.size == 60)
+    }
+    // ===== V36 TAHAP B: kunci basis Hyperopt + penjaga kebasian. =====
+    run {
+        val b = sanitizeParams(BacktestParams(asset = "BTCUSDT", timeframe = "15m"))
+        ok("e36-basis-stabil", hyperoptBasisKey(b) == hyperoptBasisKey(b.copy()))
+        ok("e36-basis-sl-bebas", hyperoptBasisKey(b) == hyperoptBasisKey(b.copy(slPercent = 0.05, riskPerTrade = 0.02)))
+        ok("e36-basis-strat", hyperoptBasisKey(b) != hyperoptBasisKey(b.copy(strategy = "rsi")))
+        ok("e36-basis-tf", hyperoptBasisKey(b) != hyperoptBasisKey(b.copy(timeframe = "1h")))
+        ok("e36-basis-filter", hyperoptBasisKey(b) != hyperoptBasisKey(b.copy(filters = listOf(FilterCfg("volume", true)))))
+        App.lastHyperopt = null; App.lastHyperoptBasis = ""
+        ok("e36-fresh-tanpa", App.hyperoptBasisFresh(b))
+        App.lastHyperopt = Triple(1.0, 2.0, 1.0); App.lastHyperoptBasis = hyperoptBasisKey(b)
+        ok("e36-fresh-sama", App.hyperoptBasisFresh(b))
+        ok("e36-fresh-basi", !App.hyperoptBasisFresh(b.copy(strategy = "rsi")))
+        App.lastHyperopt = null; App.lastHyperoptBasis = ""
+        ok("e36-sum-exec", effectiveConfigSummary(b, null).contains("Eksekusi backtest:"))
+    }
+    // ===== V36 TAHAP D: label paper + exit trailing berslippage (murni). =====
+    run {
+        ok("e36-paper", paperResult(5.0) == "WIN" && paperResult(-5.0) == "LOSS" && paperResult(0.0) == "IMPAS")
+        ok("e36-trailexit", trailExitWithSlip("LONG", 100.0, 0.0002) == 100.0 * 0.9998
+            && trailExitWithSlip("SHORT", 100.0, 0.0002) == 100.0 * 1.0002
+            && trailExitWithSlip("LONG", 100.0, Double.NaN) == 100.0)
+    }
+    // ===== V36: jejak sidik konfigurasi live di panel. =====
+    run {
+        val s = EngineDiagSnapshot(true, 1000L, 2000L, 3000L, "ema_trend", "15m", listOf("BTCUSDT"),
+            2, 2, 0, 0, 0, 0, 0, 0, 0, 0L, 0, emptyList(), "selesai", "")
+        ok("e36-cfgfp-default", s.lastCfgFp == "")
+        val t = formatEngineDiag(s.copy(lastCfgFp = "asset=BTCUSDT|tf=15m|strat=ema_trend"),
+            "ema_trend", "15m", "demo", true, true, false, 0, 0, 0, 15, 60000L)
+        ok("e36-cfgfp-panel", t.contains("sidik konfigurasi: asset=BTCUSDT"))
+    }
+    // ===== V36: wiring sumber (bukan klaim). =====
+    run {
+        val ha = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/data/HistoryArchive.kt").readText()
+        ok("e36-failover", ha.contains("binanceFetch(") && ha.contains("timeoutFor("))
+        val be = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BotEngine.kt").readText()
+        ok("e36-trailslip", be.contains("trailExitWithSlip(") && be.contains("paperResult(pnl)")
+            && be.contains("EngineDiag.lastCfgFp = "))
+        val bt = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("e36-cap", bt.contains(".source.contains(\"cap\")") && bt.contains("cakupan data terpotong"))
+        ok("e36-bahasa", bt.contains("Pilih minimal satu pair.") && !bt.contains("Please select at least one pair."))
+        ok("e36-effwarn", bt.contains("hyperoptBasisFresh(p)"))
+        val lb = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/LabActivity.kt").readText()
+        ok("e36-hyperbasis", lb.contains("lastHyperoptBasis = basisFp")
+            && lb.contains("PERINGATAN: konfigurasi sudah berubah"))
+    }
+}
+
+fun v37() {
+    // ===== V37 UJI A: Single/Multi di kartu Data & Pasangan, tanpa duplikat. =====
+    run {
+        val x = java.io.File("aether-app/app/src/main/res/layout/activity_backtest.xml").readText()
+        fun cnt(t: String) = t.toRegex().findAll(x).count()
+        ok("bt37-tunggal", cnt("@\\+id/segMode") == 1 && cnt("@\\+id/segSingle") == 1
+            && cnt("@\\+id/segMulti") == 1, "mode/single/multi tepat 1")
+        val pData = x.indexOf("DATA &amp; PASANGAN")
+        val pMode = x.indexOf("@+id/segMode")
+        val pConsole = x.indexOf("BACKTEST CONSOLE")
+        ok("bt37-posisi", pData in 0 until pMode && pMode in 0 until pConsole,
+            "data<pair>&pasangan<mode<console")
+        // Kotak single/multi tetap tepat setelah toggle mode (satu kartu).
+        val pSingleBox = x.indexOf("@+id/singleBox")
+        val pMultiBox = x.indexOf("@+id/multiBox")
+        ok("bt37-box", pMode in 0 until pSingleBox && pSingleBox in 0 until pMultiBox
+            && pMultiBox in 0 until pConsole)
+        // Wiring fungsi utuh: ID, listener, sinkronisasi, eksekusi mode.
+        val kt = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/BacktestActivity.kt").readText()
+        ok("bt37-wire", kt.contains("toggle(R.id.segMode, listOf(R.id.segSingle, R.id.segMulti)")
+            && kt.contains("segLabels(R.id.segMode, listOf(\"Single Pair\", \"Multi Pair\"))")
+            && kt.contains("App.mode = if (it == 1) \"multi\" else \"single\""))
+        ok("bt37-sync", kt.contains(".check(if (App.mode == \"multi\") R.id.segMulti else R.id.segSingle)"))
+        ok("bt37-exec", kt.contains("if (App.mode == \"multi\") doMulti() else doSingle()"))
+    }
+    // ===== V37 UJI B: ringkas tanpa buang fungsi. =====
+    run {
+        val x = java.io.File("aether-app/app/src/main/res/layout/activity_backtest.xml").readText()
+        // Daftar fixed-height dirampingkan; chart equity tetap 220dp (v24).
+        val comboH = Regex("@\\+id/comboList\"[^>]*?layout_height=\"(\\d+)dp\"",
+            RegexOption.DOT_MATCHES_ALL).find(x)?.groupValues?.get(1)
+        val filterH = Regex("@\\+id/filterList\"[^>]*?layout_height=\"(\\d+)dp\"",
+            RegexOption.DOT_MATCHES_ALL).find(x)?.groupValues?.get(1)
+        ok("bt37-ramping", comboH == "160" && filterH == "180", "combo=$comboH filter=$filterH")
+        ok("bt37-chart-tetap", x.contains("@+id/equity") && x.contains("220dp"))
+        // Semua kartu & kontrol penting tetap ada tepat 1.
+        for (t in listOf("STRATEGI", "DATA &amp; PASANGAN", "FILTER", "RISIKO &amp; BIAYA",
+            "RENTANG DATA", "BACKTEST MONITOR", "BACKTEST CONSOLE", "EQUITY CURVE",
+            "HASIL", "@+id/btnRun", "@+id/btnCancel", "@+id/btnPair", "@+id/btnSelect",
+            "@+id/btnReload", "@+id/inSl", "@+id/inTp", "@+id/kvList", "@+id/tradeList",
+            "@+id/effCfg", "@+id/swTrailBt", "@+id/segTp", "@+id/segLimit"))
+            ok("bt37-ada-$t", x.contains(t))
+        // Scroll utuh: satu ScrollView + fillViewport, tanpa tinggi tetap berlebih.
+        ok("bt37-scroll", x.contains("<ScrollView") && x.contains("fillViewport=\"true\"")
+            && !x.contains("240dp") && !x.contains("360dp"))
+        // Urutan kartu V24 tak berubah (MONITOR < CONSOLE < EQUITY < HASIL).
+        fun pos(t: String) = x.indexOf(t)
+        ok("bt37-urutan", pos("BACKTEST MONITOR") in 0 until pos("BACKTEST CONSOLE")
+            && pos("BACKTEST CONSOLE") in 0 until pos("EQUITY CURVE")
+            && pos("EQUITY CURVE") in 0 until pos("android:text=\"HASIL\""))
     }
 }
 

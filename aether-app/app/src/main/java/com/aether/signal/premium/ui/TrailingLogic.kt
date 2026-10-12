@@ -20,6 +20,18 @@ data class TrailState(val stop: Double, val extreme: Double)
 
 fun positionKey(pair: String, dir: String, entryT: Long): String = "$pair|$dir|$entryT"
 
+/**
+ * V36: label hasil posisi paper berbasis laba bersih (murni, teruji).
+ * Konsisten dengan kategorisasi backtest (isWinTrade): fee/slippage yang
+ * menghapus keuntungan kecil tak lagi dilabel WIN. Dipakai ClosedPos.
+ */
+fun paperResult(pnl: Double): String = when {
+    pnl > 0 -> "WIN"
+    pnl < 0 -> "LOSS"
+    pnl == 0.0 -> "IMPAS"
+    else -> "LOSS" // non-finite tak mungkin (pnl dibangun dari finite) — defensif
+}
+
 /** Jarak trailing; null bila entry tak valid. */
 fun trailDistance(entry: Double, tp: Double, lockPct: Double): Double? {
     if (!entry.isFinite() || entry <= 0) return null

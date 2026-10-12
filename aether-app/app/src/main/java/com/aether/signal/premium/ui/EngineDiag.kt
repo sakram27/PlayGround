@@ -33,7 +33,9 @@ data class EngineDiagSnapshot(
     val candShort: Int = 0,
     val blockedPosition: Int = 0,
     val filterTop: List<Pair<String, Int>> = emptyList(),
-    val lastSignalAt: Long = 0L
+    val lastSignalAt: Long = 0L,
+    // V36: sidik konfigurasi tick terakhir (jejak live→konfigurasi).
+    val lastCfgFp: String = ""
 )
 
 object EngineDiag {
@@ -56,6 +58,8 @@ object EngineDiag {
     @Volatile var candShort: Int = 0
     @Volatile var blockedPosition: Int = 0
     @Volatile var lastSignalAt: Long = 0L
+    // V36: sidik konfigurasi tick terakhir (tak direset per tick).
+    @Volatile var lastCfgFp: String = ""
     private val lock = Any()
     private val errors: LinkedHashMap<String, String> = LinkedHashMap()
     private val freasons: LinkedHashMap<String, Int> = LinkedHashMap()
@@ -104,7 +108,7 @@ object EngineDiag {
             evalTotal, evalOk, candidates, filteredOut, invalidLevels, dupHeld,
             stored, notifCalls, openPositions, oldestOpenAgeMs,
             errs.size, errs, lastPhase, lastError,
-            totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt)
+            totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp)
     }
 }
 
@@ -203,6 +207,7 @@ fun formatEngineDiag(
             snap.filterTop.joinToString(" · ") { "${it.first}×${it.second}" })
     }
     b.append("\nSinyal/rekaman terakhir: ${ageText(snap.lastSignalAt, nowMs)}")
+    if (snap.lastCfgFp.isNotEmpty()) b.append(" · sidik konfigurasi: ${snap.lastCfgFp.take(24)}…")
     b.append("\nLevel tak valid: ${snap.invalidLevels} · duplikat ditahan: ${snap.dupHeld}")
     b.append(" · tersimpan: ${snap.stored} · notif dipanggil: ${snap.notifCalls}")
     b.append("\nNotifikasi: izin ${if (notifPermOk) "OK" else "BELUM"} · sistem " +

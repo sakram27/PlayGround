@@ -202,7 +202,26 @@ fun effectiveConfigSummary(p: BacktestParams, hyperoptSrc: String? = null): Stri
     b.append("\nRentang: ${if (p.startDate > 0 || p.endDate > 0) "${p.startDate}→${p.endDate}" else "seluruh data"}")
     b.append("\nModal: ${p.initialCapital} · Risiko: ${p.riskPerTrade * 100}% · Lev: ${p.leverage}× · Fee: ${p.feePercent * 100}% · Slip: ${p.slippagePercent * 100}%")
     b.append("\nSumber: ${hyperoptSrc ?: "konfigurasi manual"}")
+    // V36: model eksekusi dinyatakan eksplisit — perbedaan vs live disengaja,
+    // bukan bug tersembunyi.
+    b.append("\nEksekusi backtest: entry di open candle berikut + slippage ±kedua sisi " +
+        "(live memakai harga saat ini — lihat panel Engine).")
     return b.toString()
+}
+
+/**
+ * V36: kunci basis Hyperopt — subset sidik yang TAK diubah hasil optimasi
+ * (aset·TF·strategi·combo·filter). Hasil Hyperopt hanya valid untuk basis ini;
+ * bila basis berubah, hasil dianggap basi (peringatan, bukan blokir).
+ */
+fun hyperoptBasisKey(p: BacktestParams): String {
+    val combo = p.combo
+    val comboS = if (combo == null) "-" else "${combo.mode}:${combo.strategies.sorted().joinToString("+")}"
+    val flt = p.filters.filter { it.enabled }.sortedBy { it.name }.joinToString(",") { fc ->
+        val prm = fc.params.toList().sortedBy { it.first }.joinToString(";") { "${it.first}=${it.second}" }
+        "${fc.name}[$prm]"
+    }
+    return "asset=${p.asset}|tf=${p.timeframe}|strat=${p.strategy}|combo=$comboS|filters=$flt"
 }
 
 data class BacktestDiag(

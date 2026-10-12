@@ -68,7 +68,16 @@ fun trailExitPrice(
 }
 
 /**
- * Ratchet akhir bar TANPA exit: extreme mengikuti sisi menguntungkan,
+ * V36: harga keluar trailing live = level stop ± slippage (sama seperti
+ * backtest; dulu live tanpa slippage sehingga tak sebanding). Murni, teruji.
+ */
+fun trailExitWithSlip(dir: String, stop: Double, slip: Double): Double {
+    val s = if (slip.isFinite() && slip >= 0) slip else 0.0
+    return if (dir == "LONG") stop * (1 - s) else stop * (1 + s)
+}
+
+/**
+ * Ratchet akhir bar TANPA exit: extreme hanya dari bar ini/masa lalu,
  * stop hanya menguat. Panggil hanya bila bar ini tak menutup posisi
  * (cermin di mesin + replay).
  */

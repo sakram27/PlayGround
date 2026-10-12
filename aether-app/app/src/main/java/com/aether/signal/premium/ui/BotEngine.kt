@@ -133,6 +133,9 @@ object BotEngine {
         lastTotalPairs = syms.size
         // V26: telemetri aktual per tick (dibaca panel diagnostik).
         EngineDiag.beginTick()
+        // V36: sidik konfigurasi tick ini (jejak live→konfigurasi, tampil di panel
+        // + tertanam di scoreDetail sinyal entry; persisten via saveSignals).
+        try { EngineDiag.lastCfgFp = configFingerprint(sanitizeParams(p)) } catch (e: Exception) { /* abaikan */ }
         EngineDiag.lastPhase = "mengambil data ${syms.size} pair"
         for (sym in syms) {
             EngineDiag.evalTotal++
@@ -237,14 +240,15 @@ object BotEngine {
                                         // Keluar pada level stop (harga stop, bukan fill
                                         // terbukti — dinyatakan di UI). Rumus pnl =
                                         // rumus exit mesin yang sama.
-                                        val exit = cl
+                                        // V36: slippage ± sisi seperti backtest
+                                        // (dulu tanpa slippage → tak sebanding).
+                                        val exit = trailExitWithSlip(open.dir, cl, p.slippagePercent)
                                         val gross = (if (open.dir == "LONG") exit - open.entry else open.entry - exit) * open.qty
                                         val fees = (open.entry * open.qty + exit * open.qty) * p.feePercent
                                         val pnl = gross - fees
-                                        val win = if (open.dir == "LONG") exit > open.entry else exit < open.entry
                                         equity = (equity ?: p.initialCapital) + pnl
                                         positions.remove(open)
-                                        closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, if (win) "WIN" else "LOSS", open.entryT, b.t))
+                                        closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, paperResult(pnl), open.entryT, b.t))
                                         if (closed.size > 300) { closed.subList(300, closed.size).clear() }
                                         val fx2 = fctx[sym] ?: FilterCtx()
                                         fx2.lastExitT = b.t; fx2.tfMs = tfMs
@@ -282,7 +286,9 @@ object BotEngine {
                         equity = (equity ?: p.initialCapital) + pnl
                         positions.remove(open)
                         forgetTrailNotify(positionKey(sym, open.dir, open.entryT))
-                        closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, if (win) "WIN" else "LOSS", open.entryT, b.t))
+                        // V36: label berbasis laba bersih (dulu pemicu: TP selalu
+                        // WIN walau fee/slippage membuatnya negatif).
+                        closed.add(0, ClosedPos(sym, open.dir, open.entry, exit, pnl, paperResult(pnl), open.entryT, b.t))
                         if (closed.size > 300) { closed.subList(300, closed.size).clear() }
                         val fx = fctx[sym] ?: FilterCtx()
                         fx.lastExitT = b.t; fx.tfMs = tfMs
@@ -398,7 +404,11 @@ object BotEngine {
                         passedFilters = passedIds, failedFilters = failedIds,
                         decidedAt = System.currentTimeMillis(),
                         score = sc?.total ?: -1.0,
-                        scoreDetail = if (sc != null) "${scoreExplain(passedIds.size, activeIds.size)} · ${sc.coverage}" else "")
+                        scoreDetail = (if (sc != null) "${scoreExplain(passedIds.size, activeIds.size)} · ${sc.coverage}" else "") +
+                            (try {
+                                val fp = EngineDiag.lastCfgFp
+                                if (fp.isNotEmpty()) " · cfg ${fp.take(16)}" else ""
+                            } catch (e: Exception) { "" }))
                     if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
                         EngineDiag.dupHeld++
                     } else {

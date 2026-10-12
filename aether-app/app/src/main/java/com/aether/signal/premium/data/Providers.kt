@@ -17,7 +17,27 @@ data class FetchMeta(
 
 data class FetchResult(val candles: List<Candle>, val meta: FetchMeta)
 
-private val memCache = HashMap<String, Pair<List<Candle>, Long>>()
+private val memCache = LinkedHashMap<String, Pair<List<Candle>, Long>>()
+
+/** Batas entri cache memori (V36): tanpa ini HashMap tumbuh tanpa batas
+ *  dalam satu proses. LRU sederhana: hapus tertua saat melebihi batas. */
+private const val MEMCACHE_MAX_ENTRIES = 24
+
+@Synchronized
+private fun memGet(key: String): Pair<List<Candle>, Long>? {
+    val v = memCache[key] ?: return null
+    if (System.currentTimeMillis() - v.second >= MEMCACHE_TTL_MS) {
+        memCache.remove(key)
+        return null
+    }
+    return v
+}
+
+@Synchronized
+private fun memPut(key: String, v: Pair<List<Candle>, Long>) {
+    memCache[key] = v
+    while (memCache.size > MEMCACHE_MAX_ENTRIES) memCache.remove(memCache.keys.first())
+}
 
 /** TTL cache memori (G5): tanpa ini harga membeku selamanya dalam satu proses.
  *  60 dtk untuk semua TF — cukup segar untuk monitor 60-dtk, hemat untuk backtest
@@ -99,7 +119,6 @@ private var binanceHost: String? = null
 
 // P4: timeout per provider sesuai karakteristiknya (ringan, tanpa server).
 // Binance/Bybit: respons JSON kecil → cepat. Yahoo: chart bisa besar → longgar.
-private const val DEF_CONN_MS = 8000
 private val PROVIDER_TIMEOUTS = mapOf(
     "binance" to 10000,
     "bybit" to 10000,
@@ -112,6 +131,22 @@ fun timeoutFor(provider: String): Int = PROVIDER_TIMEOUTS[provider] ?: 12000
 
 /** Klasifikasi kegagalan fetch (P4, murni, teruji). */
 enum class FetchErrorKind { TRANSIENT, PERMANENT }
+
+/**
+ * V36: petunjuk takdir error HTTP apa pun providernya (murni, teruji).
+ * 451/403 = blokir wilayah (jangan di-retry buta); 429 = rate-limit
+ * (tunggu sebelum coba lagi); 5xx/timeout/DNS = sementara.
+ */
+fun fetchErrorHint(code: String?): String? = when (code) {
+    "451", "403" -> "kemungkinan diblokir wilayah/jaringan — coba provider lain atau Demo"
+    "429" -> "rate-limit sesaat — tunggu ±1 menit lalu coba lagi"
+    "422", "404" -> "kombinasi simbol/timeframe ditolak provider"
+    else -> null
+}
+
+/** Kode HTTP dari pesan error, atau null bila tak ada. */
+fun httpCodeOf(msg: String?): String? =
+    Regex("HTTP\\s*(\\d+)").find((msg ?: "").uppercase())?.groupValues?.get(1)
 
 fun classifyFetchError(msg: String?): FetchErrorKind {
     val m = (msg ?: "").uppercase()
@@ -144,7 +179,8 @@ fun fetchText(url: String, timeoutMs: Int = 15000): String {
     } finally { c.disconnect() }
 }
 
-private fun binanceFetch(path: String, timeoutMs: Int = 15000): Pair<String, String> {
+/** Fetch Binance dengan failover antar-host (dipakai klines + paginasi rentang). */
+fun binanceFetch(path: String, timeoutMs: Int = 15000): Pair<String, String> {
     val hosts = listOfNotNull(binanceHost) + BINANCE_HOSTS.filter { it != binanceHost }
     var lastErr: Exception? = null
     for (h in hosts) {
@@ -154,9 +190,10 @@ private fun binanceFetch(path: String, timeoutMs: Int = 15000): Pair<String, Str
             return h to data
         } catch (e: Exception) { lastErr = e }
     }
-    val m = Regex("HTTP (\\d+)").find(lastErr?.message ?: "")
-    if (m?.groupValues?.get(1) == "451") throw RuntimeException("Binance diblokir di wilayah/jaringan Anda (HTTP 451) dan semua mirror gagal. Pakai Yahoo Forex atau Demo.")
-    throw RuntimeException("Binance gagal di semua host: ${lastErr?.message ?: "tidak diketahui"}. Pakai Yahoo Forex atau Demo.")
+    val code = httpCodeOf(lastErr?.message)
+    val hint = fetchErrorHint(code)?.let { " ($it)" } ?: ""
+    if (code == "451" || code == "403") throw RuntimeException("Binance diblokir di wilayah/jaringan Anda (HTTP $code) dan semua mirror gagal$hint. Pakai Yahoo Forex atau Demo.")
+    throw RuntimeException("Binance gagal di semua host: ${lastErr?.message ?: "tidak diketahui"}$hint. Pakai Yahoo Forex atau Demo.")
 }
 
 private fun resample(candles: List<Candle>, tfMin: Int): List<Candle> {
@@ -203,9 +240,10 @@ private fun yahooCandles(symbol: String, timeframe: String, limit: Int, timeoutM
             } catch (e: Exception) { lastErr = e; try { Thread.sleep(600) } catch (ignored: Exception) {} }
         }
     }
-    val code = Regex("HTTP (\\d+)").find(lastErr?.message ?: "")?.groupValues?.get(1)
+    val code = httpCodeOf(lastErr?.message)
     if (code == "422") throw RuntimeException("Yahoo menolak kombinasi $symbol $timeframe. Coba timeframe 1h/1d.")
     if (code == "429") throw RuntimeException("Yahoo rate-limit sesaat. Tunggu ±1 menit lalu coba lagi.")
+    if (code == "451" || code == "403") throw RuntimeException("Yahoo diblokir di wilayah/jaringan Anda (HTTP $code). Coba lagi nanti atau pakai Demo.")
     throw RuntimeException("Yahoo gagal untuk $symbol ($ysym): ${lastErr?.message ?: "tidak diketahui"}. Coba lagi atau pakai Demo.")
 }
 
@@ -215,14 +253,10 @@ fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timefra
     parseTimeframe(timeframe)
     val lim = minOf(1000, maxOf(60, limit))
     val key = ck(provider, rawSymbol.uppercase(), timeframe, lim)
-    memCache[key]?.let { (cached, at) ->
-        if (System.currentTimeMillis() - at < MEMCACHE_TTL_MS) {
-            val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, cached.size, "memory", provider)
-            fetchHistory.add(meta)
-            return FetchResult(cached, meta)
-        } else {
-            memCache.remove(key)
-        }
+    memGet(key)?.let { (cached, _) ->
+        val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, cached.size, "memory", provider)
+        fetchHistory.add(meta)
+        return FetchResult(cached, meta)
     }
     val sym = rawSymbol.uppercase().replace(Regex("[^A-Z0-9]"), "")
     // XAUUSD/forex TIDAK tersedia di spot crypto. Gagal jujur di sini (jangan
@@ -256,7 +290,7 @@ fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timefra
     }
     val bad = candles.count { !(it.o.isFinite() && it.h.isFinite() && it.l.isFinite() && it.c.isFinite()) }
     if (bad > 0) throw RuntimeException("Provider mengembalikan $bad candle rusak. Coba refresh.")
-    memCache[key] = candles to System.currentTimeMillis()
+    memPut(key, candles to System.currentTimeMillis())
     // P5: simpan cache disk (best-effort, tanpa memblokir hasil).
     try { CandleDiskCache.save(provider, rawSymbol.uppercase(), timeframe, candles) } catch (e: Exception) { /* abaikan */ }
     val meta = FetchMeta(provider, rawSymbol.uppercase(), timeframe, lim, candles.size, "none", provider)
@@ -267,9 +301,13 @@ fun getCandles(provider: String = "binance", symbol: String = "BTCUSDT", timefra
 
 private fun diskClock(ts: Long): String {
     return try {
+        // V36: sertakan TANGGAL (dulu hanya HH:MM sehingga cache berminggu-minggu
+        // terlihat segar). Format: dd-MM HH:mm.
         val c = java.util.Calendar.getInstance()
         c.timeInMillis = ts
-        String.format(java.util.Locale.US, "%02d:%02d", c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE))
+        String.format(java.util.Locale.US, "%02d-%02d %02d:%02d",
+            c.get(java.util.Calendar.DAY_OF_MONTH), c.get(java.util.Calendar.MONTH) + 1,
+            c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE))
     } catch (e: Exception) { "?" }
 }
 
@@ -291,7 +329,13 @@ private fun fetchNetwork(provider: String, rawSymbol: String, sym: String, timef
             val tf = BYBIT_TF[timeframe.lowercase()] ?: throw RuntimeException("Bybit tidak mendukung timeframe $timeframe. Gunakan 1m/5m/15m/1h/4h/1d/1w.")
             val txt = try {
                 fetchText("https://api.bybit.com/v5/market/kline?category=spot&symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(tf, "UTF-8")}&limit=$lim", tmo)
-            } catch (e: Exception) { throw RuntimeException("Bybit tak terjangkau (umum: diblokir wilayah/jaringan). Pakai Binance, Yahoo, atau Demo. [${e.message ?: "network"}]") }
+            } catch (e: Exception) {
+                // V36: bedakan blokir wilayah vs rate-limit vs jaringan (dulu
+                // satu pesan generik untuk semua kode HTTP).
+                val code = httpCodeOf(e.message)
+                val hint = fetchErrorHint(code)?.let { " ($it)" } ?: ""
+                throw RuntimeException("Bybit tak terjangkau$hint. Pakai Binance, Yahoo, atau Demo. [${e.message ?: "network"}]")
+            }
             val list = JSONObject(txt).getJSONObject("result").getJSONArray("list")
             if (list.length() == 0) throw RuntimeException("Bybit mengembalikan data kosong untuk $sym. Pastikan simbol spot valid.")
             List(list.length()) { k ->
