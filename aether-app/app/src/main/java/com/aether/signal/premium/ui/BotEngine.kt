@@ -144,7 +144,13 @@ object BotEngine {
         busy = true
         try {
             App.engRunning = false
-            sched?.cancel(false)
+            // Bagian A/C: pembatalan scheduler tak boleh melempar keluar —
+            // Stop harus selalu konsisten (flag mati + sesi dibersihkan).
+            try {
+                sched?.cancel(false)
+            } catch (e: Exception) {
+                EngineDiag.lastError = "gagal batal scheduler: ${(e.message ?: "?").take(80)}"
+            }
             clearSession()
             EngineDiag.staleNote = ""
             // Bagian B: tutup penanda sesi — kosong = bersih (hapus),
@@ -519,6 +525,9 @@ object BotEngine {
                         OpenDecision.ALLOW -> { /* lanjut buka */ }
                     }
                     positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
+                    // Bagian B: sesi baru terbukti mengelola lagi (open pertama)
+                    // → peringatan sesi lama luruh (riwayat tetap tersimpan).
+                    if (EngineDiag.staleNote.isNotEmpty()) EngineDiag.staleNote = ""
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
                     val slPctV = if (entry > 0) Math.abs(entry - sl) / entry * 100 else Double.NaN
