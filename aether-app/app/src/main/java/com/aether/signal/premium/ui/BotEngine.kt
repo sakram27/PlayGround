@@ -203,12 +203,14 @@ object BotEngine {
         // try-per-pair dicatat di sini, loop tetap hidup. (scheduleAtFixedRate
         // berhenti diam-diam bila tugas melempar.)
         try {
-        // Tahap 3: parameter + pairs + provider berasal dari SESI BEKU startup,
-        // bukan global live. Suntingan layar lain saat berjalan tak mengubah
-        // parameter aktif; divergensi dicatat di EngineDiag.
+        // Tahap 3 + Bagian F: parameter dari SESI BEKU startup. Bila Engine
+        // sudah berhenti (tick basi/manual diagnostik), JANGAN bangkitkan
+        // sesi baru — pakai sesi sekali-pakai dari global saat ini agar
+        // stop() yang telah membersihkan sesi tidak dinegasikan.
         val sess: EngineSession
         try {
-            sess = ensureSession()
+            sess = if (App.engRunning) ensureSession()
+            else freezeSession(App.captureGlobals(), App.engPairs.toList(), System.currentTimeMillis())
         } catch (e: Exception) {
             lastScan = "Dry run error: ${e.message}"
             tickGate.end()
@@ -524,10 +526,9 @@ object BotEngine {
                         }
                         OpenDecision.ALLOW -> { /* lanjut buka */ }
                     }
-                    positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
-                    // Bagian B: sesi baru terbukti mengelola lagi (open pertama)
-                    // → peringatan sesi lama luruh (riwayat tetap tersimpan).
-                    if (EngineDiag.staleNote.isNotEmpty()) EngineDiag.staleNote = ""
+                    val newPos = PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0)
+                    positions.add(newPos)
+                    // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
                     val slPctV = if (entry > 0) Math.abs(entry - sl) / entry * 100 else Double.NaN
@@ -545,12 +546,25 @@ object BotEngine {
                                 val fp = EngineDiag.lastCfgFp
                                 if (fp.isNotEmpty()) " · cfg ${fp.take(16)}" else ""
                             } catch (e: Exception) { "" }))
-                    if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
+                    val isDup = App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }
+                    // Bagian E1: penyimpanan gagal SETELAH posisi dibuat → rollback
+                    // posisi (tak ada posisi tak tercatat) + vonis jujur. Tanpa ini
+                    // posisi hantu hidup di memori tanpa riwayat.
+                    try {
+                        App.pushSignal(sig)
+                    } catch (e: Exception) {
+                        positions.remove(newPos)
+                        EngineDiag.noteVerdict(sym, "STORE_FAILED", (e.message ?: "gagal").take(60))
+                        EngineDiag.lastError = "$sym: simpan sinyal gagal: ${e.message}".take(160)
+                        continue
+                    }
+                    // Sesi baru terbukti mengelola lagi → amaran sesi lama luruh.
+                    if (EngineDiag.staleNote.isNotEmpty()) EngineDiag.staleNote = ""
+                    if (isDup) {
                         EngineDiag.dupHeld++
                     } else {
                         EngineDiag.noteStored()
                     }
-                    App.pushSignal(sig)
                     EngineDiag.noteVerdict(sym, "SIGNAL_CREATED", dec.direction)
                     // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
                     EngineDiag.notifCalls++
@@ -573,6 +587,11 @@ object BotEngine {
         }
         EngineDiag.lastTickAt = System.currentTimeMillis()
         EngineDiag.lastPhase = if (EngineDiag.evalOk > 0) "selesai" else "selesai (tanpa data valid)"
+        // Bagian F: tick yang selesai SETELAH Stop (siklus terakhir yang
+        // dibiarkan rampung) dinyatakan jujur — bukan "RUN normal".
+        if (!manual && !App.engRunning) {
+            EngineDiag.lastPhase += " · selesai setelah Stop (siklus terakhir)"
+        }
         lastOkPairs = ok
         try { App.saveRegime() } catch (e: Exception) { /* abaikan */ }
         try { App.saveRegimeDiag() } catch (e: Exception) { /* abaikan */ }

@@ -250,7 +250,13 @@ object NotifBus {
             dispatchDigest(c, s, rec)
             return
         }
-        ensureChannels(c)
+        // Bagian E: kegagalan penyiapan channel pun dicatat (bukan hilang diam-diam).
+        try {
+            ensureChannels(c)
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
+            return
+        }
         val b = NotificationCompat.Builder(c, channel)
             .setSmallIcon(R.drawable.ic_notif)
             .setContentTitle(title)
@@ -278,7 +284,12 @@ object NotifBus {
         val line = "${s.pair} ${s.dir} ${s.tf}"
         val bucket = digestAdd(digestBucket(), key, label, line)
         saveDigestBucket(bucket)
-        ensureChannels(c)
+        try {
+            ensureChannels(c)
+        } catch (e: Exception) {
+            addNotifRec(history(), rec.copy(status = "GAGAL")); persistHistory()
+            return
+        }
         val text = digestSummary(bucket)
         val b = NotificationCompat.Builder(c, CH_ENTRY)
             .setSmallIcon(R.drawable.ic_notif)

@@ -16,6 +16,7 @@ fun lok(n: String, c: Boolean, x: String = "") {
 // ---------- Test double: SharedPreferences dalam memori ----------
 class FakePrefs : SharedPreferences {
     val map = HashMap<String, Any?>()
+    var failEdit = false
     fun clearAll() = map.clear()
     override fun contains(k: String) = map.containsKey(k)
     override fun edit(): SharedPreferences.Editor = Ed()
@@ -44,9 +45,13 @@ class FakePrefs : SharedPreferences {
         override fun remove(k: String) = apply { del.add(k) }
         override fun clear() = apply { clear = true }
         override fun commit(): Boolean {
+            if (failEdit) throw RuntimeException("injeksi-gagal-tulis")
             applyAll(); return true
         }
-        override fun apply() = applyAll()
+        override fun apply() {
+            if (failEdit) throw RuntimeException("injeksi-gagal-tulis")
+            applyAll()
+        }
         private fun applyAll() {
             if (clear) map.clear()
             for (k in del) map.remove(k)
@@ -116,6 +121,10 @@ fun riseCandles(n: Int, o0: Double, step: Double = 0.001): List<Candle> {
 
 fun resetEngine() {
     try { BotEngine.stop() } catch (e: Exception) { }
+    // Sesi basi antar-tes harus dibuang eksplisit: stop() early-return saat
+    // sudah berhenti sehingga clearSession tak berjalan. Tanpa ini tick
+    // manual memakai SESI LAMA (proven by failing M2/M3/E1/M4).
+    try { BotEngine.clearSession() } catch (e: Exception) { }
     BotEngine.positions.clear()
     BotEngine.closed.clear()
     BotEngine.equity = null
@@ -149,7 +158,8 @@ fun baseCfg(pairs: List<String>, cap: Int = 1, mh: Int = 2000) {
     App.maxHolding = mh
     App.maxOpenTrades = cap
     App.slPct = 50.0
-    App.tpPct = 100.0
+    // TP 20%: valid dua arah (TP 100% -> TP=0 untuk SHORT -> INVALID_LEVEL).
+    App.tpPct = 20.0
     App.tpMode = 1
     App.useAtr = false
     App.btTrailOn = false
@@ -356,6 +366,134 @@ fun main() {
             "ok=${snap.evalOk} " + snap.pairVerdicts.joinToString(",") { "${it.sym}=${it.outcome}" })
         BotEngine.stop()
     }
+    lifecycleTest9()
     println("LIFECYCLE-TEST done pass=$lpass fail=$lfail")
     if (lfail > 0) kotlin.system.exitProcess(1) else kotlin.system.exitProcess(0)
+}
+
+fun lifecycleTest9() {
+    // D/M1: kandidat valid vs filter-reject pada engine sungguhan (data uji).
+    run {
+        resetEngine()
+        baseCfg(listOf("BTCUSDT"), cap = 3)
+        primeRise(listOf("BTCUSDT"))
+        App.filterOn = HashMap<String, Boolean>().also { it["rsi"] = true }
+        App.fRsiHi = 72.0
+        App.fRsiLo = 28.0
+        BotEngine.tick(true)
+        val snap = EngineDiag.snapshot(false, App.strategy, App.timeframe,
+            listOf("BTCUSDT"), BotEngine.positions.size, 0L)
+        lok("M1-filter-reject", BotEngine.positions.isEmpty() && App.signals.isEmpty() &&
+            snap.evalOk == 1 && snap.filteredOut > 0 &&
+            snap.pairVerdicts.any { it.outcome == "FILTERED" },
+            "filtered=${snap.filteredOut} verdicts=" + snap.pairVerdicts.joinToString(",") { it.outcome })
+    }
+    // D/M2: LONG + SHORT timestamp sama — identitas tak saling menimpa.
+    run {
+        resetEngine()
+        baseCfg(listOf("BTCUSDT", "ETHUSDT"), cap = 3)
+        primeMem("demo", "BTCUSDT", "15m", 300, riseCandles(300, 100.0, 0.001))
+        primeMem("demo", "ETHUSDT", "15m", 300, riseCandles(300, 50.0, -0.001))
+        var latchM2 = java.util.concurrent.CountDownLatch(1)
+        BotEngine.onTick = { latchM2.countDown() }
+        BotEngine.start()
+        latchM2.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        val sigs = App.signals
+        lok("M2-long-short-sama-t", sigs.size == 2 &&
+            sigs.map { it.id }.toSet().size == 2 &&
+            sigs.map { it.dir }.toSet() == setOf("LONG", "SHORT") &&
+            sigs.map { it.t }.toSet().size == 1 &&
+            BotEngine.positions.size == 2,
+            "ids=" + sigs.map { it.id })
+    }
+    // E/M3: batas riwayat 200 — dorong sinyal ke-201, ukuran tetap, terbaru di depan.
+    run {
+        resetEngine()
+        baseCfg(listOf("XRPUSDT"), cap = 3)
+        for (k in 0 until 200) {
+            App.signals.add(com.aether.signal.premium.ai.Sig("OLD", "15m", "LONG", 1.0, 0.9, 1.1,
+                1000L + k, "dryrun-entry", "old$k", strategy = "ema_trend"))
+        }
+        primeRise(listOf("XRPUSDT"), o0 = 7.0)
+        var latchM3 = java.util.concurrent.CountDownLatch(1)
+        BotEngine.onTick = { latchM3.countDown() }
+        BotEngine.start()
+        latchM3.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        lok("M3-history-cap", App.signals.size == 200 && App.signals.first().pair == "XRPUSDT",
+            "size=${App.signals.size} first=${App.signals.firstOrNull()?.pair}")
+    }
+    // E1: penyimpanan gagal setelah posisi dibuat → rollback, tanpa posisi hantu.
+    run {
+        resetEngine()
+        baseCfg(listOf("BTCUSDT"), cap = 3)
+        primeRise(listOf("BTCUSDT"))
+        fakePrefs.failEdit = true
+        var latchE1 = java.util.concurrent.CountDownLatch(1)
+        BotEngine.onTick = { latchE1.countDown() }
+        BotEngine.start()
+        latchE1.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        fakePrefs.failEdit = false
+        val snap = EngineDiag.snapshot(false, App.strategy, App.timeframe,
+            listOf("BTCUSDT"), BotEngine.positions.size, 0L)
+        val diskRow = (fakePrefs.map["signals"] as? String)?.contains("BTCUSDT") == true
+        lok("E1-store-rollback", BotEngine.positions.isEmpty() &&
+            snap.pairVerdicts.any { it.outcome == "STORE_FAILED" } && !diskRow,
+            "pos=${BotEngine.positions.size} memSig=${App.signals.size} disk=$diskRow " +
+                snap.pairVerdicts.joinToString(",") { it.outcome })
+    }
+    // E3/M4: pengajuan notifikasi gagal (sistem mati di JVM) → sinyal tetap ada + baris GAGAL_IZIN/GAGAL.
+    run {
+        resetEngine()
+        baseCfg(listOf("BTCUSDT"), cap = 3)
+        primeRise(listOf("BTCUSDT"))
+        var latchM4 = java.util.concurrent.CountDownLatch(1)
+        BotEngine.onTick = { latchM4.countDown() }
+        BotEngine.start()
+        latchM4.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        val rows = try { NotifBus.history() } catch (e: Exception) { emptyList() }
+        lok("M4-gagal-tak-hapus-sinyal", App.signals.size == 1 && rows.size == 1 &&
+            (rows.firstOrNull()?.status == "GAGAL_IZIN" || rows.firstOrNull()?.status == "GAGAL"),
+            "sig=${App.signals.size} hist=" + rows.map { it.status })
+    }
+    // F2: start cepat 5x → satu sesi.
+    run {
+        resetEngine()
+        baseCfg(listOf("BTCUSDT"))
+        primeRise(listOf("BTCUSDT"))
+        val at0 = EngineDiag.startedAt
+        repeat(5) { BotEngine.start() }
+        lok("F2-start-cepat", App.engRunning && EngineDiag.startedAt != at0,
+            "")
+        // Tepat satu sesi aktif (start berikut menolak).
+        val m = BotEngine.start()
+        lok("F2-tanpa-sesi-ganda", m.contains("Sudah berjalan"), "m=$m")
+        BotEngine.stop()
+    }
+    // F4: stop di tengah tick 60-pair → invarian berlaku untuk semua interleaving.
+    run {
+        resetEngine()
+        val pairs = (1..60).map { "P$it" }
+        baseCfg(pairs, cap = 3)
+        for (s in pairs) primeMem("demo", s, "15m", 300, riseCandles(300, 100.0 + pairs.indexOf(s)))
+        var latch = java.util.concurrent.CountDownLatch(1)
+        BotEngine.onTick = { latch.countDown() }
+        BotEngine.start()
+        BotEngine.stop()
+        // Tunggu tick mana pun selesai (batas 20 dtk), lalu verifikasi invarian.
+        latch.await(20, java.util.concurrent.TimeUnit.SECONDS)
+        // Stop konsisten dinilai SEBELUM tick susulan manual (tick manual
+        // membuat sesi baca-saja via ensureSession — bukan sesi Engine).
+        val stoppedOk = !App.engRunning && BotEngine.activeSession == null
+        val t0 = EngineDiag.lastTickAt
+        val deadline = System.currentTimeMillis() + 15000
+        var advanced = EngineDiag.lastTickAt != t0
+        while (!advanced && System.currentTimeMillis() < deadline) {
+            BotEngine.tick(true)
+            advanced = EngineDiag.lastTickAt != t0
+        }
+        lok("F4-stop-tengah-tick", stoppedOk && advanced && BotEngine.positions.size <= 3 &&
+            BotEngine.positions.map { it.pair }.toSet().size == BotEngine.positions.size,
+            "pos=${BotEngine.positions.size}")
+    }
+    println("LIFECYCLE9 done")
 }
