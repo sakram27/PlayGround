@@ -43,15 +43,51 @@ object BotEngine {
     var externallyDriven: Boolean = false
         private set
 
+    /** Sesi beku Tahap 3: snapshot konfigurasi saat startup. Tick memakai ini,
+     *  bukan global live — suntingan layar lain saat Engine berjalan tidak
+     *  mengubah parameter aktif sampai Engine dihentikan. */
+    var activeSession: EngineSession? = null
+        private set
+
+    /** Bekukan sesi dari global saat ini. Melempar bila konfigurasi invalid. */
+    fun freezeSessionNow(): EngineSession {
+        if (App.engPairs.isEmpty()) throw IllegalArgumentException("Pilih pair dulu.")
+        val s = freezeSession(App.captureGlobals(), App.engPairs.toList(), System.currentTimeMillis())
+        activeSession = s
+        EngineDiag.sessionCfgFp = s.fp
+        EngineDiag.sessionPairs = s.pairs
+        EngineDiag.sessionStrategy = s.params.strategy
+        EngineDiag.sessionTimeframe = s.params.timeframe
+        return s
+    }
+
+    /** Pastikan ada sesi aktif (dipakai jalur MonitorService). */
+    fun ensureSession(): EngineSession = activeSession ?: freezeSessionNow()
+
+    fun clearSession() {
+        activeSession = null
+        EngineDiag.sessionCfgFp = ""
+        EngineDiag.sessionPairs = emptyList()
+        EngineDiag.sessionStrategy = ""
+        EngineDiag.sessionTimeframe = ""
+        EngineDiag.cfgDiverged = false
+        EngineDiag.liveCfgFp = ""
+    }
+
     fun setExternallyDriven(v: Boolean) { externallyDriven = v }
 
     @Volatile private var busy = false
 
     @Synchronized
     fun start(): String {
-        if (App.engRunning || busy) return "Sudah berjalan."
+        if (App.engRunning || busy) return "Sudah berjalan — hentikan dulu bila ingin ganti konfigurasi."
         if (App.engPairs.isEmpty()) return "Pilih pair dulu."
-        try { App.buildParams(App.engPairs.first()) } catch (e: Exception) { return "Config error: ${e.message}" }
+        val sess: EngineSession
+        try {
+            sess = freezeSessionNow()
+        } catch (e: Exception) {
+            return "Config error: ${e.message}"
+        }
         busy = true
         try {
             if (equity == null) equity = try { App.buildParams(App.engPairs.first()).initialCapital } catch (e: Exception) { 1000.0 }
@@ -99,10 +135,17 @@ object BotEngine {
         try {
             App.engRunning = false
             sched?.cancel(false)
+            clearSession()
             return "Dihentikan."
         } finally {
             busy = false
         }
+    }
+
+    /** Ringkasan konfigurasi efektif sesi aktif untuk pesan UI (Tahap 3.8). */
+    fun sessionSummary(): String {
+        val s = activeSession ?: return "tanpa sesi"
+        return "${s.params.strategy} · ${s.params.timeframe} · ${s.pairs.size} pair · fp ${s.fp.take(12)}"
     }
 
     fun levels(entry: Double, dir: String, cache: Cache, idx: Int, p: BacktestParams): Pair<Double, Double> {
@@ -121,21 +164,36 @@ object BotEngine {
         // try-per-pair dicatat di sini, loop tetap hidup. (scheduleAtFixedRate
         // berhenti diam-diam bila tugas melempar.)
         try {
-        val p: BacktestParams
-        try { p = App.buildParams(App.engPairs.firstOrNull() ?: return) } catch (e: Exception) { lastScan = "Dry run error: ${e.message}"; return }
+        // Tahap 3: parameter + pairs + provider berasal dari SESI BEKU startup,
+        // bukan global live. Suntingan layar lain saat berjalan tak mengubah
+        // parameter aktif; divergensi dicatat di EngineDiag.
+        val sess: EngineSession
+        try {
+            sess = ensureSession()
+        } catch (e: Exception) {
+            lastScan = "Dry run error: ${e.message}"
+            return
+        }
+        val p: BacktestParams = sess.params
         if (equity == null) equity = p.initialCapital
         val tfMs = try { parseTimeframe(p.timeframe) * 60000L } catch (e: Exception) { 900000L }
         var ok = 0
         // V28: hanya pair yang datanya valid DAN evaluasinya selesai tanpa
         // exception yang dihitung OK (dipanggil di titik keluar normal).
         fun markPairOk() { ok++; EngineDiag.evalOk++ }
-        val syms = App.engPairs.toList()
+        val syms = sess.pairs.toList()
         lastTotalPairs = syms.size
         // V26: telemetri aktual per tick (dibaca panel diagnostik).
         EngineDiag.beginTick()
-        // V36: sidik konfigurasi tick ini (jejak live→konfigurasi, tampil di panel
-        // + tertanam di scoreDetail sinyal entry; persisten via saveSignals).
-        try { EngineDiag.lastCfgFp = configFingerprint(sanitizeParams(p)) } catch (e: Exception) { /* abaikan */ }
+        // V36 + Tahap 3: sidik sesi (dipakai Engine) vs sidik global live.
+        // Sama = konsisten; beda = pengguna menyunting saat Engine berjalan
+        // (sesi beku tetap dipakai sampai Engine dihentikan).
+        try { EngineDiag.lastCfgFp = sess.fp } catch (e: Exception) { /* abaikan */ }
+        try {
+            val live = liveFingerprint(App.captureGlobals())
+            EngineDiag.liveCfgFp = live
+            EngineDiag.cfgDiverged = live.isNotEmpty() && live != sess.fp
+        } catch (e: Exception) { /* abaikan */ }
         EngineDiag.lastPhase = "mengambil data ${syms.size} pair"
         for (sym in syms) {
             EngineDiag.evalTotal++
@@ -144,7 +202,7 @@ object BotEngine {
                 // meminta tepat 200 membuat e200[idx-20] selalu NaN (EMA menyemai
                 // pada indeks 199), sehingga indikator tak pernah valid walau data
                 // sempurna. Lihat REGIME_MIN_CANDLES=220 di AblationRegime.kt.
-                val fr = getCandles(App.provider, sym, p.timeframe, ENGINE_CANDLES)
+                val fr = getCandles(sess.provider, sym, p.timeframe, ENGINE_CANDLES)
                 val raw = fr.candles
                 // V32: asal data (live vs cache) dicatat — bukan diklaim live.
                 val srcName = try { fr.meta.cacheUsed } catch (e: Exception) { "" }
@@ -174,13 +232,13 @@ object BotEngine {
                     }
                     App.regimeDiag[sym] = RegimeDiag(
                         requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
-                        provider = App.provider, timeframe = p.timeframe,
+                        provider = sess.provider, timeframe = p.timeframe,
                         updatedAt = System.currentTimeMillis(), error = "", indicatorOk = indOk,
                         source = srcName)
                 } catch (e: Exception) {
                     App.regimeDiag[sym] = RegimeDiag(
                         requested = ENGINE_CANDLES, received = raw.size, valid = candles.size,
-                        provider = App.provider, timeframe = p.timeframe,
+                        provider = sess.provider, timeframe = p.timeframe,
                         updatedAt = System.currentTimeMillis(),
                         error = (e.message ?: "gagal").take(120), indicatorOk = false,
                         source = srcName)
@@ -427,7 +485,7 @@ object BotEngine {
                 EngineDiag.pairError(sym, e.message ?: "gagal")
                 EngineDiag.lastError = "${sym}: ${e.message ?: "gagal"}".take(160)
                 App.regimeDiag[sym] = RegimeDiag(
-                    requested = ENGINE_CANDLES, provider = App.provider, timeframe = p.timeframe,
+                    requested = ENGINE_CANDLES, provider = sess.provider, timeframe = p.timeframe,
                     updatedAt = System.currentTimeMillis(),
                     error = (e.message ?: "gagal").take(120), indicatorOk = false,
                     source = "")

@@ -18,7 +18,8 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         setBar("Aether Signal", "Terminal Sinyal Trading")
         paintHero()
         findViewById<MaterialButton>(R.id.btnEngine).setOnClickListener {
-            if (App.engRunning) snack(this, BotEngine.stop()) else snack(this, BotEngine.start())
+            // Tahap 3: Start melalui guard (drift backtest vs engine + sesi beku).
+            engineStartFlow(this) { paintHero(); paintPairs(); paintRegime() }
             // V28: setiap tick selesai → hero + card Kondisi Pasar diperbarui di
             // tempat, tanpa harus keluar tab Home lalu kembali.
             BotEngine.onTick = { runOnUiThread { paintHero(); paintRegime() } }

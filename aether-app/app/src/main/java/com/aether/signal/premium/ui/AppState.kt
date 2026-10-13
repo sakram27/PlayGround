@@ -232,27 +232,23 @@ object App {
         }
     }
 
-    fun buildParams(asset: String): BacktestParams {
-        val extra = comboExtra.toList()
-        val combo = if (comboMode.isNotEmpty()) {
-            val set = LinkedHashSet<String>()
-            set.add(strategy); set.addAll(extra)
-            if (set.size < 2) throw IllegalArgumentException("Combo butuh minimal 2 strategi.")
-            Combo(comboMode, set.toList().take(5))
-        } else null
-        // V31: TP2/TP3 persen → kelipatan (2,5% atas TP 2% = 1,25×). Tepat sekali.
-        val (m2, m3) = tpMultsFromPct(tpPct, tp2Pct, tp3Pct)
-        return BacktestParams(
-            asset = asset, timeframe = timeframe, initialCapital = capital,
-            riskPerTrade = riskPct / 100, leverage = leverage,
-            feePercent = feePct / 100, slippagePercent = slipPct / 100,
-            slPercent = slPct / 100, tpPercent = tpPct / 100, maxHolding = maxHolding,
-            tpMode = tpMode, tp2Mult = m2, tp3Mult = m3,
-            trailOn = btTrailOn, trailDistPct = btTrailDistPct / 100, trailActPct = btTrailActPct / 100,
-            strategy = strategy, combo = combo, filters = activeFilterCfgs(),
-            startDate = fromDate, endDate = toDate, useAtr = useAtr
-        )
-    }
+    fun buildParams(asset: String): BacktestParams = buildParamsFrom(captureGlobals(), asset)
+
+    /** Baca seluruh global pembentuk parameter ke bundel murni (Tahap 3). */
+    fun captureGlobals(): EngineGlobalsData = EngineGlobalsData(
+        strategy = strategy, comboMode = comboMode, comboExtra = comboExtra.toList(),
+        timeframe = timeframe, provider = provider, pair = pair, mode = mode,
+        multiSel = multiSel.toList(), universe = universe.toList(), engPairs = engPairs.toList(),
+        capital = capital, riskPct = riskPct, leverage = leverage,
+        feePct = feePct, slipPct = slipPct, maxHolding = maxHolding,
+        slPct = slPct, tpPct = tpPct, tp2Pct = tp2Pct, tp3Pct = tp3Pct, tpMode = tpMode,
+        useAtr = useAtr, atrSlMult = 1.5, atrTpMult = 3.0,
+        btTrailOn = btTrailOn, btTrailDistPct = btTrailDistPct, btTrailActPct = btTrailActPct,
+        filterOn = FILTER_DEFS.map { it.id }.associateWith { filterOn[it] == true },
+        fVol = fVol, fAdx = fAdx, fRsiHi = fRsiHi, fRsiLo = fRsiLo,
+        fAtrMin = fAtrMin, fAtrMax = fAtrMax, fSession = fSession, fCool = fCool, fSr = fSr,
+        limit = limit, fromDate = fromDate, toDate = toDate
+    )
 
     // ---------- signals/history persist ----------
     // INVARIAN SUMBER (fix pencampuran Engine vs Backtest):
@@ -581,6 +577,31 @@ object App {
         } catch (e: Exception) { return null }
     }
 
+    // ---------- Tahap 3: snapshot referensi Engine (parameter efektif penuh) ----------
+    // PERSISTENSI (jujur): snapshot ini disimpan di prefs ("engine_ref_v1") sehingga
+    // selamat restart. Sebaliknya sebagian besar global numerik (capital, riskPct,
+    // leverage, fee/slip, sl/tp, tpMode, trail, timeframe, limit, tanggal) adalah
+    // SESSION-ONLY — kembali ke bawaan saat aplikasi dimulai ulang. Persist yang
+    // ada: pair, multipair, strategy, provider, engpairs, comboextra, custompairs,
+    // watchlimit, batterySaver, filteron, trail_on/lock. Akibatnya setelah restart,
+    // dialog drift wajar muncul (global live = bawaan vs snapshot terakhir).
+    fun saveEngineRef(s: EngineSnapshot) {
+        try {
+            prefs.edit().putString("engine_ref_v1", encodeEngineSnapshot(s)).apply()
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    fun loadEngineRef(): EngineSnapshot? {
+        return try {
+            val raw = prefs.getString("engine_ref_v1", null) ?: return null
+            decodeEngineSnapshot(raw)
+        } catch (e: Exception) { null }
+    }
+
+    fun clearEngineRef() {
+        try { prefs.edit().remove("engine_ref_v1").apply() } catch (e: Exception) { /* abaikan */ }
+    }
+
     // ---------- V20 F2: ekspektasi drift + katalog arsip ----------
     fun saveDriftExpect(e: DriftExpect) {
         try { prefs.edit().putString("drift_expect", encodeDriftExpect(e)).apply() } catch (ex: Exception) { /* abaikan */ }
@@ -627,4 +648,250 @@ object App {
     /** Validasi murni rentang tanggal backtest (I5/I6): 0 = tak dibatasi. */
     fun isDateRangeValid(from: Long, to: Long): Boolean =
         from <= 0 || to <= 0 || from <= to
+}
+
+// ---------- Tahap 3: adapter store global (Android) + serialisasi snapshot ----------
+class AppGlobalsStore : EngineGlobalsStore {
+    override fun capture(): EngineGlobalsData = App.captureGlobals()
+    override fun restore(d: EngineGlobalsData) {
+        App.strategy = d.strategy; App.saveStrategy()
+        App.comboMode = d.comboMode
+        App.comboExtra = LinkedHashSet(d.comboExtra); App.saveCombo()
+        App.timeframe = d.timeframe
+        App.provider = d.provider
+        App.pair = d.pair; App.savePair()
+        App.mode = d.mode
+        App.multiSel = LinkedHashSet(d.multiSel); App.saveMulti()
+        App.universe = d.universe
+        App.engPairs = LinkedHashSet(d.engPairs); App.saveEngPairs()
+        App.capital = d.capital
+        App.riskPct = d.riskPct
+        App.leverage = d.leverage
+        App.feePct = d.feePct
+        App.slipPct = d.slipPct
+        App.maxHolding = d.maxHolding
+        App.slPct = d.slPct
+        App.tpPct = d.tpPct
+        App.tp2Pct = d.tp2Pct
+        App.tp3Pct = d.tp3Pct
+        App.tpMode = d.tpMode
+        App.useAtr = d.useAtr
+        App.btTrailOn = d.btTrailOn
+        App.btTrailDistPct = d.btTrailDistPct
+        App.btTrailActPct = d.btTrailActPct
+        App.filterOn = HashMap<String, Boolean>().also { m ->
+            for ((k, v) in d.filterOn) m[k] = v
+        }
+        App.saveFilters()
+        App.fVol = d.fVol; App.fAdx = d.fAdx; App.fRsiHi = d.fRsiHi; App.fRsiLo = d.fRsiLo
+        App.fAtrMin = d.fAtrMin; App.fAtrMax = d.fAtrMax; App.fSession = d.fSession
+        App.fCool = d.fCool; App.fSr = d.fSr
+        App.limit = d.limit
+        App.fromDate = d.fromDate; App.toDate = d.toDate
+    }
+}
+
+private fun encodeFilterCfg(f: FilterCfg): JSONObject {
+    val o = JSONObject()
+    o.put("name", f.name).put("enabled", f.enabled)
+    val pm = JSONObject()
+    for ((k, v) in f.params) pm.put(k, v)
+    o.put("params", pm)
+    if (f.sessions != null) {
+        val sa = JSONArray()
+        for ((a, b) in f.sessions) sa.put(JSONObject().put("a", a).put("b", b))
+        o.put("sessions", sa)
+    }
+    return o
+}
+
+private fun decodeFilterCfg(o: JSONObject): FilterCfg {
+    val pm = o.optJSONObject("params") ?: JSONObject()
+    val keys = pm.keys()
+    val map = HashMap<String, Double>()
+    while (keys.hasNext()) {
+        val k = keys.next()
+        map[k] = pm.optDouble(k, Double.NaN)
+    }
+    var sess: List<Pair<Int, Int>>? = null
+    val sa = o.optJSONArray("sessions")
+    if (sa != null) {
+        sess = (0 until sa.length()).map {
+            val so = sa.getJSONObject(it)
+            so.getInt("a") to so.getInt("b")
+        }
+    }
+    return FilterCfg(o.getString("name"), o.optBoolean("enabled", true), map, sess)
+}
+
+private fun encodeParams(p: BacktestParams): JSONObject {
+    val o = JSONObject()
+    o.put("asset", p.asset).put("timeframe", p.timeframe)
+        .put("initialCapital", p.initialCapital).put("riskPerTrade", p.riskPerTrade)
+        .put("leverage", p.leverage).put("feePercent", p.feePercent)
+        .put("slippagePercent", p.slippagePercent).put("slPercent", p.slPercent)
+        .put("tpPercent", p.tpPercent).put("maxHolding", p.maxHolding)
+        .put("strategy", p.strategy)
+    val sp = JSONObject()
+    for ((k, v) in p.strategyParams) sp.put(k, v)
+    o.put("strategyParams", sp)
+    if (p.combo != null) {
+        o.put("combo", JSONObject().put("mode", p.combo.mode)
+            .put("strategies", JSONArray(p.combo.strategies)))
+    }
+    o.put("startDate", p.startDate).put("endDate", p.endDate).put("useAtr", p.useAtr)
+        .put("atrSlMult", p.atrSlMult).put("atrTpMult", p.atrTpMult)
+        .put("tpMode", p.tpMode).put("tp2Mult", p.tp2Mult).put("tp3Mult", p.tp3Mult)
+        .put("trailOn", p.trailOn).put("trailDistPct", p.trailDistPct)
+        .put("trailActPct", p.trailActPct)
+    val fa = JSONArray()
+    for (f in p.filters) fa.put(encodeFilterCfg(f))
+    o.put("filters", fa)
+    return o
+}
+
+private fun decodeParams(o: JSONObject): BacktestParams {
+    for (k in listOf("asset", "timeframe", "strategy")) {
+        if (!o.has(k)) throw IllegalArgumentException("params kehilangan $k")
+    }
+    val spo = o.optJSONObject("strategyParams") ?: JSONObject()
+    val sk = spo.keys()
+    val spm = HashMap<String, Double>()
+    while (sk.hasNext()) {
+        val k = sk.next()
+        spm[k] = spo.optDouble(k, Double.NaN)
+    }
+    var combo: Combo? = null
+    val co = o.optJSONObject("combo")
+    if (co != null) {
+        val sa = co.optJSONArray("strategies") ?: JSONArray()
+        combo = Combo(co.optString("mode", ""), (0 until sa.length()).map { sa.getString(it) })
+    }
+    val fa = o.optJSONArray("filters") ?: JSONArray()
+    val filters = (0 until fa.length()).map { decodeFilterCfg(fa.getJSONObject(it)) }
+    return BacktestParams(
+        asset = o.getString("asset"), timeframe = o.getString("timeframe"),
+        initialCapital = o.optDouble("initialCapital", Double.NaN),
+        riskPerTrade = o.optDouble("riskPerTrade", Double.NaN),
+        leverage = o.optInt("leverage", -1),
+        feePercent = o.optDouble("feePercent", Double.NaN),
+        slippagePercent = o.optDouble("slippagePercent", Double.NaN),
+        slPercent = o.optDouble("slPercent", Double.NaN),
+        tpPercent = o.optDouble("tpPercent", Double.NaN),
+        maxHolding = o.optInt("maxHolding", -1),
+        strategy = o.getString("strategy"), strategyParams = spm, combo = combo,
+        startDate = o.optLong("startDate", 0L), endDate = o.optLong("endDate", 0L),
+        useAtr = o.optBoolean("useAtr", false),
+        atrSlMult = o.optDouble("atrSlMult", Double.NaN),
+        atrTpMult = o.optDouble("atrTpMult", Double.NaN),
+        tpMode = o.optInt("tpMode", -1),
+        tp2Mult = o.optDouble("tp2Mult", Double.NaN),
+        tp3Mult = o.optDouble("tp3Mult", Double.NaN),
+        trailOn = o.optBoolean("trailOn", false),
+        trailDistPct = o.optDouble("trailDistPct", Double.NaN),
+        trailActPct = o.optDouble("trailActPct", Double.NaN),
+        filters = filters
+    )
+}
+
+private fun encodeGlobals(g: EngineGlobalsData): JSONObject {
+    val o = JSONObject()
+    o.put("strategy", g.strategy).put("comboMode", g.comboMode)
+        .put("comboExtra", JSONArray(g.comboExtra))
+        .put("timeframe", g.timeframe).put("provider", g.provider)
+        .put("pair", g.pair).put("mode", g.mode)
+        .put("multiSel", JSONArray(g.multiSel)).put("universe", JSONArray(g.universe))
+        .put("engPairs", JSONArray(g.engPairs))
+        .put("capital", g.capital).put("riskPct", g.riskPct).put("leverage", g.leverage)
+        .put("feePct", g.feePct).put("slipPct", g.slipPct).put("maxHolding", g.maxHolding)
+        .put("slPct", g.slPct).put("tpPct", g.tpPct)
+        .put("tp2Pct", g.tp2Pct).put("tp3Pct", g.tp3Pct).put("tpMode", g.tpMode)
+        .put("useAtr", g.useAtr).put("atrSlMult", g.atrSlMult).put("atrTpMult", g.atrTpMult)
+        .put("btTrailOn", g.btTrailOn)
+        .put("btTrailDistPct", g.btTrailDistPct).put("btTrailActPct", g.btTrailActPct)
+    val fo = JSONObject()
+    for ((k, v) in g.filterOn) fo.put(k, v)
+    o.put("filterOn", fo)
+    o.put("fVol", g.fVol).put("fAdx", g.fAdx).put("fRsiHi", g.fRsiHi).put("fRsiLo", g.fRsiLo)
+        .put("fAtrMin", g.fAtrMin).put("fAtrMax", g.fAtrMax).put("fSession", g.fSession)
+        .put("fCool", g.fCool).put("fSr", g.fSr)
+        .put("limit", g.limit).put("fromDate", g.fromDate).put("toDate", g.toDate)
+    return o
+}
+
+private fun decodeGlobals(o: JSONObject): EngineGlobalsData {
+    fun ja(k: String): List<String> {
+        val a = o.optJSONArray(k) ?: return emptyList()
+        return (0 until a.length()).map { a.getString(it) }
+    }
+    val foo = o.optJSONObject("filterOn") ?: JSONObject()
+    val fk = foo.keys()
+    val fmap = HashMap<String, Boolean>()
+    while (fk.hasNext()) {
+        val k = fk.next()
+        fmap[k] = foo.optBoolean(k, false)
+    }
+    for (k in listOf("strategy", "timeframe", "provider", "pair", "mode")) {
+        if (!o.has(k)) throw IllegalArgumentException("globals kehilangan $k")
+    }
+    return EngineGlobalsData(
+        strategy = o.getString("strategy"), comboMode = o.optString("comboMode", ""),
+        comboExtra = ja("comboExtra"), timeframe = o.getString("timeframe"),
+        provider = o.getString("provider"), pair = o.getString("pair"),
+        mode = o.getString("mode"), multiSel = ja("multiSel"),
+        universe = ja("universe"), engPairs = ja("engPairs"),
+        capital = o.optDouble("capital", Double.NaN), riskPct = o.optDouble("riskPct", Double.NaN),
+        leverage = o.optInt("leverage", -1), feePct = o.optDouble("feePct", Double.NaN),
+        slipPct = o.optDouble("slipPct", Double.NaN), maxHolding = o.optInt("maxHolding", -1),
+        slPct = o.optDouble("slPct", Double.NaN), tpPct = o.optDouble("tpPct", Double.NaN),
+        tp2Pct = o.optDouble("tp2Pct", Double.NaN), tp3Pct = o.optDouble("tp3Pct", Double.NaN),
+        tpMode = o.optInt("tpMode", -1), useAtr = o.optBoolean("useAtr", false),
+        atrSlMult = o.optDouble("atrSlMult", Double.NaN),
+        atrTpMult = o.optDouble("atrTpMult", Double.NaN),
+        btTrailOn = o.optBoolean("btTrailOn", false),
+        btTrailDistPct = o.optDouble("btTrailDistPct", Double.NaN),
+        btTrailActPct = o.optDouble("btTrailActPct", Double.NaN),
+        filterOn = fmap, fVol = o.optDouble("fVol", Double.NaN),
+        fAdx = o.optDouble("fAdx", Double.NaN), fRsiHi = o.optDouble("fRsiHi", Double.NaN),
+        fRsiLo = o.optDouble("fRsiLo", Double.NaN),
+        fAtrMin = o.optDouble("fAtrMin", Double.NaN),
+        fAtrMax = o.optDouble("fAtrMax", Double.NaN),
+        fSession = o.optString("fSession", "all"),
+        fCool = o.optDouble("fCool", Double.NaN), fSr = o.optDouble("fSr", Double.NaN),
+        limit = o.optInt("limit", -1),
+        fromDate = o.optLong("fromDate", 0L), toDate = o.optLong("toDate", 0L)
+    )
+}
+
+private fun encodeEngineSnapshot(s: EngineSnapshot): String {
+    val o = JSONObject()
+    o.put("v", 1)
+    o.put("globals", encodeGlobals(s.globals))
+    o.put("params", encodeParams(s.params))
+    o.put("pairs", JSONArray(s.pairs))
+    o.put("provider", s.provider).put("limit", s.limit).put("mode", s.mode)
+    o.put("at", s.at).put("status", s.status).put("valid", s.valid)
+    o.put("origin", s.origin)
+    return o.toString()
+}
+
+private fun decodeEngineSnapshot(raw: String): EngineSnapshot? {
+    try {
+        val o = JSONObject(raw)
+        if (o.optInt("v", 0) != 1) return null
+        val go = o.optJSONObject("globals") ?: return null
+        val po = o.optJSONObject("params") ?: return null
+        val pa = o.optJSONArray("pairs") ?: return null
+        val pairs = (0 until pa.length()).map { pa.getString(it) }
+        if (pairs.isEmpty()) return null
+        return EngineSnapshot(
+            globals = decodeGlobals(go), params = decodeParams(po), pairs = pairs,
+            provider = o.optString("provider", ""), limit = o.optInt("limit", -1),
+            mode = o.optString("mode", ""), at = o.optLong("at", 0L),
+            status = o.optString("status", ""), valid = o.optBoolean("valid", false),
+            origin = o.optString("origin", "")
+        )
+    } catch (e: Exception) {
+        return null
+    }
 }

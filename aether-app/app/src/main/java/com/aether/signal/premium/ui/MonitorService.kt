@@ -110,6 +110,17 @@ class MonitorService : Service() {
         failStreak = 0
         BotEngine.setExternallyDriven(true)
         App.engRunning = true
+        // Tahap 3: bekukan sesi startup agar tick memakai konfigurasi yang sama
+        // dengan saat layanan dimulai (bukan global yang disunting belakangan).
+        try {
+            BotEngine.ensureSession()
+        } catch (e: Exception) {
+            lastError = e.message
+            running = false
+            App.engRunning = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
         try {
             startForeground(SVC_ID, persistent("Memulai pemantauan…"))
         } catch (e: Exception) {
@@ -208,6 +219,7 @@ class MonitorService : Service() {
         running = false
         BotEngine.setExternallyDriven(false)
         App.engRunning = false
+        try { BotEngine.clearSession() } catch (e: Exception) { /* abaikan */ }
         try { sched?.cancel(false) } catch (e: Exception) { /* abaikan */ }
         try { exec.shutdownNow() } catch (e: Exception) { /* abaikan */ }
         super.onDestroy()

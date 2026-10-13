@@ -852,6 +852,19 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 val st = classifyResult(res)
                 App.saveApplied("backtest-single", p, listOf(p.asset), st, res.error == null)
                 App.saveLastBt("single", listOf(p.asset), p, App.limit, res.diag.dateFilteredCount, res.totalTrades, engMs.toLong(), ((System.nanoTime() - tAll) / 1e6).toLong(), st)
+                // Tahap 3: snapshot referensi Engine (parameter efektif penuh).
+                // Hanya hasil SUCCESS — hasil lain tak dapat diterapkan ke Engine.
+                if (res.error == null && st == "SUCCESS") {
+                    try {
+                        val sp = sanitizeParams(p)
+                        App.saveEngineRef(EngineSnapshot(
+                            globals = App.captureGlobals(), params = sp,
+                            pairs = listOf(p.asset), provider = App.provider,
+                            limit = App.limit, mode = "single",
+                            at = System.currentTimeMillis(), status = st,
+                            valid = true, origin = "backtest-single"))
+                    } catch (e: Exception) { /* snapshot opsional; label tetap tersimpan */ }
+                }
                 if (res.error == null) {
                     // V20 F2: ekspektasi drift dari hasil sukses (bukan angka lama).
                     App.saveDriftExpect(DriftExpect(res.winRate, res.profitFactor, res.totalTrades,
@@ -1070,6 +1083,19 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 else if (okN == rows.size && rows.size == sel.size) "SUCCESS"
                 else if (okN > 0) "PARTIAL SUCCESS" else "FAILED"
             App.saveApplied("backtest-multi", p, sel, overall, okN > 0 && !wasCancelled)
+            // Tahap 3: snapshot referensi Engine — hanya SUCCESS penuh (semua pair OK).
+            // PARTIAL/FAILED/DIBATALKAN tidak memenuhi syarat diterapkan.
+            if (overall == "SUCCESS" && !wasCancelled) {
+                try {
+                    val sp = sanitizeParams(p)
+                    App.saveEngineRef(EngineSnapshot(
+                        globals = App.captureGlobals(), params = sp,
+                        pairs = sel.toList(), provider = App.provider,
+                        limit = App.limit, mode = "multi",
+                        at = System.currentTimeMillis(), status = overall,
+                        valid = true, origin = "backtest-multi"))
+                } catch (e: Exception) { /* snapshot opsional; label tetap tersimpan */ }
+            }
             val all = rows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime }
             val first = rows.firstOrNull { it.res?.error == null }
             if (wasCancelled) {

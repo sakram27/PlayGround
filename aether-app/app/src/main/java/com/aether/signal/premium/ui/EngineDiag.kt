@@ -35,7 +35,14 @@ data class EngineDiagSnapshot(
     val filterTop: List<Pair<String, Int>> = emptyList(),
     val lastSignalAt: Long = 0L,
     // V36: sidik konfigurasi tick terakhir (jejak live→konfigurasi).
-    val lastCfgFp: String = ""
+    val lastCfgFp: String = "",
+    // Tahap 3: sesi beku startup vs global live.
+    val sessionCfgFp: String = "",
+    val sessionPairs: List<String> = emptyList(),
+    val sessionStrategy: String = "",
+    val sessionTimeframe: String = "",
+    val liveCfgFp: String = "",
+    val cfgDiverged: Boolean = false
 )
 
 object EngineDiag {
@@ -60,6 +67,13 @@ object EngineDiag {
     @Volatile var lastSignalAt: Long = 0L
     // V36: sidik konfigurasi tick terakhir (tak direset per tick).
     @Volatile var lastCfgFp: String = ""
+    // Tahap 3: sesi beku + divergensi vs global live (tak direset per tick).
+    @Volatile var sessionCfgFp: String = ""
+    @Volatile var sessionPairs: List<String> = emptyList()
+    @Volatile var sessionStrategy: String = ""
+    @Volatile var sessionTimeframe: String = ""
+    @Volatile var liveCfgFp: String = ""
+    @Volatile var cfgDiverged: Boolean = false
     private val lock = Any()
     private val errors: LinkedHashMap<String, String> = LinkedHashMap()
     private val freasons: LinkedHashMap<String, Int> = LinkedHashMap()
@@ -108,7 +122,8 @@ object EngineDiag {
             evalTotal, evalOk, candidates, filteredOut, invalidLevels, dupHeld,
             stored, notifCalls, openPositions, oldestOpenAgeMs,
             errs.size, errs, lastPhase, lastError,
-            totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp)
+            totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
+            sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged)
     }
 }
 
@@ -208,6 +223,13 @@ fun formatEngineDiag(
     }
     b.append("\nSinyal/rekaman terakhir: ${ageText(snap.lastSignalAt, nowMs)}")
     if (snap.lastCfgFp.isNotEmpty()) b.append(" · sidik konfigurasi: ${snap.lastCfgFp.take(24)}…")
+    if (snap.sessionCfgFp.isNotEmpty()) {
+        b.append("\nSesi Engine: ${snap.sessionStrategy} · ${snap.sessionTimeframe} · " +
+            "${snap.sessionPairs.size} pair · fp ${snap.sessionCfgFp.take(16)}")
+        if (snap.cfgDiverged) {
+            b.append(" · DIVERGEN: global disunting saat berjalan (sesi beku tetap dipakai)")
+        }
+    }
     b.append("\nLevel tak valid: ${snap.invalidLevels} · duplikat ditahan: ${snap.dupHeld}")
     b.append(" · tersimpan: ${snap.stored} · notif dipanggil: ${snap.notifCalls}")
     b.append("\nNotifikasi: izin ${if (notifPermOk) "OK" else "BELUM"} · sistem " +

@@ -78,7 +78,8 @@ class SignalsActivity : BaseActivity(0) {
             }
             1 -> {
                 bMain.setOnClickListener {
-                    if (App.engRunning) snack(this, BotEngine.stop()) else snack(this, BotEngine.start())
+                    // Tahap 3: Start melalui guard (drift backtest vs engine + sesi beku).
+                    engineStartFlow(this) { paint() }
                     BotEngine.onTick = { runOnUiThread { paint() } }
                     paint()
                 }
