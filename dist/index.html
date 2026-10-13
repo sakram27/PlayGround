@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aether Signal V41 — Laporan Audit APK (Berbasis Bukti)</title>
+<style>
+:root{color-scheme:dark light}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;max-width:960px;margin:0 auto;padding:24px;line-height:1.6}
+code,pre{background:#1113;color:#eee;background:rgba(127,127,127,.15);border-radius:6px;padding:2px 6px}
+pre{padding:12px;overflow:auto}
+table{border-collapse:collapse;width:100%;margin:12px 0}
+th,td{border:1px solid #8886;padding:8px;text-align:left;vertical-align:top}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;background:#0a7;color:#fff;font-size:12px}
+.warn{background:#a60}.err{background:#a22}
+.card{border:1px solid #8885;border-radius:12px;padding:16px;margin:16px 0}
+h1{line-height:1.25}h2{margin-top:32px;border-bottom:1px solid #8884;padding-bottom:6px}
+</style>
+</head>
+<body>
+<h1>Aether Signal V41 — Laporan Audit APK <span class="badge">berbasis bukti statis</span></h1>
+<p>Artefak: <code>aetherv41-debug.apk</code> (6.881.974 byte). Halaman ini adalah <strong>output statis terverifikasi</strong> untuk pipeline preview: <code>start.sh</code> melayani direktori <code>dist/</code> ini di <code>PORT</code> (default 3000).</p>
+
+<h2>1. Identitas terverifikasi (AndroGuard + unzip + keytool)</h2>
+<table>
+<tr><th>Atribut</th><th>Nilai (bukti)</th></tr>
+<tr><td>SHA-256</td><td><code>b2f3c5e758254d5b0c0b60ea19c6deee5142cd249ab095380062339f18537978</code></td></tr>
+<tr><td>MD5</td><td><code>1de6c41d1220e6761fd829e5a4afbe30</code></td></tr>
+<tr><td>Package</td><td><code>com.aether.signal.premium</code></td></tr>
+<tr><td>versionName / versionCode</td><td><code>7.17</code> / <code>41</code> (cocok klaim “V41”)</td></tr>
+<tr><td>minSdk / targetSdk / compileSdk</td><td><code>26 / 36 / 36</code>, Android Gradle Plugin <code>8.7.3</code></td></tr>
+<tr><td>Main Activity</td><td><code>com.aether.signal.premium.ui.DashboardActivity</code></td></tr>
+<tr><td>Signer</td><td><code>CN=Aether Debug V38, O=Aether, C=US</code> (debug, SHA256 <code>6E:27:EE:…:E9:64:D2</code>)</td></tr>
+<tr><td>Ukuran / entri</td><td>14.540.972 byte tak terkompresi, 983 file; <code>classes.dex</code> 10.423.672 byte + classes2–6</td></tr>
+<tr><td>Native libs</td><td>Tidak ada <code>lib/*.so</code> — murni Kotlin/JVM</td></tr>
+<tr><td>WebView</td><td>Hanya 1 referensi string generik <code>WebView</code>; tidak ada Activity WebView — konsisten klaim UI native Kotlin</td></tr>
+</table>
+
+<h2>2. Manifest: izin, komponen</h2>
+<div class="card">
+<p><strong>Izin:</strong> INTERNET, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE, RECEIVE_BOOT_COMPLETED, VIBRATE + DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION.</p>
+<p><strong>Activities (18):</strong> Dashboard, Backtest, Market, Signals, SignalDetail, Settings, Lab, Ai, Replay, WalkForward, XValidate, Ablation, Consensus, Collection, CostAnalysis, Graph, Journal, NotifHistory.</p>
+<p><strong>Service (1):</strong> <code>ui.MonitorService</code> (foreground). <strong>Receivers (2):</strong> <code>ui.BootReceiver</code>, ProfileInstallReceiver.</p>
+<p><strong>Layout:</strong> <code>activity_dashboard.xml</code> (9 KB), <code>activity_backtest.xml</code> (40 KB — terbesar, indikasi kompleksitas Backtest), <code>activity_market.xml</code>, <code>activity_signals.xml</code>, dsb.</p>
+</div>
+
+<h2>3. Peta kode (661 kelas <code>com.aether.*</code>, 6 dex)</h2>
+<table>
+<tr><th>Paket</th><th>Kelas kunci (nama terverifikasi)</th><th>Peran</th></tr>
+<tr><td><code>engine</code></td><td><code>BacktestKt</code> (runBacktest, tryOpen, exitStep, trailEx, calcRiskLevels, sanitizeParams), <code>StrategiesKt</code> (strategyFn, strategyList, STRATEGIES), <code>FiltersKt</code> (decideAt, applyFilters, evalFilter, FILTER_DEFS), <code>IndicatorsKt</code> (rsi, ema, sma, macd, atr, adx, bollinger, stochastic, supertrend, vwap, buildCache), <code>ModelsKt</code> (configFingerprint, hyperoptBasisKey, effectiveConfigSummary, normalizeCandles, tpTargets), <code>MultiPairKt</code> (hyperoptSearch, aggregateOverall, buildCombinedEquity), <code>SignalAuditKt</code> (auditLiveVsBacktest), <code>TrailingKt</code>, BacktestParams/Result, SignalDecision, FilterCfg, Cache, Candle</td><td>Mesin analisis nyata, bukan simulasi tampilan</td></tr>
+<tr><td><code>data</code></td><td><code>ProvidersKt</code> (getCandles, getCandlesRetry, fetchNetwork, binanceFetch, yahooCandles, fetchTopPairs, topPairsWithSource), <code>HistoryArchiveKt</code> (ensureDatedCandles, fetchRangeCandles, mergeCandles, planRangeFetch), <code>CandleDiskCache</code>, <code>ArchiveStore</code></td><td>Data pasar + cache</td></tr>
+<tr><td><code>ui</code></td><td><code>BotEngine</code> (start, stop, tick, tryBeginTick, levels), <code>MonitorService</code> (safeTick, scheduleNext, persistent), <code>DashboardActivity</code>, <code>BacktestActivity</code> (doMulti, paintResult, monPoll), <code>NotifyLogicKt</code>, <code>AppliedCfg</code>, <code>LastBt</code>, <code>EngineDiag</code></td><td>Orkestrasi Engine/bot, notifikasi, status konfigurasi</td></tr>
+<tr><td><code>ai</code></td><td><code>AiInterpreterKt</code> (aiAnalyze), <code>AiBlock</code>, <code>Sig</code></td><td>Interpretasi AI lokal</td></tr>
+</table>
+
+<h2>4. Provider &amp; strategi (string terverifikasi dari dex)</h2>
+<div class="card">
+<p><strong>Host:</strong> <code>https://api.binance.com</code>, <code>https://api.binance.us</code>, <code>https://data-api.binance.vision</code>, <code>https://fapi.binance.com/fapi/v1/fundingRate</code>, <code>https://api.bybit.com/v5/market/kline|tickers|funding/history</code>, <code>https://query1|2.finance.yahoo.com</code>.</p>
+<p><strong>Provider IDs:</strong> Binance (Crypto), Yahoo (Forex &amp; Metal), Demo. Pesan error membedakan “Binance diblokir…”, “Yahoo rate-limit…”, “Funding hanya Binance/Bybit (Yahoo/Demo tak punya funding)”, “Yahoo tidak mengenal pair…”.</p>
+<p><strong>Strategi teramati:</strong> EMA Cross 9/21, EMA50, RSI Reversal, MACD cross-up/down, Supertrend flip bull/bear, Stochastic cross, Donchian Momentum, BB factory/pos, ATR Volatility, ADX, VWAP. <strong>Filter:</strong> ADX Filter, EMA Filter, RSI Filter + FilterCtx/FilterCfg sessions.</p>
+<p><strong>BacktestParams (26 field):</strong> asset, timeframe, strategy, strategyParams, filters, startDate/endDate, feePercent, slippagePercent, riskPerTrade, leverage, sl/tpPercent, tpMode, tp2/tp3Mult, useAtr, atrSl/TpMult, trailOn/Act/DistPct, maxHolding, maxOpenTrades, initialCapital, combo.</p>
+<p><strong>BacktestResult (37 field):</strong> totalTrades, wins/losses, winRate, profitFactor, netProfit, expectancy, maxDrawdown, sharpe, sortino, CAGR, calmar, exposure, equityCurve, trades, diag, error, dsb.</p>
+</div>
+
+<h2>5. Apa yang DAPAT vs TIDAK DAPAT diketahui dari APK saja</h2>
+<table>
+<tr><th>Dapat (bukti statis)</th><th>Tidak dapat (butuh sumber + runtime)</th></tr>
+<tr><td>Package, versi, izin, komponen, layout, ukuran dex, daftar kelas/metode, host provider, nama strategi/filter, skema BacktestParams.<br>Terverifikasi: <code>configFingerprint</code>, <code>hyperoptBasisKey</code>, <code>AppliedCfg</code> (origin/status/valid), <code>LastBt</code> (mode/pairs/timeframe/trades), <code>BotEngine.tick/start/stop</code>, <code>MonitorService.safeTick/scheduleNext</code>, <code>auditLiveVsBacktest</code>.</td><td>Logika runtime aktual: apakah Engine memakai fingerprint terakhir, mengapa 0 sinyal, apakah hasil Backtest stale, apakah Single vs Multi pair berbeda, apakah MaxOpenTrades ditegakkan.<br>Butuh: kode sumber Kotlin/Gradle, <code>adb logcat</code>, pengujian instrumen, data jaringan live.</td></tr>
+</table>
+<p><strong>Kejujuran audit:</strong> laporan ini <em>belum</em> mengaudit kode sumber — baru APK. Tidak ada klaim fitur yang dikarang, tidak ada log/data pasar yang difabrikasi.</p>
+
+<h2>6. Kebutuhan sumber &amp; build (belum tersedia di workspace)</h2>
+<div class="card">
+<p>Workspace <code>/home/runner/work/PlayGround/PlayGround</code> saat ini hanya berisi skrip + halaman ini; <strong>tidak ada modul Android, Gradle wrapper, atau keystore rilis</strong>. Untuk perbaikan fungsional dibutuhkan: tree sumber Kotlin (<code>engine/</code>, <code>data/</code>, <code>ui/</code>, <code>ai/</code>), <code>build.gradle.kts</code> + AGP 8.7.3 + compileSdk 36, Android SDK + JDK 17, emulator/perangkat API 26–36, serta akses jaringan ke host di atas.</p>
+<p>Jangan rebuild/redesign sebelum sumber tersedia. Jangan ganti implementasi dengan simulasi. Jangan longgarkan filter tanpa akar masalah.</p>
+</div>
+
+<h2>7. Urutan audit &amp; pengujian berikutnya</h2>
+<pre>1. Runtime di emulator: Dashboard → Market Scanner → Backtest single/multi → Hyperopt → Start Engine → Signals → Notifikasi (lacak satu sinyal ujung-ke-ujung).
+2. Fokus prioritas: fingerprint Backtest terakhir vs AppliedCfg Engine (beda edited/last/applied).
+3. Regresi: perubahan param harus mengubah hasil; MaxOpenTrades; single vs multi; 0-sinyal triage via EngineDiag + decideAt reasons.
+4. Checkpoint sebelum perubahan apa pun; APK baru hanya diklaim setelah artefak terverifikasi (hash + versionCode+1 + uji instal).</pre>
+
+<p><small>Dibangun dari artefak <code>/tmp/aetherv41-debug.apk</code> (200 OK, 6.881.974 byte) pada 2026-10-13. Metode: <code>curl + unzip + keytool + androguard + strings</code>. Status: <span class="badge">audit awal statis selesai</span> — menunggu sumber &amp; uji runtime.</small></p>
+</body>
+</html>

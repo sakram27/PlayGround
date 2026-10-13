@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aether.signal.premium"
+    android:versionCode="37"
+    android:versionName="7.13" >
+
+    <uses-sdk
+        android:minSdkVersion="26"
+        android:targetSdkVersion="36" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <permission
+        android:name="com.aether.signal.premium.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.aether.signal.premium.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+
+    <application
+        android:allowBackup="true"
+        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+        android:debuggable="true"
+        android:extractNativeLibs="false"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Aether Signal"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name="com.aether.signal.premium.ui.DashboardActivity"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.aether.signal.premium.ui.MarketActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.GraphActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.SignalsActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.LabActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.BacktestActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.AiActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.NotifHistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.ReplayActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.JournalActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.SignalDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.AblationActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.ConsensusActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.WalkForwardActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.CollectionActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.CostAnalysisActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.aether.signal.premium.ui.XValidateActivity"
+            android:exported="false" />
+
+        <service
+            android:name="com.aether.signal.premium.ui.MonitorService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" >
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Pemantauan pasar terjadwal untuk notifikasi sinyal entry, stop loss, dan take profit." />
+        </service>
+
+        <receiver
+            android:name="com.aether.signal.premium.ui.BootReceiver"
+            android:enabled="true"
+            android:exported="false" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.aether.signal.premium.files"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/files" />
+        </provider>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="com.aether.signal.premium.androidx-startup"
+            android:exported="false" >
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                android:value="androidx.startup" />
+            <meta-data
+                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+                android:value="androidx.startup" />
+            <meta-data
+                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+                android:value="androidx.startup" />
+        </provider>
+
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            android:directBootAware="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.DUMP" >
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
