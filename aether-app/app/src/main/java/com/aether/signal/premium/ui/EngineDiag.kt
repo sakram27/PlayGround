@@ -46,7 +46,10 @@ data class EngineDiagSnapshot(
     // Tahap 4/G: vonis per pair terakhir.
     val pairVerdicts: List<PairVerdict> = emptyList(),
     // Tahap 5D: awal tick terakhir (lastTickAt = selesai).
-    val tickStartMs: Long = 0L
+    val tickStartMs: Long = 0L,
+    // Bagian A: telemetri cap global + tick dilewat.
+    val rejectedCap: Int = 0,
+    val tickSkipped: Int = 0
 )
 
 object EngineDiag {
@@ -81,6 +84,10 @@ object EngineDiag {
     @Volatile var sessionTimeframe: String = ""
     @Volatile var liveCfgFp: String = ""
     @Volatile var cfgDiverged: Boolean = false
+    // Bagian A: penolakan cap global + tick yang dilewat (anti-tumpang).
+    // rejectedCap dihitung per tick (direset beginTick); tickSkipped kumulatif sesi.
+    @Volatile var rejectedCap: Int = 0
+    @Volatile var tickSkipped: Int = 0
     // Tahap 4/G + 5E: vonis terakhir per pair (sesi berjalan, tanpa persist).
     // Nama tahap mengikuti konvensi misi: NO_CANDIDATE | FILTERED |
     // INVALID_LEVEL | SIGNAL_CREATED | BLOCKED_POSITION | PROVIDER_ERROR |
@@ -97,6 +104,7 @@ object EngineDiag {
         evalTotal = 0; evalOk = 0; candidates = 0; filteredOut = 0
         invalidLevels = 0; dupHeld = 0; stored = 0; notifCalls = 0
         candLong = 0; candShort = 0; blockedPosition = 0
+        rejectedCap = 0
         lastPhase = "mengambil data"
         synchronized(lock) { errors.clear(); freasons.clear() }
     }
@@ -154,7 +162,7 @@ object EngineDiag {
             errs.size, errs, lastPhase, lastError,
             totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
             sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged,
-            pv, tickStartMs)
+            pv, tickStartMs, rejectedCap, tickSkipped)
     }
 }
 
@@ -165,6 +173,19 @@ data class PairVerdict(
     val detail: String = "",
     val at: Long = 0L
 )
+
+/**
+ * Bagian E: kesehatan data per pair (murni, teruji JVM).
+ * SEHAT = diterima penuh & cukup untuk indikator; PARSIAL = ada tapi kurang
+ * dari yang diminta; KURANG = di bawah minimum indikator; GAGAL = kosong.
+ * Tak mengubah aturan strategi — hanya label diagnostik.
+ */
+fun pairDataHealth(requested: Int, received: Int, valid: Int, minRequired: Int): String = when {
+    received <= 0 || valid <= 0 -> "GAGAL"
+    valid < minRequired -> "KURANG($valid/$minRequired)"
+    received < requested -> "PARSIAL($valid/$requested)"
+    else -> "SEHAT"
+}
 
 // Batas usia data per TF agar label "data basi" jujur (2× interval wajar).
 fun dataStaleLimitMs(tfMinutes: Int): Long {
@@ -277,6 +298,10 @@ fun formatEngineDiag(
     }
     b.append("\nLevel tak valid: ${snap.invalidLevels} · duplikat ditahan: ${snap.dupHeld}")
     b.append(" · tersimpan: ${snap.stored} · notif dipanggil: ${snap.notifCalls}")
+    // Bagian A: telemetri cap global + tick dilewat.
+    if (snap.rejectedCap > 0 || snap.tickSkipped > 0) {
+        b.append("\nCap global: ${snap.rejectedCap} entry ditolak (penuh) · tick dilewat: ${snap.tickSkipped}")
+    }
     b.append("\nNotifikasi: izin ${if (notifPermOk) "OK" else "BELUM"} · sistem " +
         "${if (notifSystemOk) "AKTIF" else "MATI"} · jam tenang ${if (quietOn) "AKTIF" else "mati"}")
     b.append("\nRiwayat kirim: $histSent terkirim · $histHeld ditahan · $histFailed gagal")

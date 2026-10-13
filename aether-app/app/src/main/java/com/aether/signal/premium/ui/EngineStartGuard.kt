@@ -417,6 +417,39 @@ fun applySnapshotToStore(store: EngineGlobalsStore, snap: EngineSnapshot): Apply
     }
 }
 
+// ---------- Gerbang entry Engine live (Bagian A, murni, teruji JVM) ----------
+
+/** Keputusan gerbang entry satu pair pada Engine live. */
+enum class OpenDecision { ALLOW, HOLD_PAIR, CAP_FULL }
+
+/**
+ * Satu-satunya pemeriksaan batas entry Engine: pair sudah punya posisi
+ * (maks 1/pair, perilaku lama) ATAU total posisi >= cap global sesi beku.
+ * cap<=0 diperlakukan sebagai 1 (defensif; sanitasi normal 1..10).
+ */
+fun gateEntry(openCount: Int, cap: Int, pairHasOpen: Boolean): OpenDecision = when {
+    pairHasOpen -> OpenDecision.HOLD_PAIR
+    openCount >= cap.coerceAtLeast(1) -> OpenDecision.CAP_FULL
+    else -> OpenDecision.ALLOW
+}
+
+/**
+ * Gerbang anti-tumpang-tindih tick (Bagian A.6/C.2, murni, teruji JVM).
+ * Dua scheduler (BotEngine 90 dtk + MonitorService adaptif) berjalan di
+ * thread berbeda; tanpa ini dua tick dapat mengevaluasi & membuka posisi
+ * bersamaan (posisi ganda, ConcurrentModificationException pada daftar).
+ */
+class TickGate {
+    private val busy = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** true = pemanggil memiliki giliran tick; false = tick lain berjalan. */
+    fun tryBegin(): Boolean = busy.compareAndSet(false, true)
+
+    fun end() {
+        busy.set(false)
+    }
+}
+
 // ---------- Keputusan Start ----------
 enum class StartDecision { START_DIRECT, SHOW_DIALOG, BLOCK_RUNNING }
 

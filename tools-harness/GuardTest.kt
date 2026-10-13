@@ -4,15 +4,20 @@ import com.aether.signal.premium.engine.sanitizeParams
 import com.aether.signal.premium.ui.EngineGlobalsData
 import com.aether.signal.premium.ui.EngineGlobalsStore
 import com.aether.signal.premium.ui.EngineSnapshot
+import com.aether.signal.premium.ui.OpenDecision
 import com.aether.signal.premium.ui.StartDecision
+import com.aether.signal.premium.ui.TickGate
 import com.aether.signal.premium.ui.applySnapshotToStore
 import com.aether.signal.premium.ui.buildParamsFrom
 import com.aether.signal.premium.ui.decideStartAction
 import com.aether.signal.premium.ui.diffSnapshots
 import com.aether.signal.premium.ui.effectiveGlobalsForApply
 import com.aether.signal.premium.ui.freezeSession
+import com.aether.signal.premium.ui.gateEntry
+import com.aether.signal.premium.ui.liveFingerprint
 import com.aether.signal.premium.data.fetchUniverse
 import com.aether.signal.premium.ui.notifStageOf
+import com.aether.signal.premium.ui.pairDataHealth
 import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.ui.validateSnapshotForApply
 
@@ -248,6 +253,8 @@ fun main() {
             e2.engPairs == listOf("BTCUSDT", "ETHUSDT"))
     }
     guardTest5()
+    guardTest6()
+    guardTest7()
     println("GUARD-TEST done pass=$gpass fail=$gfail")
     if (gfail > 0) kotlin.system.exitProcess(1)
 }
@@ -290,5 +297,77 @@ fun guardTest5() {
     run {
         val bad = fetchUniverse("nope_exchange", 200)
         gok("t5f-unknown-prov", bad.fallback && bad.error != null, "err=${bad.error}")
+    }
+}
+
+fun guardTest6() {
+    // A.1-A.3: tabel keputusan gerbang entry tunggal.
+    run {
+        gok("t6-gate-allow", gateEntry(0, 1, false) == OpenDecision.ALLOW &&
+            gateEntry(2, 3, false) == OpenDecision.ALLOW)
+        gok("t6-gate-hold", gateEntry(0, 3, true) == OpenDecision.HOLD_PAIR &&
+            gateEntry(5, 3, true) == OpenDecision.HOLD_PAIR)
+        gok("t6-gate-cap", gateEntry(1, 1, false) == OpenDecision.CAP_FULL &&
+            gateEntry(3, 3, false) == OpenDecision.CAP_FULL &&
+            gateEntry(5, 3, false) == OpenDecision.CAP_FULL)
+        gok("t6-gate-cap-defensif", gateEntry(0, 0, false) == OpenDecision.ALLOW &&
+            gateEntry(1, 0, false) == OpenDecision.CAP_FULL &&
+            gateEntry(0, -4, false) == OpenDecision.ALLOW)
+    }
+    // A.6: TickGate — 16 thread berebut, tepat 1 pemegang dalam satu waktu.
+    run {
+        val gate = TickGate()
+        val holders = java.util.concurrent.atomic.AtomicInteger(0)
+        var maxHold = 0
+        val lock = Any()
+        var granted = 0
+        val ts = (0 until 16).map {
+            Thread {
+                repeat(200) {
+                    if (gate.tryBegin()) {
+                        try {
+                            val h = holders.incrementAndGet()
+                            synchronized(lock) {
+                                if (h > maxHold) maxHold = h
+                                granted++
+                            }
+                            Thread.yield()
+                            holders.decrementAndGet()
+                        } finally {
+                            gate.end()
+                        }
+                    }
+                }
+            }
+        }
+        ts.forEach { it.start() }
+        ts.forEach { it.join(15000) }
+        // Sifat deterministik: tak pernah 2 pemegang (eksklusivitas).
+        // Jumlah grant tergantung penjadwalan (iterasi yang kalah berebut
+        // langsung lewat — sesuai semantik tryBegin), jadi hanya batasnya
+        // yang diasersi, bukan angka pasti.
+        gok("t6-tickgate-eksklusif", maxHold == 1 && granted in 1..(16 * 200),
+            "maxHold=$maxHold granted=$granted")
+    }
+    // A: sesi beku membawa maxOpenTrades + sidik berubah mengikutinya.
+    run {
+        val g1 = EngineGlobalsData(engPairs = listOf("BTCUSDT"))
+        val g3 = g1.copy(maxOpenTrades = 3)
+        val s1 = freezeSession(g1, listOf("BTCUSDT"), 100L)
+        val s3 = freezeSession(g3, listOf("BTCUSDT"), 100L)
+        gok("t6-session-mo", s1.params.maxOpenTrades == 1 && s3.params.maxOpenTrades == 3 &&
+            s1.fp != s3.fp && liveFingerprint(g1) != liveFingerprint(g3),
+            "fp1=${s1.fp.take(12)} fp3=${s3.fp.take(12)}")
+    }
+}
+
+fun guardTest7() {
+    // E: kesehatan data per pair.
+    run {
+        gok("t7-health", pairDataHealth(300, 300, 300, 220) == "SEHAT" &&
+            pairDataHealth(300, 250, 250, 220) == "PARSIAL(250/300)" &&
+            pairDataHealth(300, 300, 100, 220) == "KURANG(100/220)" &&
+            pairDataHealth(300, 0, 0, 220) == "GAGAL" &&
+            pairDataHealth(300, 50, 0, 220) == "GAGAL")
     }
 }

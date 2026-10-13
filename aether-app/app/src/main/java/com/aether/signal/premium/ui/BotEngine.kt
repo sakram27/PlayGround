@@ -158,8 +158,19 @@ object BotEngine {
         else entry * (1 + p.slPercent) to entry * (1 - p.tpPercent)
     }
 
+    /** Gerbang anti-tumpang-tindih tick (Bagian A.6/C.2). */
+    private val tickGate = TickGate()
+
     fun tick(manual: Boolean) {
         if (!App.engRunning && !manual) return
+        // Bagian A.6: dua scheduler (BotEngine 90 dtk + MonitorService adaptif)
+        // berjalan di thread berbeda — tick kedua yang tumpang tindih DILEWAT
+        // dan dihitung (bukan dieksekusi: cegah posisi ganda + race daftar).
+        if (!tickGate.tryBegin()) {
+            EngineDiag.tickSkipped++
+            EngineDiag.lastPhase = "tick dilewat (tumpang tindih)"
+            return
+        }
         // V32: tick tak boleh membunuh scheduler — exception di luar
         // try-per-pair dicatat di sini, loop tetap hidup. (scheduleAtFixedRate
         // berhenti diam-diam bila tugas melempar.)
@@ -172,6 +183,7 @@ object BotEngine {
             sess = ensureSession()
         } catch (e: Exception) {
             lastScan = "Dry run error: ${e.message}"
+            tickGate.end()
             return
         }
         val p: BacktestParams = sess.params
@@ -216,6 +228,10 @@ object BotEngine {
                 val cache = buildCache(candles)
                 val last = candles.last()
                 if (last.t > EngineDiag.lastDataAt) EngineDiag.lastDataAt = last.t
+                // Bagian E: kesehatan data pair ini (label saja).
+                val dataHealth = try {
+                    pairDataHealth(ENGINE_CANDLES, raw.size, candles.size, REGIME_MIN_CANDLES)
+                } catch (e: Exception) { "?" }
                 // V28: "OK" = data valid diterima DAN evaluasi selesai tanpa
                 // exception. Dihitung di titik keluar normal (bawah try), bukan di
                 // sini — pair yang crash saat evaluasi tak boleh dihitung OK.
@@ -246,10 +262,10 @@ object BotEngine {
                 }
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
-                    EngineDiag.noteVerdict(sym, "BLOCKED_POSITION", open.dir)
                     // V32: posisi terbuka menahan entry baru pair ini (desain,
                     // bukan bug) — dihitung agar panel jujur.
                     EngineDiag.blockedPosition++
+                    EngineDiag.noteVerdict(sym, "BLOCKED_POSITION", open.dir)
                     open.mark = last.c
                     open.upl = (if (open.dir == "LONG") last.c - open.entry else open.entry - last.c) * open.qty
                     val fresh = candles.filter { it.t > open.entryT }
@@ -410,11 +426,16 @@ object BotEngine {
                     val nowMs = System.currentTimeMillis()
                     val evalIdx = engineEvalIndices(candles.size, last.t, nowMs, tfMs)
                     for (i in evalIdx) {
+                    // Posisi dibuka tick ini pada indeks sebelumnya → indeks
+                    // berikutnya untuk pair yang sama dilewat (vonis tetap
+                    // SIGNAL_CREATED dari pembukaan di atas).
                     if (positions.any { it.pair == sym }) break
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
                     if (!dec.passed) {
-                        EngineDiag.noteVerdict(sym, "NO_CANDIDATE", dec.strategy.ifEmpty { p.strategy })
+                        val det = dec.strategy.ifEmpty { p.strategy } +
+                            (if (dataHealth != "SEHAT") " · data $dataHealth" else "")
+                        EngineDiag.noteVerdict(sym, "NO_CANDIDATE", det)
                         continue
                     }
                     EngineDiag.candidates++
@@ -455,6 +476,26 @@ object BotEngine {
                     val maxNot = (equity ?: p.initialCapital) * p.leverage
                     if (qty * entry > maxNot) qty = maxNot / entry
                     if (!(qty > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "INVALID_LEVEL", "qty"); continue }
+                    // Bagian A: pemeriksaan batas TUNGGAL sebelum pencatatan.
+                    // - Engine dihentikan di tengah tick → jangan entry baru.
+                    // - Cap global sesi beku: sinyal sah yang terhalang batas
+                    //   dicatat CAP_FULL (bukan entry berhasil, bukan SIGNAL_CREATED).
+                    // - Posisi valid yang ada tak pernah ditutup oleh gerbang ini.
+                    if (!App.engRunning) break
+                    val cap = sess.params.maxOpenTrades.coerceIn(MAX_OPEN_TRADES_MIN, MAX_OPEN_TRADES_MAX)
+                    when (gateEntry(positions.size, cap, positions.any { it.pair == sym })) {
+                        OpenDecision.HOLD_PAIR -> {
+                            EngineDiag.blockedPosition++
+                            EngineDiag.noteVerdict(sym, "BLOCKED_POSITION", dec.direction)
+                            break
+                        }
+                        OpenDecision.CAP_FULL -> {
+                            EngineDiag.rejectedCap++
+                            EngineDiag.noteVerdict(sym, "CAP_FULL", "${positions.size}/$cap")
+                            break
+                        }
+                        OpenDecision.ALLOW -> { /* lanjut buka */ }
+                    }
                     positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
@@ -510,6 +551,8 @@ object BotEngine {
             EngineDiag.lastPhase = "error: ${(e.message ?: "gagal").take(80)}"
             EngineDiag.lastTickAt = System.currentTimeMillis()
             lastScan = "Error tick: ${e.message}"
+        } finally {
+            tickGate.end()
         }
     }
 

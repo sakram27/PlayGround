@@ -46,6 +46,7 @@ fun baseParams(cap: Int, extra: BacktestParams.() -> BacktestParams = { this }):
 fun main() {
     capTestCore()
     capTest5B()
+    capTestCancel()
     println("CAP-TEST done pass=$cpass fail=$cfail")
     if (cfail > 0) kotlin.system.exitProcess(1)
 }
@@ -325,5 +326,18 @@ fun capTest5B() {
             kotlin.math.abs(r.finalCapital - (r.initialCapital + r.netProfit)) < 1e-6 &&
             r.equityCurve.zipWithNext { x, y -> y.t >= x.t }.all { it },
             "final=${r.finalCapital} net=${r.netProfit}")
+    }
+}
+
+fun capTestCancel() {
+    // C: pembatalan kooperatif portofolio → errorResult eksplisit, bukan sukses.
+    run {
+        val assets = listOf(
+            PortfolioAsset("AAA", mkBars(300, 100.0, { 0.001 })),
+            PortfolioAsset("BBB", mkBars(300, 50.0, { 0.001 })))
+        var calls = 0
+        val pr = runPortfolioBacktest(assets, baseParams(2), isCancelled = { ++calls; calls > 3 })
+        cok("cx-cancel", pr.result.error != null && pr.result.error!!.contains("Dibatalkan"),
+            "err=${pr.result.error?.take(40)}")
     }
 }
