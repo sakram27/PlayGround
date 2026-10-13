@@ -82,3 +82,24 @@ fun staleBadge(t: Long, nowMs: Long, tfMinutes: Int, factor: Int = STALE_FACTOR)
     return if (age > limit) StaleBadge(true, "Kedaluwarsa mungkin · $ageTxt")
     else StaleBadge(false, ageTxt)
 }
+
+// ---------- Bagian A (Tahap 7): identitas sinyal & kunci dedup TERPADU ----------
+// Satu-satunya konstruktor format kunci agar BotEngine, Backtest, dan NotifBus
+// tak menyimpang diam-diam. ATURAN KOMPATIBILITAS (jangan ubah tanpa migrasi):
+// - Kunci `seen` NotifBus ("e|..."/"x|...") PERSISTEN lintas update — formatnya
+//   DIBEKUKAN; mengubahnya membuat sinyal lama terkirim ulang.
+// - Sig.id hanya dipakai dedup arsip (backtest by-id; engine by pair/tf/t/dir)
+//   sehingga penambahan arah di id AMAN (membedakan LONG vs SHORT se-bar).
+//   Alasan: id lama "e{t}{sym}" sama untuk LONG & SHORT bar yang sama.
+
+/** Id arsip sinyal: jenis + timestamp + pair + arah. */
+fun engineSignalId(kind: Char, t: Long, sym: String, dir: String): String =
+    "$kind${t}${sym}${dir}"
+
+/** Kunci dedup persisten notifikasi entry — FORMAT DIBEKUKAN (lihat atas). */
+fun entryNotifKey(pair: String, tf: String, t: Long, dir: String): String =
+    "e|$pair|$tf|$t|$dir"
+
+/** Kunci dedup persisten notifikasi exit — FORMAT DIBEKUKAN (lihat atas). */
+fun exitNotifKey(pair: String, t: Long, dir: String, what: String): String =
+    "x|$pair|$t|$dir|$what"

@@ -98,6 +98,16 @@ object BotEngine {
             } catch (e: Exception) { /* abaikan */ }
             App.engRunning = true
             EngineDiag.startedAt = System.currentTimeMillis()
+            // Bagian B: slate bersih eksplisit. Baca penanda sesi sebelumnya
+            // SEBELUM menimpa; beri peringatan bila posisi lama hilang.
+            try {
+                val prev = App.prefs.getString("sess_open", null)
+                EngineDiag.staleNote =
+                    staleSessionNote(prev, positions.isEmpty()) ?: ""
+                App.prefs.edit()
+                    .putString("sess_open", "${positions.size}|${System.currentTimeMillis()}")
+                    .apply()
+            } catch (e: Exception) { /* telemetri tak boleh blokir start */ }
             if (MonitorService.running || externallyDriven) {
                 // Selalu Siaga sudah memantau: jangan buat scheduler kedua.
                 exec.execute {
@@ -136,6 +146,18 @@ object BotEngine {
             App.engRunning = false
             sched?.cancel(false)
             clearSession()
+            EngineDiag.staleNote = ""
+            // Bagian B: tutup penanda sesi — kosong = bersih (hapus),
+            // berisi = tulis ulang agar crash berikutnya tetap terdeteksi.
+            try {
+                if (positions.isEmpty()) {
+                    App.prefs.edit().remove("sess_open").apply()
+                } else {
+                    App.prefs.edit()
+                        .putString("sess_open", "${positions.size}|${System.currentTimeMillis()}")
+                        .apply()
+                }
+            } catch (e: Exception) { /* abaikan */ }
             return "Dihentikan."
         } finally {
             busy = false
@@ -334,7 +356,7 @@ object BotEngine {
                                         // src khusus: trailing paper NYATA — arsip +
                                         // notifikasi Hit via onSignal (cermin SL/TP).
                                         val tsig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t,
-                                            "dryrun-trail", "t${b.t}${sym}",
+                                            "dryrun-trail", engineSignalId('t', b.t, sym, open.dir),
                                             strategy = "", confidence = 0.0,
                                             reasons = listOf("trailing stop tersentuh @ ${App.fmt(cl, 4)}"),
                                             decidedAt = System.currentTimeMillis())
@@ -369,7 +391,7 @@ object BotEngine {
                         val fx = fctx[sym] ?: FilterCtx()
                         fx.lastExitT = b.t; fx.tfMs = tfMs
                         fctx[sym] = fx
-                        val sig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t, "dryrun-" + if (win) "TP" else "SL", "d${b.t}${sym}")
+                        val sig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t, "dryrun-" + if (win) "TP" else "SL", engineSignalId('d', b.t, sym, open.dir))
                         if (App.signals.any { it.pair == sig.pair && it.tf == sig.tf && it.t == sig.t && it.dir == sig.dir }) {
                             EngineDiag.dupHeld++
                         } else {
@@ -405,7 +427,7 @@ object BotEngine {
                             // Arsip Engine tanpa notifikasi (seperti trail): keluar
                             // kedaluwarsa bukan TP/SL, jadi tidak dibunyikan.
                             val esig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, bx.t,
-                                "dryrun-expired", "x${bx.t}${sym}",
+                                "dryrun-expired", engineSignalId('x', bx.t, sym, open.dir),
                                 strategy = "", confidence = 0.0,
                                 reasons = listOf("batas tahan ${p.maxHolding} bar tercapai"),
                                 decidedAt = System.currentTimeMillis())
@@ -503,7 +525,7 @@ object BotEngine {
                     val tpPctV = if (entry > 0) Math.abs(entry - tp) / entry * 100 else Double.NaN
                     val sc = signalScore(passedIds.size, activeIds.size, dec.confidence,
                         slPctV.takeIf { it.isFinite() }, tpPctV.takeIf { it.isFinite() })
-                    val sig = Sig(sym, p.timeframe, dec.direction, entry, sl, tp, sigBar.t, "dryrun-entry", "e${sigBar.t}${sym}",
+                    val sig = Sig(sym, p.timeframe, dec.direction, entry, sl, tp, sigBar.t, "dryrun-entry", engineSignalId('e', sigBar.t, sym, dec.direction),
                         strategy = dec.strategy, confidence = dec.confidence,
                         reasons = cleanStrList(dec.reasons),
                         passedFilters = passedIds, failedFilters = failedIds,

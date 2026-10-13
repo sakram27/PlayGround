@@ -895,7 +895,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         res.strategy, res.asset, res.timeframe, System.currentTimeMillis()))
                     App.addHist(res.trades)
                     res.trades.lastOrNull()?.let { lt ->
-                        App.pushBacktestSignal(Sig(res.asset, res.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${res.asset}",
+                        App.pushBacktestSignal(Sig(res.asset, res.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", engineSignalId('b', lt.entryTime, res.asset, lt.direction),
                             strategy = res.strategy, decidedAt = System.currentTimeMillis()))
                     }
                 }
@@ -1179,7 +1179,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     p.strategy, sel.joinToString("+"), p.timeframe, System.currentTimeMillis()))
                 App.addHist(pfRes.trades)
                 pfRes.trades.lastOrNull()?.let { lt ->
-                    App.pushBacktestSignal(Sig(lt.asset, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${lt.asset}",
+                    App.pushBacktestSignal(Sig(lt.asset, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", engineSignalId('b', lt.entryTime, lt.asset, lt.direction),
                         strategy = pfRes.strategy, decidedAt = System.currentTimeMillis()))
                 }
             } else if (first?.res != null && first.res.error == null) {
@@ -1189,7 +1189,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                     p.strategy, sel.joinToString("+"), p.timeframe, System.currentTimeMillis()))
                 App.addHist(first.res.trades)
                 first.res.trades.lastOrNull()?.let { lt ->
-                    App.pushBacktestSignal(Sig(first.sym, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${first.sym}",
+                    App.pushBacktestSignal(Sig(first.sym, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", engineSignalId('b', lt.entryTime, first.sym, lt.direction),
                         strategy = first.res.strategy, decidedAt = System.currentTimeMillis()))
                 }
             }

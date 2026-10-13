@@ -49,7 +49,9 @@ data class EngineDiagSnapshot(
     val tickStartMs: Long = 0L,
     // Bagian A: telemetri cap global + tick dilewat.
     val rejectedCap: Int = 0,
-    val tickSkipped: Int = 0
+    val tickSkipped: Int = 0,
+    // Bagian B: peringatan sesi lama (kosong = tidak ada).
+    val staleNote: String = ""
 )
 
 object EngineDiag {
@@ -88,6 +90,8 @@ object EngineDiag {
     // rejectedCap dihitung per tick (direset beginTick); tickSkipped kumulatif sesi.
     @Volatile var rejectedCap: Int = 0
     @Volatile var tickSkipped: Int = 0
+    // Bagian B: peringatan sesi sebelumnya tak selesai (slate bersih eksplisit).
+    @Volatile var staleNote: String = ""
     // Tahap 4/G + 5E: vonis terakhir per pair (sesi berjalan, tanpa persist).
     // Nama tahap mengikuti konvensi misi: NO_CANDIDATE | FILTERED |
     // INVALID_LEVEL | SIGNAL_CREATED | BLOCKED_POSITION | PROVIDER_ERROR |
@@ -122,6 +126,8 @@ object EngineDiag {
     fun noteStored() {
         stored++
         lastSignalAt = System.currentTimeMillis()
+        // Bagian B: sesi baru sudah produktif → peringatan sesi lama kedaluwarsa.
+        staleNote = ""
     }
 
     fun pairError(sym: String, msg: String) {
@@ -162,7 +168,7 @@ object EngineDiag {
             errs.size, errs, lastPhase, lastError,
             totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
             sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged,
-            pv, tickStartMs, rejectedCap, tickSkipped)
+            pv, tickStartMs, rejectedCap, tickSkipped, staleNote)
     }
 }
 
@@ -185,6 +191,32 @@ fun pairDataHealth(requested: Int, received: Int, valid: Int, minRequired: Int):
     valid < minRequired -> "KURANG($valid/$minRequired)"
     received < requested -> "PARSIAL($valid/$requested)"
     else -> "SEHAT"
+}
+
+/**
+ * Bagian B: keputusan peringatan slate-bersih (murni, teruji JVM).
+ * [prevFlag] = "N|atMs" yang ditulis start/stop sebelumnya; null = tak ada.
+ * Peringatan HANYA bila flag ada DAN posisi saat ini kosong (= sesi lama
+ * berhenti/crash dengan posisi yang kini hilang). Kontinuitas (posisi masih
+ * di memori, proses sama) → null. Flag rusak → null (jangan menuduh).
+ */
+fun staleSessionNote(prevFlag: String?, positionsEmpty: Boolean): String? {
+    if (!positionsEmpty) return null
+    val f = prevFlag?.takeIf { it.contains("|") } ?: return null
+    val n = f.substringBefore("|").toIntOrNull() ?: return null
+    if (n <= 0) return null
+    val at = f.substringAfter("|", "").toLongOrNull() ?: 0L
+    val whenS = if (at > 0) {
+        try {
+            val fmt = java.text.SimpleDateFormat("dd-MM HH:mm", java.util.Locale("id", "ID"))
+            fmt.timeZone = java.util.TimeZone.getTimeZone("Asia/Jakarta")
+            fmt.format(java.util.Date(at))
+        } catch (e: Exception) {
+            "waktu tak diketahui"
+        }
+    } else "waktu tak diketahui"
+    return "Sesi sebelumnya berhenti dengan $n posisi paper ($whenS) — " +
+        "tidak dipantau lagi; riwayat sinyal tetap tersimpan."
 }
 
 // Batas usia data per TF agar label "data basi" jujur (2× interval wajar).
@@ -301,6 +333,10 @@ fun formatEngineDiag(
     // Bagian A: telemetri cap global + tick dilewat.
     if (snap.rejectedCap > 0 || snap.tickSkipped > 0) {
         b.append("\nCap global: ${snap.rejectedCap} entry ditolak (penuh) · tick dilewat: ${snap.tickSkipped}")
+    }
+    // Bagian B: peringatan sesi lama tak selesai.
+    if (snap.staleNote.isNotEmpty()) {
+        b.append("\nPeringatan sesi: ${snap.staleNote}")
     }
     b.append("\nNotifikasi: izin ${if (notifPermOk) "OK" else "BELUM"} · sistem " +
         "${if (notifSystemOk) "AKTIF" else "MATI"} · jam tenang ${if (quietOn) "AKTIF" else "mati"}")

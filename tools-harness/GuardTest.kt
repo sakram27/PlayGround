@@ -16,7 +16,11 @@ import com.aether.signal.premium.ui.freezeSession
 import com.aether.signal.premium.ui.gateEntry
 import com.aether.signal.premium.ui.liveFingerprint
 import com.aether.signal.premium.data.fetchUniverse
+import com.aether.signal.premium.ui.engineSignalId
+import com.aether.signal.premium.ui.entryNotifKey
+import com.aether.signal.premium.ui.exitNotifKey
 import com.aether.signal.premium.ui.notifStageOf
+import com.aether.signal.premium.ui.staleSessionNote
 import com.aether.signal.premium.ui.pairDataHealth
 import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.ui.validateSnapshotForApply
@@ -255,6 +259,7 @@ fun main() {
     guardTest5()
     guardTest6()
     guardTest7()
+    guardTest8()
     println("GUARD-TEST done pass=$gpass fail=$gfail")
     if (gfail > 0) kotlin.system.exitProcess(1)
 }
@@ -369,5 +374,31 @@ fun guardTest7() {
             pairDataHealth(300, 300, 100, 220) == "KURANG(100/220)" &&
             pairDataHealth(300, 0, 0, 220) == "GAGAL" &&
             pairDataHealth(300, 50, 0, 220) == "GAGAL")
+    }
+}
+
+fun guardTest8() {
+    // A: identitas sinyal terpadu — beda arah = id beda; kunci notif beku.
+    run {
+        val eL = engineSignalId('e', 1000L, "BTCUSDT", "LONG")
+        val eS = engineSignalId('e', 1000L, "BTCUSDT", "SHORT")
+        gok("t8-sigid-beda-arah", eL != eS && eL == "e1000BTCUSDTLONG",
+            "$eL vs $eS")
+        gok("t8-notifkey-beku", entryNotifKey("BTCUSDT", "15m", 1000L, "LONG") == "e|BTCUSDT|15m|1000|LONG" &&
+            exitNotifKey("BTCUSDT", 1000L, "LONG", "TP") == "x|BTCUSDT|1000|LONG|TP" &&
+            exitNotifKey("BTCUSDT", 1000L, "SHORT", "SL") == "x|BTCUSDT|1000|SHORT|SL" &&
+            exitNotifKey("ETHUSDT", 2000L, "LONG", "TRAIL") == "x|ETHUSDT|2000|LONG|TRAIL")
+    }
+    // B: keputusan slate-bersih.
+    run {
+        gok("t8-slate-tanpa-flag", staleSessionNote(null, true) == null &&
+            staleSessionNote("2|123", false) == null &&
+            staleSessionNote("rusak", true) == null &&
+            staleSessionNote("0|123", true) == null &&
+            staleSessionNote("-1|123", true) == null)
+        val msg = staleSessionNote("3|1700000000000", true)
+        gok("t8-slate-amaran", msg != null && msg.contains("3 posisi paper") &&
+            msg.contains("tidak dipantau lagi") && msg.contains("riwayat"),
+            msg?.take(60) ?: "null")
     }
 }

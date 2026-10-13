@@ -305,7 +305,7 @@ object NotifBus {
         when {
             s.src == "dryrun-entry" -> {
                 if (!entryOn) return
-                val key = "e|${s.pair}|${s.tf}|${s.t}|${s.dir}"
+                val key = entryNotifKey(s.pair, s.tf, s.t, s.dir)
                 if (!markSeen(key)) return
                 dispatch("entry", CH_ENTRY, key.hashCode(),
                     "Entry ${s.dir} ${s.pair}",
@@ -313,7 +313,7 @@ object NotifBus {
             }
             s.src == "dryrun-TP" -> {
                 if (!tpOn) return
-                val key = "x|${s.pair}|${s.t}|${s.dir}|TP"
+                val key = exitNotifKey(s.pair, s.t, s.dir, "TP")
                 if (!markSeen(key)) return
                 dispatch("tp", CH_SLTP, key.hashCode(),
                     "Take profit tercapai · ${s.dir} ${s.pair}",
@@ -321,7 +321,7 @@ object NotifBus {
             }
             s.src == "dryrun-SL" -> {
                 if (!slOn) return
-                val key = "x|${s.pair}|${s.t}|${s.dir}|SL"
+                val key = exitNotifKey(s.pair, s.t, s.dir, "SL")
                 if (!markSeen(key)) return
                 dispatch("sl", CH_SLTP, key.hashCode(),
                     "Stop loss tercapai · ${s.dir} ${s.pair}",
@@ -332,7 +332,7 @@ object NotifBus {
             // tanpa mengarang laba/rugi.
             s.src == "dryrun-trail" -> {
                 if (!trailNotifOn) return
-                val key = "x|${s.pair}|${s.t}|${s.dir}|TRAIL"
+                val key = exitNotifKey(s.pair, s.t, s.dir, "TRAIL")
                 if (!markSeen(key)) return
                 dispatch("trail_hit", CH_SLTP, key.hashCode(),
                     "Trailing Stop Hit · ${s.dir} ${s.pair}",

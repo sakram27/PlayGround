@@ -86,6 +86,10 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             App.engRunning -> "RUN · ${BotEngine.lastOkPairs}/${BotEngine.lastTotalPairs} pair data OK\n" +
                 "Dipantau: ${App.engPairs.joinToString(", ")}\n${BotEngine.lastScan}"
             else -> "Engine berhenti."
+        }.let { base ->
+            // Bagian B: peringatan sesi lama tak selesai (bila ada).
+            val stale = EngineDiag.staleNote
+            if (stale.isNotEmpty() && App.engRunning) "$base\n$stale" else base
         }
     }
 
