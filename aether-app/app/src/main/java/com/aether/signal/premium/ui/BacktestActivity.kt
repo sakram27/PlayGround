@@ -116,6 +116,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             } catch (e: Exception) { null }
             num(R.id.inCapital)?.toDoubleOrNull()?.let { App.capital = it }
             num(R.id.inRisk)?.toDoubleOrNull()?.let { App.riskPct = it }
+            // Tahap 4: input mentah disimpan apa adanya; sanitasi eksplisit
+            // (1..10) terjadi di mesin + validasi guard (bukan clamp diam-diam).
+            try {
+                findViewById<TextInputEditText>(R.id.inMaxOpen)?.text?.toString()
+                    ?.toIntOrNull()?.let { App.maxOpenTrades = it }
+            } catch (e: Exception) { /* abaikan */ }
             num(R.id.inSl)?.toDoubleOrNull()?.let { App.slPct = it }
             num(R.id.inTp)?.toDoubleOrNull()?.let { App.tpPct = it }
             num(R.id.inTp2Pct)?.toDoubleOrNull()?.let { App.tp2Pct = it }
@@ -265,6 +271,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         findViewById<View>(R.id.btnPresetAggressive).setOnClickListener { confirmPreset("aggressive") }
         bindNum(R.id.inCapital, App.capital.toString()) { App.capital = it.toDoubleOrNull() ?: 1000.0; paintRiskPreset() }
         bindNum(R.id.inRisk, App.riskPct.toString()) { App.riskPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
+        // Tahap 4: batas posisi (nilai efektif 1..10 ditampilkan di ringkasan).
+        bindNum(R.id.inMaxOpen, App.maxOpenTrades.toString()) {
+            App.maxOpenTrades = it.toIntOrNull() ?: 1; paintRiskPreset()
+        }
         bindNum(R.id.inSl, App.slPct.toString()) { App.slPct = it.toDoubleOrNull() ?: 1.0; paintRiskPreset() }
         bindNum(R.id.inTp, App.tpPct.toString()) { App.tpPct = it.toDoubleOrNull() ?: 2.0; paintRiskPreset() }
         findViewById<SwitchMaterial>(R.id.swAtr).apply {
@@ -334,6 +344,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun resetRisk() {
         App.capital = 1000.0; App.riskPct = 1.0; App.leverage = 1
         App.feePct = 0.05; App.slipPct = 0.02; App.maxHolding = 100
+        App.maxOpenTrades = 1
         App.slPct = 1.0; App.tpPct = 2.0; App.useAtr = false
         App.tpMode = 1; App.tp2Pct = 2.5; App.tp3Pct = 3.5
         App.btTrailOn = false; App.btTrailDistPct = 1.0; App.btTrailActPct = 1.0
@@ -342,6 +353,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             findViewById<MaterialButtonToggleGroup>(R.id.segTp).check(R.id.segTpSingle)
             findViewById<TextInputEditText>(R.id.inTp2Pct).setText(App.tp2Pct.toString())
             findViewById<TextInputEditText>(R.id.inTp3Pct).setText(App.tp3Pct.toString())
+            findViewById<TextInputEditText>(R.id.inMaxOpen).setText(App.maxOpenTrades.toString())
             findViewById<TextInputEditText>(R.id.inTrailDist).setText(App.btTrailDistPct.toString())
             findViewById<TextInputEditText>(R.id.inTrailAct).setText(App.btTrailActPct.toString())
             findViewById<SwitchMaterial>(R.id.swTrailBt).isChecked = App.btTrailOn
@@ -412,7 +424,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun paintRiskPreset() {
         try {
             val name = riskPresetLabel(App.riskPct, App.leverage, App.maxHolding, App.slPct, App.tpPct)
-            val detail = "Risiko ${App.riskPct}% · Leverage ${App.leverage}× · Maks tahan ${App.maxHolding} candle · SL ${App.slPct}% · TP ${App.tpPct}%"
+            // Tahap 4: nilai EFEKTIF batas posisi (sanitasi mesin 1..10).
+            val moEff = sanitizeMaxOpenTrades(App.maxOpenTrades)
+            val moNote = if (moEff != App.maxOpenTrades) " (input ${App.maxOpenTrades} → efektif $moEff)" else ""
+            val detail = "Risiko ${App.riskPct}% · Leverage ${App.leverage}× · Maks tahan ${App.maxHolding} candle · SL ${App.slPct}% · TP ${App.tpPct}% · Maks posisi $moEff$moNote"
             findViewById<TextView>(R.id.riskPresetStatus).text = "Preset aktif: $name" +
                 (if (name == "Kustom") " (nilai manual tidak sama dengan preset mana pun)." else ".") +
                 "\n$detail"
@@ -566,6 +581,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
         findViewById<TextInputEditText>(R.id.inCapital).setText(App.capital.toString())
         findViewById<TextInputEditText>(R.id.inRisk).setText(App.riskPct.toString())
+        findViewById<TextInputEditText>(R.id.inMaxOpen).setText(App.maxOpenTrades.toString())
         findViewById<TextInputEditText>(R.id.inSl).setText(App.slPct.toString())
         findViewById<TextInputEditText>(R.id.inTp).setText(App.tpPct.toString())
         findViewById<TextInputEditText>(R.id.inTp2Pct).setText(App.tp2Pct.toString())
@@ -849,6 +865,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 }
                 stage = "menyimpan"
                 App.result = res; App.lastTpMode = p.tpMode
+                // Tahap 4: single bukan portofolio.
+                App.portfolio = null
                 val st = classifyResult(res)
                 App.saveApplied("backtest-single", p, listOf(p.asset), st, res.error == null)
                 App.saveLastBt("single", listOf(p.asset), p, App.limit, res.diag.dateFilteredCount, res.totalTrades, engMs.toLong(), ((System.nanoTime() - tAll) / 1e6).toLong(), st)
@@ -1075,12 +1093,44 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             if (stale()) return@runBg
             val wasCancelled = cancelled || rows.any { it.res?.error?.startsWith("Dibatalkan") == true }
             val okN = rows.count { it.res != null && it.res.error == null }
+            // Tahap 4: simulasi portofolio GABUNGAN — satu ekuitas + cap posisi
+            // GLOBAL lintas pair (bukan jatah per-pair). Baris per-pair di atas
+            // = run standalone (cap per-pair, cermin V41) untuk diagnostik;
+            // agregat hero = portofolio. Keduanya jujur berlabel di UI.
+            var pf: PortfolioResult? = null
+            if (!wasCancelled && okN > 0) {
+                try {
+                    setStatus("Portofolio gabungan (${okN} pair, batas global ${sanitizeMaxOpenTrades(p.maxOpenTrades)})…")
+                    MonitorBus.phase(monId, MonPhase.VALIDATING_DATA, "Portofolio gabungan")
+                    val pfAssets = rows.filter { it.res?.error == null }.map { row ->
+                        val c = cache[row.sym]?.first ?: emptyList()
+                        PortfolioAsset(row.sym, c.map {
+                            mapOf("t" to it.t, "o" to it.o, "h" to it.h,
+                                "l" to it.l, "c" to it.c, "v" to it.v) as Any?
+                        })
+                    }
+                    pf = runPortfolioBacktest(pfAssets, p,
+                        isCancelled = { cancelled },
+                        onStage = { ev -> onEngineStage(monId, ev) })
+                    val pr = pf.result
+                    MonitorBus.counters(monId, pr.diag.signalsRaw, pr.diag.filteredOut, pr.totalTrades)
+                    MonitorBus.pushLog(monId, 0, "Portofolio: ${pr.totalTrades} trade · " +
+                        "maks ${pr.diag.maxOpenObserved}/${pr.diag.maxOpenTrades} posisi · " +
+                        "${pr.diag.rejectedByLimit} ditolak batas")
+                    if (pr.error != null) MonitorBus.pushLog(monId, 2, "Portofolio gagal: ${pr.error}")
+                } catch (e: Exception) {
+                    MonitorBus.pushLog(monId, 2, "Portofolio error: ${e.message}")
+                    pf = null
+                }
+            }
+            App.portfolio = pf?.result?.takeIf { it.error == null }
             // V30: batal ≠ sukses parsial. Hasil parsial disimpan transparan
             // (per-pair apa adanya) tetapi dilabel DIBATALKAN; hero = error
             // Dibatalkan (bukan pair pertama seolah sukses); tanpa drift/
             // history/sinyal.
+            val pfOk = pf?.result?.error == null
             val overall = if (wasCancelled) "DIBATALKAN"
-                else if (okN == rows.size && rows.size == sel.size) "SUCCESS"
+                else if (okN == rows.size && rows.size == sel.size && pfOk) "SUCCESS"
                 else if (okN > 0) "PARTIAL SUCCESS" else "FAILED"
             App.saveApplied("backtest-multi", p, sel, overall, okN > 0 && !wasCancelled)
             // Tahap 3: snapshot referensi Engine — hanya SUCCESS penuh (semua pair OK).
@@ -1096,12 +1146,16 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                         valid = true, origin = "backtest-multi"))
                 } catch (e: Exception) { /* snapshot opsional; label tetap tersimpan */ }
             }
-            val all = rows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime }
             val first = rows.firstOrNull { it.res?.error == null }
+            // Tahap 4: hero/agregat = portofolio (cap global); fallback ke
+            // standalone bila portofolio gagal.
+            val pfRes = App.portfolio
+            val standaloneAll = rows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime }
+            val heroTrades = pfRes?.trades?.sortedBy { it.exitTime } ?: standaloneAll
             if (wasCancelled) {
                 App.result = errorResult(p, "Dibatalkan oleh pengguna — $okN/${sel.size} pair selesai (parsial, bukan hasil lengkap).")
                 App.lastTpMode = p.tpMode
-                tradeRows = all
+                tradeRows = standaloneAll
                 MonitorBus.cancel(monId)
                 MonitorBus.pairProgress(monId, done, "")
                 runOnUiThread { paintQuick(); paintChart(); paintResult() }
@@ -1109,12 +1163,21 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 finishRun()
                 return@runBg
             }
-            App.result = first?.res; App.lastTpMode = p.tpMode
-            tradeRows = all
+            App.result = pfRes ?: first?.res; App.lastTpMode = p.tpMode
+            tradeRows = heroTrades
             if (first != null) { App.candles = cache[first.sym]!!.first; App.params = p.copy(asset = first.sym); App.lastFetchMeta = metas[first.sym]; App.lastFetchAt = System.currentTimeMillis() }
-            App.saveLastBt("multi", sel, p, App.limit, first?.res?.diag?.dateFilteredCount ?: 0, all.size, 0, ((System.nanoTime() - tAll) / 1e6).toLong(), overall)
-            if (first?.res != null && first.res.error == null) {
-                // V20 F2: ekspektasi drift = agregat gabungan multi-pair.
+            App.saveLastBt("multi", sel, p, App.limit, first?.res?.diag?.dateFilteredCount ?: 0, heroTrades.size, 0, ((System.nanoTime() - tAll) / 1e6).toLong(), overall)
+            if (pfRes != null && pfRes.error == null) {
+                // V20 F2 + Tahap 4: ekspektasi drift dari PORTOFOLIO (cap global).
+                App.saveDriftExpect(DriftExpect(pfRes.winRate, pfRes.profitFactor, pfRes.totalTrades,
+                    p.strategy, sel.joinToString("+"), p.timeframe, System.currentTimeMillis()))
+                App.addHist(pfRes.trades)
+                pfRes.trades.lastOrNull()?.let { lt ->
+                    App.pushBacktestSignal(Sig(lt.asset, p.timeframe, lt.direction, lt.entry, lt.stopLoss, lt.takeProfit, lt.entryTime, "backtest", "b${lt.entryTime}${lt.asset}",
+                        strategy = pfRes.strategy, decidedAt = System.currentTimeMillis()))
+                }
+            } else if (first?.res != null && first.res.error == null) {
+                // Fallback standalone bila portofolio gagal (perilaku lama).
                 val aggM = aggregateOverall(rows, buildCombinedEquity(rows, p.initialCapital).maxDDPct)
                 App.saveDriftExpect(DriftExpect(aggM.winRate, aggM.profitFactor, aggM.totalTrades,
                     p.strategy, sel.joinToString("+"), p.timeframe, System.currentTimeMillis()))
@@ -1128,9 +1191,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 MonitorBus.finish(monId, false, "Semua pair gagal")
             } else {
                 MonitorBus.counters(monId, rows.sumOf { it.res?.diag?.signalsRaw ?: 0 },
-                    rows.sumOf { it.res?.diag?.filteredOut ?: 0 }, all.size)
+                    rows.sumOf { it.res?.diag?.filteredOut ?: 0 }, heroTrades.size)
                 MonitorBus.finish(monId, true)
-                MonitorBus.pushLog(monId, 0, "Selesai multi: $okN/${rows.size} pair · ${all.size} trade")
+                MonitorBus.pushLog(monId, 0, "Selesai multi: $okN/${rows.size} pair · ${heroTrades.size} trade (portofolio)")
             }
             MonitorBus.pairProgress(monId, done, "")
             runOnUiThread { paintQuick(); paintChart(); paintResult() }
@@ -1286,7 +1349,15 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         // menampilkan gabungan — angka tak cocok). "—" = belum tersedia,
         // bukan nol.
         val isMulti = App.multiRows.isNotEmpty()
-        val agg = if (isMulti) aggregateOverall(App.multiRows,
+        // Tahap 4: hero multi = PORTOFOLIO gabungan (cap global lintas pair),
+        // bukan penjumlahan standalone. Baris per-pair = standalone (cap
+        // per-pair, cermin V41) untuk diagnostik; agregat final dari portofolio.
+        val pf = if (isMulti) App.portfolio?.takeIf { it.error == null } else null
+        val agg = if (pf != null) OverallAgg(
+            pf.totalTrades, pf.wins, pf.losses, pf.winRate, pf.profitFactor,
+            pf.netProfit, pf.averageWin, pf.averageLoss, pf.maxDrawdownPercent,
+            App.multiRows.count { it.res?.error == null }
+        ) else if (isMulti) aggregateOverall(App.multiRows,
             buildCombinedEquity(App.multiRows, r.initialCapital).maxDDPct) else null
         val hNet = agg?.netProfit ?: r.netProfit
         val hAsset = if (agg != null) mixedQuoteOf(App.multiRows.map { it.sym }) else r.asset
@@ -1312,7 +1383,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         // V30: nama lengkap Indonesia + singkatan; kategori pnl (untung/rugi/
         // impas); "—" bila tak terdefinisi. Definisi di panel Validasi Data.
         val kvAsset = hAsset
-        val kvTrades = if (isMulti) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
+        val kvTrades = if (pf != null) pf.trades.sortedBy { it.exitTime }
+            else if (isMulti) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
         val kvGP = kvTrades.filter { it.pnl > 0 }.sumOf { it.pnl }
         val kvGL = -abs(kvTrades.filter { it.pnl < 0 }.sumOf { it.pnl })
         val kvFees = kvTrades.sumOf { it.fees }
@@ -1352,11 +1424,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 if (agg != null) "— (per-pair)" else "${r.longestWinStreak} / ${r.longestLossStreak}",
             "Rata-Rata Durasi (Avg Holding)" to
                 if (hNoTr) "—" else App.fmt(if (agg != null) kvTrades.sumOf { it.holding }.toDouble() / hN else r.avgHolding, 1) + " bar",
-            "Tersaring filter" to (if (agg != null) App.multiRows.sumOf { it.res?.diag?.filteredOut ?: 0 } else r.filtered).toString(),
+            "Tersaring filter" to (if (pf != null) "${pf.diag.filteredOut} · ditolak batas ${pf.diag.rejectedByLimit} (maks ${pf.diag.maxOpenObserved}/${pf.diag.maxOpenTrades})"
+                else if (agg != null) App.multiRows.sumOf { it.res?.diag?.filteredOut ?: 0 }.toString() else r.filtered.toString()),
             "Exposure" to if (agg != null) "— (per-pair)" else App.fmt(r.exposure, 1) + "%"
         ))
         paintPairs(App.multiRows)
-        tradeRows = if (App.multiRows.isNotEmpty()) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
+        // Tahap 4: daftar trade = portofolio bila ada (cap global), else fallback.
+        tradeRows = if (pf != null) pf.trades.sortedBy { it.exitTime }
+            else if (App.multiRows.isNotEmpty()) App.multiRows.filter { it.res?.error == null }.flatMap { it.res!!.trades }.sortedBy { it.exitTime } else r.trades
         tradePage = 0
         paintTrades()
         paintTech(r)
@@ -1494,15 +1569,22 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val agg = aggregateOverall(rows, buildCombinedEquity(rows, App.params?.initialCapital ?: 1000.0).maxDDPct)
         val okN = rows.count { it.res?.error == null }
         val items = ArrayList<SigItem>()
-        items.add(SigItem("Σ", "Overall — $okN of ${rows.size}",
-            "Net ${mQ(agg.netProfit, mixedQuoteOf(rows.map { it.sym }))} · PF ${App.fmtD(agg.profitFactor)} · DD ${App.fmt(agg.maxDD)}%", agg.totalTrades.toString()))
+        // Tahap 4: baris Σ memakai portofolio (cap global) bila ada; baris
+        // per-pair = standalone (cap per-pair) — dilabel eksplisit.
+        val pf = App.portfolio?.takeIf { it.error == null }
+        val sumLine = if (pf != null)
+            "Net ${mQ(pf.netProfit, mixedQuoteOf(rows.map { it.sym }))} · PF ${App.fmtD(pf.profitFactor)} · DD ${App.fmt(pf.maxDrawdownPercent)}% · maks ${pf.diag.maxOpenObserved}/${pf.diag.maxOpenTrades} pos · ${pf.diag.rejectedByLimit} ditolak"
+        else "Net ${mQ(agg.netProfit, mixedQuoteOf(rows.map { it.sym }))} · PF ${App.fmtD(agg.profitFactor)} · DD ${App.fmt(agg.maxDD)}%"
+        val sumTrades = (pf?.totalTrades ?: agg.totalTrades).toString()
+        items.add(SigItem("Σ", "Overall — $okN of ${rows.size}" + if (pf != null) " (portofolio, batas global)" else " (standalone)",
+            sumLine, sumTrades))
         rows.forEachIndexed { i, row ->
             val st = pairStatusOf(row)
             items.add(SigItem(
                 if (st == "SUCCESS") "✓" else if (st == "NO TRADES") "○" else "✕",
                 "${row.sym}  $st",
                 if (row.res?.error == null && row.err == null)
-                    "Net ${mQ(row.res!!.netProfit, row.sym)} · ${if (row.res.totalTrades > 0) App.fmt(row.res.winRate, 1) + "%" else "NO TRADES"} · ${row.res.totalTrades} tr — klik"
+                    "Net ${mQ(row.res!!.netProfit, row.sym)} · ${if (row.res.totalTrades > 0) App.fmt(row.res.winRate, 1) + "%" else "NO TRADES"} · ${row.res.totalTrades} tr (mandiri, batas per-pair) — klik"
                 else (row.err ?: row.res?.error ?: "").take(60),
                 "", row.sym))
         }

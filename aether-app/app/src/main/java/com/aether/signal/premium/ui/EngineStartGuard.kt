@@ -6,6 +6,8 @@ import com.aether.signal.premium.engine.BacktestParams
 import com.aether.signal.premium.engine.Combo
 import com.aether.signal.premium.engine.FILTER_DEFS
 import com.aether.signal.premium.engine.FilterCfg
+import com.aether.signal.premium.engine.MAX_OPEN_TRADES_MAX
+import com.aether.signal.premium.engine.MAX_OPEN_TRADES_MIN
 import com.aether.signal.premium.engine.STRATEGIES
 import com.aether.signal.premium.engine.configFingerprint
 import com.aether.signal.premium.engine.sanitizeParams
@@ -40,6 +42,8 @@ data class EngineGlobalsData(
     val feePct: Double = 0.05,
     val slipPct: Double = 0.02,
     val maxHolding: Int = 100,
+    // Tahap 4: batas posisi (cermin V41, default 1, session-only).
+    val maxOpenTrades: Int = 1,
     val slPct: Double = 1.0,
     val tpPct: Double = 2.0,
     val tp2Pct: Double = 2.5,
@@ -108,6 +112,7 @@ fun buildParamsFrom(g: EngineGlobalsData, asset: String): BacktestParams {
         slPercent = g.slPct / 100, tpPercent = g.tpPct / 100, maxHolding = g.maxHolding,
         tpMode = g.tpMode, tp2Mult = m2, tp3Mult = m3,
         trailOn = g.btTrailOn, trailDistPct = g.btTrailDistPct / 100, trailActPct = g.btTrailActPct / 100,
+        maxOpenTrades = g.maxOpenTrades,
         strategy = g.strategy, combo = combo, filters = activeFilterCfgsFrom(g),
         startDate = g.fromDate, endDate = g.toDate, useAtr = g.useAtr
     )
@@ -167,6 +172,8 @@ fun diffParams(a: BacktestParams, b: BacktestParams): List<DriftItem> {
     num("stop loss", a.slPercent, b.slPercent)
     num("take profit", a.tpPercent, b.tpPercent)
     if (a.maxHolding != b.maxHolding) out.add(DriftItem("max holding", a.maxHolding.toString(), b.maxHolding.toString()))
+    // Tahap 4: batas posisi bagian sidik efektif.
+    if (a.maxOpenTrades != b.maxOpenTrades) out.add(DriftItem("posisi maks", a.maxOpenTrades.toString(), b.maxOpenTrades.toString()))
     if (a.tpMode != b.tpMode) out.add(DriftItem("mode TP", a.tpMode.toString(), b.tpMode.toString()))
     num("TP2 mult", a.tp2Mult, b.tp2Mult)
     num("TP3 mult", a.tp3Mult, b.tp3Mult)
@@ -240,6 +247,10 @@ fun checkRanges(p: BacktestParams): List<String> {
     rng("stop loss", p.slPercent, 0.0005, 0.5)
     rng("take profit", p.tpPercent, 0.0005, 1.0)
     if (p.maxHolding < 1 || p.maxHolding > 2000) bad.add("maxHolding=${p.maxHolding} di luar [1, 2000]")
+    // Tahap 4: batas posisi 1..10 (cermin sanitizeMaxOpenTrades; bukan clamp diam-diam).
+    if (p.maxOpenTrades < MAX_OPEN_TRADES_MIN || p.maxOpenTrades > MAX_OPEN_TRADES_MAX) {
+        bad.add("posisi maks=${p.maxOpenTrades} di luar [$MAX_OPEN_TRADES_MIN, $MAX_OPEN_TRADES_MAX]")
+    }
     rng("ATR SL mult", p.atrSlMult, 0.2, 10.0)
     rng("ATR TP mult", p.atrTpMult, 0.2, 20.0)
     if (p.tpMode < 1 || p.tpMode > 3) bad.add("tpMode=${p.tpMode} di luar [1, 3]")

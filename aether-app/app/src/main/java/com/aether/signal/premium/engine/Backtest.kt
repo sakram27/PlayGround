@@ -20,6 +20,8 @@ fun sanitizeParams(raw: BacktestParams): BacktestParams {
     val aTp = clampD(p.atrTpMult, 0.2, 20.0)
     val trDist = if (p.trailDistPct.isFinite()) p.trailDistPct.coerceIn(0.0005, 0.5) else 0.01
     val trAct = if (p.trailActPct.isFinite()) p.trailActPct.coerceIn(0.0005, 0.5) else 0.01
+    // Tahap 4: batas posisi disanitasi eksplisit (rekonstruksi V41).
+    val mo = sanitizeMaxOpenTrades(p.maxOpenTrades)
     // V26: skema TP bertingkat (default = Single TP, perilaku lama utuh).
     val tpm = p.tpMode.coerceIn(1, 3)
     val m2 = clampD(p.tp2Mult, 1.0, 10.0)
@@ -38,7 +40,7 @@ fun sanitizeParams(raw: BacktestParams): BacktestParams {
         asset = asset, riskPerTrade = risk, leverage = lev, feePercent = fee,
         slippagePercent = slip, slPercent = sl, tpPercent = tp, maxHolding = mh,
         atrSlMult = aSl, atrTpMult = aTp, tpMode = tpm, tp2Mult = m2, tp3Mult = m3,
-        trailDistPct = trDist, trailActPct = trAct,
+        trailDistPct = trDist, trailActPct = trAct, maxOpenTrades = mo,
         filters = filters
     )
 }
@@ -109,13 +111,6 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams,
     val candles = prefix + inRange
     val cache = buildCache(candles)
     try { onStage?.invoke(EngineStage.IndicatorsDone) } catch (e: Exception) { /* abaikan */ }
-    val trades = ArrayList<Trade>()
-    val equityCurve = ArrayList<EquityPoint>()
-    var equity = params.initialCapital
-    var peak = equity
-    var maxDD = 0.0
-    equityCurve.add(EquityPoint(candles[0].t, equity))
-
     val startIdx = maxOf(prefix.size + WARMUP, 2)
     // Batas tepat-60: butuh ≥1 bar untuk evaluasi setelah pemanasan.
     if (startIdx > candles.size - 2) {
@@ -123,16 +118,250 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams,
         return errorResult(params, "Data tidak cukup untuk evaluasi setelah pemanasan " +
             "(rentang ${inRange.size} candle). Perlebar rentang tanggal.", diag)
     }
-    diag = diag.copy(startIdx = startIdx, evalFrom = candles[startIdx].t, evalTo = candles[candles.size - 2].t)
+    // Tahap 4: inti posisi-bersamaan (rekonstruksi V41, bukan klaim identik).
+    // - cap = coerceIn(maxOpenTrades,1,10) dari parameter sanitasi.
+    // - Tiap bar: exit-kan posisi jatuh tempo (urut seq), lalu — bila tak ada
+    //   penutupan bar ini (closedHere) — evaluasi entry baru. Entry di open
+    //   bar berikut (tanpa look-ahead), SL/TP/fee/slippage/risk/maxHolding
+    //   sama seperti simulasi sekuensial lama. Dengan cap=1 urutan buka-tutup
+    //   identik dengan perilaku lama.
+    val cap = params.maxOpenTrades.coerceIn(MAX_OPEN_TRADES_MIN, MAX_OPEN_TRADES_MAX)
+    val asset = LoopAsset(params.asset, candles, cache, startIdx)
+    return runLoopMulti(
+        assets = listOf(asset), params = params, cap = cap,
+        totalSlots = (candles.size - 1) - startIdx,
+        isCancelled = isCancelled, onStage = onStage, diag = diag,
+        startT = candles[startIdx].t, endT = candles[candles.size - 2].t,
+        diagStartIdx = startIdx
+    ).first
+}
+
+// ---------- Tahap 4: primitif posisi (dipakai single + portofolio) ----------
+
+/** Posisi terbuka satu kaki-grup (rekonstruksi V41 OpenPos — ditandai). */
+class OpenPos(
+    val seq: Int,
+    val dir: String,
+    val entry: Double,
+    val entryIdx: Int,
+    val entryT: Long,
+    val assetTag: String,
+    val qtyOrig: Double,
+    var remaining: Double,
+    var leg: Int,
+    val targets: List<Double>,
+    val fracs: List<Double>,
+    val lv: RiskLevels,
+    val riskAmount: Double,
+    val dec: SignalDecision,
+    val tst: TrailSim,
+    val lastJ: Int
+)
+
+/** Satu kaki keluar (hasil satu bar exit). */
+data class Leg(val kind: String, val exit: Double, val exitIdx: Int, val qtyClosed: Double, val target: Double)
+
+/** Ekuitas bersama (portofolio memakai satu untuk semua pair). */
+class EqState(var equity: Double, var peak: Double, var maxDD: Double)
+
+class OpenCounters(var noLevel: Int = 0, var badEntry: Int = 0, var badQty: Int = 0)
+
+/**
+ * Coba buka posisi dari sinyal bar [sigIdx] (entry di open bar berikut).
+ * Mengembalikan OpenPos bila valid, else null (counter dicatat).
+ * Aturan identik simulasi lama: sizing risiko dari ekuitas SAAT ini.
+ */
+fun tryOpenPosition(
+    candles: List<Candle>, sigIdx: Int, params: BacktestParams, cache: Cache,
+    equityNow: Double, dec: SignalDecision, seq: Int, assetTag: String,
+    cnt: OpenCounters
+): OpenPos? {
+    val next = candles[sigIdx + 1]
+    var entry = next.o
+    entry = if (dec.direction == "LONG") entry * (1 + params.slippagePercent) else entry * (1 - params.slippagePercent)
+    if (!entry.isFinite() || entry <= 0) { cnt.badEntry++; return null }
+    val lv = calcRiskLevels(entry, dec.direction, cache, sigIdx, params)
+    if (lv == null) { cnt.noLevel++; return null }
+    val riskAmount = equityNow * params.riskPerTrade
+    var qty = riskAmount / lv.riskDist
+    val maxNotional = equityNow * params.leverage
+    val notional = qty * entry
+    if (!qty.isFinite() || qty <= 0) { cnt.badQty++; return null }
+    if (notional > maxNotional) qty = maxNotional / entry
+    if (!(qty > 0) || !qty.isFinite()) { cnt.badQty++; return null }
+    // V26: evaluasi target keluar bertingkat (sama seperti mesin lama).
+    val tpDist = abs(lv.tp - entry)
+    val targets = tpTargets(entry, dec.direction, tpDist, params.tpMode, params.tp2Mult, params.tp3Mult)
+    if (targets.isEmpty()) { cnt.noLevel++; return null }
+    val fracs = tpFractions(params.tpMode)
+    val lastJ = minOf(candles.size - 1, sigIdx + params.maxHolding)
+    return OpenPos(
+        seq, dec.direction, entry, sigIdx + 1, next.t, assetTag,
+        qty, qty, 0, targets, fracs, lv, riskAmount, dec, TrailSim(), lastJ
+    )
+}
+
+/**
+ * Satu langkah exit posisi pada bar [idx] (maksimal satu kaki per bar).
+ * Prioritas konservatif: harga keluar TERBURUK bagi posisi; seri →
+ * SL > TRAIL > TP. Tanpa hit dan idx >= lastJ → EXPIRED. Null = bertahan.
+ * Port 1:1 aturan bar mesin lama (dipindah dari loop exit inline).
+ */
+fun exitStepPosition(params: BacktestParams, candles: List<Candle>, op: OpenPos, b: Candle, idx: Int): Leg? {
+    val slHit: Boolean
+    val tpHit: Boolean
+    if (op.dir == "LONG") {
+        slHit = b.l <= op.lv.sl
+        tpHit = op.leg < op.targets.size && b.h >= op.targets[op.leg]
+    } else {
+        slHit = b.h >= op.lv.sl
+        tpHit = op.leg < op.targets.size && b.l <= op.targets[op.leg]
+    }
+    // V31: kandidat trailing (hanya bila trailOn).
+    var trailHit = false
+    var trailStopPx = Double.NaN
+    if (params.trailOn) {
+        val hit = trailExitPrice(op.dir, op.entry, b.h, b.l, params.trailActPct, params.trailDistPct, op.tst)
+        if (hit != null && hit.isFinite() && hit > 0) {
+            trailHit = true
+            trailStopPx = hit
+        }
+    }
+    fun trailEx(): Double = if (op.dir == "LONG") trailStopPx * (1 - params.slippagePercent)
+    else trailStopPx * (1 + params.slippagePercent)
+    if (slHit || tpHit || trailHit) {
+        data class Cand(val px: Double, val kind: String)
+        val cands = ArrayList<Cand>()
+        if (slHit) cands.add(Cand(
+            if (op.dir == "LONG") op.lv.sl * (1 - params.slippagePercent) else op.lv.sl * (1 + params.slippagePercent), "SL"))
+        if (tpHit) cands.add(Cand(
+            if (op.dir == "LONG") op.targets[op.leg] * (1 - params.slippagePercent) else op.targets[op.leg] * (1 + params.slippagePercent), "TP${op.leg + 1}"))
+        if (trailHit) cands.add(Cand(trailEx(), "TRAIL"))
+        val rank = mapOf("SL" to 0, "TRAIL" to 1)
+        val win = if (op.dir == "LONG") cands.minWithOrNull(compareBy({ it.px }, { rank[it.kind] ?: 2 }))
+        else cands.maxWithOrNull(compareBy({ it.px }, { -(rank[it.kind] ?: 2) }))
+        if (win != null && (win.kind == "SL" || win.kind == "TRAIL")) {
+            return Leg(win.kind, win.px, idx, op.remaining, op.lv.tp)
+        }
+        if (win != null) {
+            val isLast = op.leg >= op.targets.size - 1
+            val qClose = if (isLast) op.remaining else op.qtyOrig * op.fracs.getOrElse(op.leg) { 1.0 }
+            return Leg("TP${op.leg + 1}", win.px, idx, qClose, op.targets[op.leg])
+        }
+    } else if (params.trailOn) {
+        // Bar tanpa exit → ratchet (extreme hanya dari bar ini/masa lalu).
+        trailRatchet(op.dir, b.h, b.l, params.trailDistPct, op.tst)
+    }
+    if (idx >= op.lastJ) {
+        val ex = if (op.dir == "LONG") b.c * (1 - params.slippagePercent) else b.c * (1 + params.slippagePercent)
+        return Leg("EXPIRED", ex, idx, op.remaining, op.lv.tp)
+    }
+    return null
+}
+
+/**
+ * Materialisasi satu kaki ke ledger (satu Trade per kaki). False = data tak valid → posisi gugur total tanpa menyentuh ekuitas/kurva
+ * (cermin badPnl lama). Format uid identik mesin lama:
+ * "aset|arah|entryT|exitT|legK" (K = indeks kaki posisi itu).
+ */
+fun applyLegPosition(
+    params: BacktestParams, candles: List<Candle>, st: EqState,
+    equityCurve: ArrayList<EquityPoint>, trades: ArrayList<Trade>,
+    op: OpenPos, lf: Leg
+): Boolean {
+    val result = when (lf.kind) {
+        "SL" -> "LOSS"
+        "EXPIRED" -> "EXPIRED"
+        "TRAIL" -> "TRAIL"
+        else -> "WIN"
+    }
+    val gross = (if (op.dir == "LONG") lf.exit - op.entry else op.entry - lf.exit) * lf.qtyClosed
+    val fees = (op.entry * lf.qtyClosed + lf.exit * lf.qtyClosed) * params.feePercent
+    val pnl = gross - fees
+    if (!pnl.isFinite() || !lf.qtyClosed.isFinite() || lf.qtyClosed <= 0) return false
+    val legRisk = if (op.qtyOrig > 0) op.riskAmount * (lf.qtyClosed / op.qtyOrig) else 0.0
+    val rMult = if (legRisk > 0) pnl / legRisk else 0.0
+    if (!rMult.isFinite() && pnl != 0.0) return false
+    val probe = st.equity + pnl
+    if (!probe.isFinite()) return false
+    st.equity = probe
+    st.peak = maxOf(st.peak, st.equity)
+    val dd = if (st.peak > 0) (st.peak - st.equity) / st.peak else 0.0
+    if (dd > st.maxDD) st.maxDD = dd
+    equityCurve.add(EquityPoint(candles[lf.exitIdx].t, st.equity))
+    trades.add(Trade(
+        direction = op.dir, asset = op.assetTag, timeframe = params.timeframe,
+        entry = op.entry, exit = lf.exit, stopLoss = op.lv.sl, takeProfit = lf.target,
+        entryTime = op.entryT, exitTime = candles[lf.exitIdx].t,
+        strategy = op.dec.strategy, confidence = op.dec.confidence,
+        reasons = op.dec.reasons + "leg ${lf.kind}",
+        qty = lf.qtyClosed, riskAmount = legRisk, fees = fees, pnl = pnl,
+        pnlPercent = if (op.entry > 0) ((if (op.dir == "LONG") lf.exit - op.entry else op.entry - lf.exit) / op.entry) * 100 * params.leverage else 0.0,
+        rMultiple = rMult, result = result, holding = lf.exitIdx - op.entryIdx + 1,
+        uid = "${op.assetTag}|${op.dir}|${op.entryT}|${candles[lf.exitIdx].t}|leg${op.leg}"
+    ))
+    return true
+}
+
+// ---------- Loop mesin bersama (single-pair memakai ini dengan 1 aset) ----------
+
+/** Konteks satu aset dalam loop (single = satu; portofolio = banyak). */
+class LoopAsset(
+    val sym: String,
+    val candles: List<Candle>,
+    val cache: Cache,
+    val startIdx: Int,
+    val fctx: FilterCtx = FilterCtx(lastExit = -1000000000)
+)
+
+/**
+ * Loop evaluasi+exit generik. Mengembalikan (hasil, linkedDiag).
+ * [slotTotal] = jumlah slot evaluasi (untuk skippedInPosition).
+ * Aturan closedHere: bar tempat penutupan terjadi melewatkan entry baru
+ * (rekonstruksi V41 — didokumentasikan, diuji eksplisit).
+ */
+/**
+ * Loop multi-aset generik (portofolio global). Timeline digabung per
+ * timestamp (urut), aset diproses deterministik sesuai urutan input.
+ * Ekuitas + cap + counter BERSAMA seluruh aset.
+ */
+fun runLoopMulti(
+    assets: List<LoopAsset>,
+    params: BacktestParams,
+    cap: Int,
+    totalSlots: Int,
+    isCancelled: () -> Boolean,
+    onStage: ((EngineStage) -> Unit)?,
+    diag: BacktestDiag,
+    startT: Long,
+    endT: Long,
+    diagStartIdx: Int = 0
+): Pair<BacktestResult, BacktestDiag> {
+    var d = diag
     val activeFilters = params.filters.filter { it.enabled }
-    val fctx = FilterCtx(lastExit = -1000000000)
+    val trades = ArrayList<Trade>()
+    val equityCurve = ArrayList<EquityPoint>()
+    val st = EqState(params.initialCapital, params.initialCapital, 0.0)
+    val firstT = assets.minOfOrNull { it.candles.firstOrNull()?.t ?: Long.MAX_VALUE } ?: 0L
+    if (firstT > 0 && firstT != Long.MAX_VALUE) equityCurve.add(EquityPoint(firstT, st.equity))
+    val opens = ArrayList<OpenPos>()
+    var seq = 0
+    var maxOpenObs = 0
+    var rejectedLimit = 0
+    var evaluated = 0
+    var sigRaw = 0
     var filtered = 0
     val passed = HashMap<String, Int>()
-    var evaluated = 0; var sigRaw = 0
-    var noLevel = 0; var badEntry = 0; var badQty = 0; var badPnl = 0
+    val cnt = OpenCounters()
+    var badPnl = 0
     val reasons = HashMap<String, Int>()
-    var i = startIdx
-    val totalSlots = (candles.size - 1) - startIdx
+    // Timeline gabungan: timestamp → daftar (aset, indeksBar), deterministik.
+    val timeline = java.util.TreeMap<Long, ArrayList<Pair<LoopAsset, Int>>>()
+    for (a in assets) {
+        for ((k, c) in a.candles.withIndex()) {
+            timeline.getOrPut(c.t) { ArrayList() }.add(a to k)
+        }
+    }
     val emitStep = maxOf(1, totalSlots / 20)
     var lastTradesEmitted = -1
     fun emitEval(force: Boolean = false) {
@@ -143,197 +372,181 @@ fun runBacktest(rawCandles: List<Any?>, rawParams: BacktestParams,
             cb(EngineStage.Evaluating(evaluated, totalSlots, sigRaw, filtered, trades.size))
         } catch (e: Exception) { /* monitor tak boleh matikan mesin */ }
     }
-    while (i < candles.size - 1) {
-        // V30: titik pemeriksaan batal — tiap bar evaluasi.
+    var evalTo = endT
+    for ((t, jobs) in timeline) {
         if (isCancelled()) {
-            diag = diag.copy(evaluatedBars = evaluated, signalsRaw = sigRaw, filteredOut = filtered,
+            d = d.copy(evaluatedBars = evaluated, signalsRaw = sigRaw, filteredOut = filtered,
+                maxOpenTrades = cap, maxOpenObserved = maxOpenObs, rejectedByLimit = rejectedLimit,
+                skippedNoLevel = cnt.noLevel, skippedBadEntry = cnt.badEntry,
+                skippedBadQty = cnt.badQty, skippedBadPnl = badPnl,
+                filterReasons = reasons, filterPassed = passed,
                 runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
-            return errorResult(params, "Dibatalkan oleh pengguna pada bar ${evaluated}/${totalSlots} " +
-                "(${trades.size} kaki tercatat sebelum batal — bukan hasil lengkap).", diag)
+            return errorResult(params, "Dibatalkan oleh pengguna pada bar $evaluated/$totalSlots " +
+                "(${trades.size} kaki tercatat sebelum batal — bukan hasil lengkap).", d) to d
         }
-        evaluated++
-        emitEval()
-        val dec = decideAt(candles, i, cache, params)
-        if (!dec.passed) { i++; continue }
-        sigRaw++
-        if (activeFilters.isNotEmpty()) {
-            val fr = applyFilters(candles, i, cache, dec.direction, activeFilters, fctx)
-            if (fr.passed) for (f in activeFilters) passed[f.name] = (passed[f.name] ?: 0) + 1
-            fctx.lastSigDir = dec.direction; fctx.lastSigIdx = i
-            if (!fr.passed) {
-                filtered++
-                for (w in fr.failed) { val k = w.take(60); reasons[k] = (reasons[k] ?: 0) + 1 }
-                i++; continue
-            }
-        }
-        val next = candles[i + 1]
-        var entry = next.o
-        entry = if (dec.direction == "LONG") entry * (1 + params.slippagePercent) else entry * (1 - params.slippagePercent)
-        if (!entry.isFinite() || entry <= 0) { badEntry++; i++; continue }
-        val lv = calcRiskLevels(entry, dec.direction, cache, i, params)
-        if (lv == null) { noLevel++; i++; continue }
-        val riskAmount = equity * params.riskPerTrade
-        var qty = riskAmount / lv.riskDist
-        val maxNotional = equity * params.leverage
-        val notional = qty * entry
-        if (!qty.isFinite() || qty <= 0) { badQty++; i++; continue }
-        if (notional > maxNotional) qty = maxNotional / entry
-        if (!(qty > 0) || !qty.isFinite()) { badQty++; i++; continue }
-
-        // V26: evaluasi target keluar bertingkat. SL selalu didahulukan bila satu
-        // candle menyentuh SL+TP (konservatif, seperti perilaku lama). TP diisi
-        // berurutan TP1→TP2→TP3; kaki terakhir menutup seluruh sisa posisi.
-        val tpDist = abs(lv.tp - entry)
-        val targets = tpTargets(entry, dec.direction, tpDist, params.tpMode, params.tp2Mult, params.tp3Mult)
-        if (targets.isEmpty()) { noLevel++; i++; continue }
-        val fracs = tpFractions(params.tpMode)
-        val qtyOrig = qty
-        var remaining = qty
-        var leg = 0
-        data class Leg(val kind: String, val exit: Double, val exitIdx: Int, val qtyClosed: Double, val target: Double)
-        val legs = ArrayList<Leg>()
-        // V31: state trailing per posisi (mati total bila trailOn=false).
-        val tst = TrailSim()
-        val actFrac = params.trailActPct
-        val distFrac = params.trailDistPct
-        val lastJ = minOf(candles.size - 1, i + params.maxHolding)
-        var j = i + 1
-        while (j <= lastJ && remaining / qtyOrig > 1e-9) {
-            // V30: pencarian exit bisa ratusan bar (maxHolding ≤ 2000) — periksa
-            // batal di sini juga agar responsif, bukan hanya antar-sinyal.
-            if (isCancelled()) {
-                diag = diag.copy(evaluatedBars = evaluated, signalsRaw = sigRaw, filteredOut = filtered,
-                    runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
-                return errorResult(params, "Dibatalkan oleh pengguna pada bar ${evaluated}/${totalSlots} " +
-                    "(${trades.size} kaki tercatat sebelum batal — bukan hasil lengkap).", diag)
-            }
-            val b = candles[j]
-            val slHit: Boolean
-            val tpHit: Boolean
-            if (dec.direction == "LONG") {
-                slHit = b.l <= lv.sl
-                tpHit = leg < targets.size && b.h >= targets[leg]
-            } else {
-                slHit = b.h >= lv.sl
-                tpHit = leg < targets.size && b.l <= targets[leg]
-            }
-            // V31: kandidat trailing (hanya bila trailOn; tak ada = null).
-            // Cek sentuh memakai stop BAR SEBELUMNYA (tanpa look-ahead).
-            var trailHit = false
-            var trailStopPx = Double.NaN
-            if (params.trailOn) {
-                val hit = trailExitPrice(dec.direction, entry, b.h, b.l, actFrac, distFrac, tst)
-                if (hit != null && hit.isFinite() && hit > 0) {
-                    trailHit = true
-                    trailStopPx = hit
+        for ((a, k) in jobs) {
+            val b = a.candles[k]
+            // 1) Exit posisi jatuh tempo aset ini (urut seq).
+            var closedHere = false
+            val due = opens.filter { it.assetTag == a.sym && it.entryIdx <= k }.sortedBy { it.seq }
+            for (op in due) {
+                val lf = exitStepPosition(params, a.candles, op, b, k) ?: continue
+                if (applyLegPosition(params, a.candles, st, equityCurve, trades, op, lf)) {
+                    op.remaining -= lf.qtyClosed
+                    if (lf.kind.startsWith("TP")) op.leg++
+                    if (op.remaining / op.qtyOrig <= 1e-9 || lf.kind == "SL" || lf.kind == "TRAIL" || lf.kind == "EXPIRED") {
+                        opens.remove(op)
+                        a.fctx.lastExit = k
+                        closedHere = true
+                    }
+                } else {
+                    badPnl++
+                    opens.remove(op)
+                    a.fctx.lastExit = k
+                    closedHere = true
                 }
             }
-            // V31: prioritas konservatif — harga keluar TERBURUK bagi posisi
-            // (LONG terendah, SHORT tertinggi); seri → SL > TRAIL > TP.
-            // Tanpa trailing: SL selalu < TP (LONG) sehingga perilaku identik
-            // dengan aturan lama "SL didahulukan".
-            fun trailEx(): Double = if (dec.direction == "LONG") trailStopPx * (1 - params.slippagePercent)
-                else trailStopPx * (1 + params.slippagePercent)
-            if (slHit || tpHit || trailHit) {
-                data class Cand(val px: Double, val kind: String)
-                val cands = ArrayList<Cand>()
-                if (slHit) cands.add(Cand(
-                    if (dec.direction == "LONG") lv.sl * (1 - params.slippagePercent) else lv.sl * (1 + params.slippagePercent), "SL"))
-                if (tpHit) cands.add(Cand(
-                    if (dec.direction == "LONG") targets[leg] * (1 - params.slippagePercent) else targets[leg] * (1 + params.slippagePercent), "TP${leg + 1}"))
-                if (trailHit) cands.add(Cand(trailEx(), "TRAIL"))
-                val rank = mapOf("SL" to 0, "TRAIL" to 1)
-                val win = if (dec.direction == "LONG") cands.minWithOrNull(compareBy({ it.px }, { rank[it.kind] ?: 2 }))
-                    else cands.maxWithOrNull(compareBy({ it.px }, { -(rank[it.kind] ?: 2) }))
-                if (win != null && (win.kind == "SL" || win.kind == "TRAIL")) {
-                    // target = TP rencana (bukan stop) agar Average Planned RR
-                    // tetap mengukur rencana, bukan eksekusi.
-                    legs.add(Leg(win.kind, win.px, j, remaining, lv.tp))
-                    remaining = 0.0; break
+            // 2) Entry baru: bukan bar penutupan + ada bar berikut untuk entry.
+            if (!closedHere && k >= a.startIdx && k < a.candles.size - 1) {
+                evaluated++
+                emitEval()
+                evalTo = t
+                val dec = decideAt(a.candles, k, a.cache, params)
+                if (!dec.passed) continue
+                if (opens.size >= cap) {
+                    // Penuh: probe filter pada ctx SALINAN. Lolos = permintaan
+                    // sah yang ditolak batas → rejectedByLimit (tak masuk signalsRaw).
+                    val probeOk = if (activeFilters.isEmpty()) true
+                    else applyFilters(a.candles, k, a.cache, dec.direction, activeFilters, a.fctx.copy()).passed
+                    if (probeOk) rejectedLimit++
+                } else {
+                    sigRaw++
+                    var ok = true
+                    if (activeFilters.isNotEmpty()) {
+                        val fr = applyFilters(a.candles, k, a.cache, dec.direction, activeFilters, a.fctx)
+                        if (fr.passed) for (f in activeFilters) passed[f.name] = (passed[f.name] ?: 0) + 1
+                        a.fctx.lastSigDir = dec.direction; a.fctx.lastSigIdx = k
+                        if (!fr.passed) {
+                            filtered++
+                            for (w in fr.failed) {
+                                val key = w.take(60); reasons[key] = (reasons[key] ?: 0) + 1
+                            }
+                            ok = false
+                        }
+                    }
+                    if (ok) {
+                        val op = tryOpenPosition(a.candles, k, params, a.cache, st.equity, dec, seq, a.sym, cnt)
+                        if (op != null) {
+                            opens.add(op); seq++
+                            if (opens.size > maxOpenObs) maxOpenObs = opens.size
+                        }
+                    }
                 }
-                if (win != null) {
-                    // Pemenang = kaki TP (parsial); trailing tetap hidup untuk sisa.
-                    val isLast = leg >= targets.size - 1
-                    val qClose = if (isLast) remaining else qtyOrig * fracs.getOrElse(leg) { 1.0 }
-                    legs.add(Leg("TP${leg + 1}", win.px, j, qClose, targets[leg])); remaining -= qClose; leg++
-                }
-            } else if (params.trailOn) {
-                // Bar tanpa exit → ratchet (extreme hanya dari bar ini/masa lalu).
-                trailRatchet(dec.direction, b.h, b.l, distFrac, tst)
-            }
-            j++
-        }
-        if (remaining / qtyOrig > 1e-9) {
-            val b = candles[lastJ]
-            val ex = if (dec.direction == "LONG") b.c * (1 - params.slippagePercent) else b.c * (1 + params.slippagePercent)
-            legs.add(Leg("EXPIRED", ex, lastJ, remaining, lv.tp)); remaining = 0.0
-        }
-        // Materialisasi kaki menjadi catatan ledger (satu Trade per kaki).
-        // Fase 1 (murni): hitung semua kaki dulu. Gagal di sini = posisi gugur
-        // total tanpa menyentuh ekuitas/kurva/ledger (cermin badPnl lama).
-        data class LegCalc(val leg: Leg, val result: String, val gross: Double, val fees: Double, val pnl: Double, val legRisk: Double, val rMult: Double)
-        val calcs = ArrayList<LegCalc>()
-        var badLeg = false
-        for (lf in legs) {
-            val result = when (lf.kind) {
-                "SL" -> "LOSS"
-                "EXPIRED" -> "EXPIRED"
-                "TRAIL" -> "TRAIL"
-                else -> "WIN"
-            }
-            val gross = (if (dec.direction == "LONG") lf.exit - entry else entry - lf.exit) * lf.qtyClosed
-            val fees = (entry * lf.qtyClosed + lf.exit * lf.qtyClosed) * params.feePercent
-            val pnl = gross - fees
-            if (!pnl.isFinite() || !lf.qtyClosed.isFinite() || lf.qtyClosed <= 0) { badLeg = true; break }
-            val legRisk = if (qtyOrig > 0) riskAmount * (lf.qtyClosed / qtyOrig) else 0.0
-            val rMult = if (legRisk > 0) pnl / legRisk else 0.0
-            if (!rMult.isFinite() && pnl != 0.0) { badLeg = true; break }
-            calcs.add(LegCalc(lf, result, gross, fees, pnl, legRisk, rMult))
-        }
-        // Uji tuntas: ekuitas hasil pun harus finite (cermin penjaga lama).
-        if (!badLeg) {
-            var probe = equity
-            for (c in calcs) {
-                probe += c.pnl
-                if (!probe.isFinite()) { badLeg = true; break }
             }
         }
-        if (badLeg || calcs.isEmpty()) { badPnl++; i++; continue }
-        // Fase 2: tulis ledger + kurva + ekuitas berurutan.
-        var lastExitIdx = i + 1
-        for ((k, c) in calcs.withIndex()) {
-            val lf = c.leg
-            equity += c.pnl
-            peak = maxOf(peak, equity)
-            val dd = if (peak > 0) (peak - equity) / peak else 0.0
-            if (dd > maxDD) maxDD = dd
-            equityCurve.add(EquityPoint(candles[lf.exitIdx].t, equity))
-            trades.add(Trade(
-                direction = dec.direction, asset = params.asset, timeframe = params.timeframe,
-                entry = entry, exit = lf.exit, stopLoss = lv.sl, takeProfit = lf.target,
-                entryTime = next.t, exitTime = candles[lf.exitIdx].t,
-                strategy = dec.strategy, confidence = dec.confidence, reasons = dec.reasons + "leg ${lf.kind}",
-                qty = lf.qtyClosed, riskAmount = c.legRisk, fees = c.fees, pnl = c.pnl,
-                pnlPercent = if (entry > 0) ((if (dec.direction == "LONG") lf.exit - entry else entry - lf.exit) / entry) * 100 * params.leverage else 0.0,
-                rMultiple = c.rMult, result = c.result, holding = lf.exitIdx - (i + 1) + 1,
-                uid = "${params.asset}|${dec.direction}|${next.t}|${candles[lf.exitIdx].t}|leg$k"
-            ))
-            lastExitIdx = lf.exitIdx
-        }
-        i = lastExitIdx + 1 // cermin JS: i = exitIdx lalu i++ oleh for → lanjut di exitIdx+1
-        fctx.lastExit = lastExitIdx
     }
     emitEval(force = true)
-
-    val skipped = maxOf(0, ((candles.size - 1) - startIdx) - evaluated)
-    diag = diag.copy(
+    val skipped = maxOf(0, totalSlots - evaluated)
+    d = d.copy(
+        startIdx = diagStartIdx, evalFrom = startT,
         evaluatedBars = evaluated, skippedInPosition = skipped, signalsRaw = sigRaw,
-        filteredOut = filtered, skippedNoLevel = noLevel, skippedBadEntry = badEntry,
-        skippedBadQty = badQty, skippedBadPnl = badPnl, filterReasons = reasons, filterPassed = passed,
+        filteredOut = filtered, maxOpenTrades = cap, maxOpenObserved = maxOpenObs,
+        rejectedByLimit = rejectedLimit,
+        skippedNoLevel = cnt.noLevel, skippedBadEntry = cnt.badEntry,
+        skippedBadQty = cnt.badQty, skippedBadPnl = badPnl,
+        filterReasons = reasons, filterPassed = passed,
+        evalTo = evalTo,
         runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis()
     )
     try { onStage?.invoke(EngineStage.MetricsDone) } catch (e: Exception) { /* abaikan */ }
-    return buildResult(params, candles, trades, equityCurve, maxDD, filtered, diag)
+    // pseudo-candles hanya untuk span tahun + denominator exposure buildResult.
+    val span = assets.flatMap { a -> a.candles }.sortedBy { it.t }
+    return buildResult(params, span, trades, equityCurve, st.maxDD, filtered, d) to d
+}
+
+// ---------- Portofolio multi-pair: cap GLOBAL lintas pair ----------
+
+data class PortfolioAsset(val sym: String, val raw: List<Any?>)
+
+data class PortfolioResult(
+    val result: BacktestResult,
+    val excluded: Map<String, String>,
+    val included: List<String>
+)
+
+/**
+ * Simulasi gabungan multi-pair dengan SATU ekuitas + SATU batas posisi
+ * global (cap). Timeline digabung per timestamp (urut naik); event
+ * bersamaan diproses deterministik sesuai urutan input [assets].
+ * Perbedaan vs V41 (dokumentasi jujur): V41 menjalankan runBacktest
+ * TERPISAH per pair (cap per-pair); implementasi ini menegakkan cap
+ * GLOBAL lintas pair sesuai misi Tahap 4 — hasil agregat TIDAK identik
+ * V41 bila cap < jumlah pair dan sinyal tumpang tindih.
+ */
+fun runPortfolioBacktest(
+    assets: List<PortfolioAsset>,
+    rawParams: BacktestParams,
+    isCancelled: () -> Boolean = { false },
+    onStage: ((EngineStage) -> Unit)? = null
+): PortfolioResult {
+    val params = sanitizeParams(rawParams)
+    var diag = BacktestDiag(rawCount = assets.sumOf { it.raw.size })
+    diag = diag.copy(cfgFp = configFingerprint(params))
+    if (exceedsTwoYears(params.startDate, params.endDate)) {
+        diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+        return PortfolioResult(
+            errorResult(params, "Rentang melebihi 2 tahun kalender. Pilih periode maksimal 2 tahun.", diag),
+            assets.associate { it.sym to "rentang > 2 tahun" }, emptyList())
+    }
+    val list = ArrayList<LoopAsset>()
+    val excluded = LinkedHashMap<String, String>()
+    var normTotal = 0
+    var dateTotal = 0
+    var prefixTotal = 0
+    for (a in assets) {
+        if (isCancelled()) {
+            diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+            return PortfolioResult(
+                errorResult(params, "Dibatalkan oleh pengguna — portofolio belum lengkap.", diag),
+                excluded, list.map { it.sym })
+        }
+        val full = try {
+            normalizeCandles(a.raw)
+        } catch (e: Exception) {
+            excluded[a.sym] = "Data ${a.sym} tidak valid: ${e.message}"
+            continue
+        }
+        val (prefix, inRange) = splitWarmup(full, params.startDate, params.endDate)
+        if (inRange.size < MIN_CANDLES) {
+            excluded[a.sym] = "Butuh minimal $MIN_CANDLES candle (dapat ${inRange.size})."
+            continue
+        }
+        val candles = prefix + inRange
+        val startIdx = maxOf(prefix.size + WARMUP, 2)
+        if (startIdx > candles.size - 2) {
+            excluded[a.sym] = "Data tidak cukup untuk evaluasi setelah pemanasan (rentang ${inRange.size} candle)."
+            continue
+        }
+        normTotal += full.size
+        dateTotal += inRange.size
+        prefixTotal += prefix.size
+        list.add(LoopAsset(a.sym, candles, buildCache(candles), startIdx))
+    }
+    diag = diag.copy(normalizedCount = normTotal, dateFilteredCount = dateTotal, warmupPrefix = prefixTotal)
+    if (list.isEmpty()) {
+        diag = diag.copy(runId = "r${System.currentTimeMillis()}", finishedAt = System.currentTimeMillis())
+        val why = excluded.values.firstOrNull() ?: "tidak ada pair memenuhi syarat data."
+        return PortfolioResult(errorResult(params, "Semua pair gagal: $why", diag), excluded, emptyList())
+    }
+    try { onStage?.invoke(EngineStage.Validated(normTotal, dateTotal)) } catch (e: Exception) { /* abaikan */ }
+    try { onStage?.invoke(EngineStage.IndicatorsDone) } catch (e: Exception) { /* abaikan */ }
+    val cap = params.maxOpenTrades.coerceIn(MAX_OPEN_TRADES_MIN, MAX_OPEN_TRADES_MAX)
+    val totalSlots = list.sumOf { (it.candles.size - 1) - it.startIdx }
+    val startT = list.minOf { it.candles[it.startIdx].t }
+    val endT = list.maxOf { it.candles[it.candles.size - 2].t }
+    val (res, _) = runLoopMulti(list, params, cap, totalSlots, isCancelled, onStage, diag,
+        startT, endT, diagStartIdx = list.minOf { it.startIdx })
+    return PortfolioResult(res, excluded, list.map { it.sym })
 }
 
 fun buildResult(params: BacktestParams, candles: List<Candle>, trades: List<Trade>, equityCurve: List<EquityPoint>, maxDD: Double, filtered: Int = 0, diag: BacktestDiag = BacktestDiag()): BacktestResult {

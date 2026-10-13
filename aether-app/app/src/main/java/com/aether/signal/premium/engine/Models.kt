@@ -110,6 +110,10 @@ data class BacktestParams(
     val trailOn: Boolean = false,
     val trailDistPct: Double = 0.01,
     val trailActPct: Double = 0.01,
+    // Tahap 4: batas posisi terbuka bersamaan (rekonstruksi V41 — bukti
+    // dekompilasi: BacktestParams.maxOpenTrades + ModelsKt.sanitizeMaxOpenTrades
+    // + cap coerceIn(1,10) di runBacktest). Ditegakkan mesin, bukan pajangan.
+    val maxOpenTrades: Int = 1,
     val filters: List<FilterCfg> = emptyList()
 )
 
@@ -171,9 +175,32 @@ fun configFingerprint(p: BacktestParams): String {
         .append("|cap=").append(f(p.initialCapital))
         .append("|fee=").append(f(p.feePercent)).append("|slip=").append(f(p.slippagePercent))
         .append("|mh=").append(p.maxHolding)
+        // Tahap 4: batas posisi memengaruhi simulasi → bagian sidik (cermin V41 "|mo=").
+        .append("|mo=").append(p.maxOpenTrades)
         .append("|atr=").append(p.useAtr).append(",").append(f(p.atrSlMult)).append(",").append(f(p.atrTpMult))
         .append("|dates=").append(p.startDate).append(",").append(p.endDate)
     return sb.toString()
+}
+
+/**
+ * Tahap 4: sanitasi batas posisi (rekonstruksi V41 ModelsKt.sanitizeMaxOpenTrades:
+ * Number non-finite → 1; String diparsing, gagal → 1; hasil coerceIn(1,10)).
+ * Murni & teruji JVM.
+ */
+const val MAX_OPEN_TRADES_MIN = 1
+const val MAX_OPEN_TRADES_MAX = 10
+
+fun sanitizeMaxOpenTrades(v: Any?): Int {
+    val i = when (v) {
+        is Number -> {
+            val d = v.toDouble()
+            if (!d.isFinite()) return MAX_OPEN_TRADES_MIN
+            d.toInt()
+        }
+        is String -> v.trim().toDoubleOrNull()?.toInt() ?: return MAX_OPEN_TRADES_MIN
+        else -> return MAX_OPEN_TRADES_MIN
+    }
+    return i.coerceIn(MAX_OPEN_TRADES_MIN, MAX_OPEN_TRADES_MAX)
 }
 
 /**
@@ -198,6 +225,8 @@ fun effectiveConfigSummary(p: BacktestParams, hyperoptSrc: String? = null): Stri
         if (prm.isEmpty()) nm else "$nm($prm)"
     })
     b.append("\nSL: ${p.slPercent * 100}% · TP: ${p.tpPercent * 100}% (${tpModeLabel(p.tpMode)})")
+    // Tahap 4: nilai efektif batas posisi dinyatakan (bukan klaim diam-diam).
+    b.append(" · Posisi maks: ${p.maxOpenTrades}")
     b.append("\nTrailing: ${if (p.trailOn) "AKTIF (jarak ${p.trailDistPct * 100}%, aktivasi ${p.trailActPct * 100}%)" else "mati"}")
     b.append("\nRentang: ${if (p.startDate > 0 || p.endDate > 0) "${p.startDate}→${p.endDate}" else "seluruh data"}")
     b.append("\nModal: ${p.initialCapital} · Risiko: ${p.riskPerTrade * 100}% · Lev: ${p.leverage}× · Fee: ${p.feePercent * 100}% · Slip: ${p.slippagePercent * 100}%")
@@ -221,7 +250,7 @@ fun hyperoptBasisKey(p: BacktestParams): String {
         val prm = fc.params.toList().sortedBy { it.first }.joinToString(";") { "${it.first}=${it.second}" }
         "${fc.name}[$prm]"
     }
-    return "asset=${p.asset}|tf=${p.timeframe}|strat=${p.strategy}|combo=$comboS|filters=$flt"
+    return "asset=${p.asset}|tf=${p.timeframe}|strat=${p.strategy}|combo=$comboS|filters=$flt|mo=${p.maxOpenTrades}"
 }
 
 data class BacktestDiag(
@@ -229,6 +258,10 @@ data class BacktestDiag(
     val warmup: Int = WARMUP, val startIdx: Int = 0,
     val evaluatedBars: Int = 0, val skippedInPosition: Int = 0,
     val signalsRaw: Int = 0, val filteredOut: Int = 0,
+    // Tahap 4: telemetri batas posisi (rekonstruksi V41 — dari eksekusi nyata).
+    val maxOpenTrades: Int = 0, // cap efektif yang dipakai run ini
+    val maxOpenObserved: Int = 0, // maksimum posisi bersamaan yang benar-benar terjadi
+    val rejectedByLimit: Int = 0, // entry ditolak karena batas (lolos filter)
     val skippedNoLevel: Int = 0, val skippedBadEntry: Int = 0,
     val skippedBadQty: Int = 0, val skippedBadPnl: Int = 0,
     val filterReasons: Map<String, Int> = emptyMap(),

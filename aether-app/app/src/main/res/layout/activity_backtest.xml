@@ -91,6 +91,14 @@
                             android:id="@+id/inRisk" android:layout_width="match_parent"
                             android:layout_height="wrap_content" android:inputType="numberDecimal" />
                     </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Maks Posisi 1–10">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inMaxOpen" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

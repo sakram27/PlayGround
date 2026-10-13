@@ -57,6 +57,9 @@ object App {
     var feePct: Double = 0.05
     var slipPct: Double = 0.02
     var maxHolding: Int = 100
+    // Tahap 4: batas posisi terbuka bersamaan (cermin V41 App.maxOpenTrades,
+    // default 1, SESSION-ONLY tanpa persist — seperti tpMode & parameter risiko).
+    var maxOpenTrades: Int = 1
     // V31: bawaan SL 1%, TP 2% (was 1.5/3.0). Session-only: hanya dipakai bila
     // belum ada pengaturan tersimpan; nilai tersimpan (impor) tak ditimpa.
     var slPct: Double = 1.0
@@ -121,6 +124,9 @@ object App {
     var csv: List<Candle>? = null
     var multiCache: Map<String, Pair<List<Candle>, BacktestResult>> = emptyMap()
     var multiRows: List<PairRow> = emptyList()
+    // Tahap 4: hasil portofolio gabungan multi-pair (cap global lintas pair).
+    // Session-only seperti result; null = single atau portofolio gagal.
+    var portfolio: BacktestResult? = null
 
     var engPairs: LinkedHashSet<String> = LinkedHashSet(listOf("BTCUSDT", "ETHUSDT"))
     var engRunning: Boolean = false
@@ -241,6 +247,7 @@ object App {
         multiSel = multiSel.toList(), universe = universe.toList(), engPairs = engPairs.toList(),
         capital = capital, riskPct = riskPct, leverage = leverage,
         feePct = feePct, slipPct = slipPct, maxHolding = maxHolding,
+        maxOpenTrades = maxOpenTrades,
         slPct = slPct, tpPct = tpPct, tp2Pct = tp2Pct, tp3Pct = tp3Pct, tpMode = tpMode,
         useAtr = useAtr, atrSlMult = 1.5, atrTpMult = 3.0,
         btTrailOn = btTrailOn, btTrailDistPct = btTrailDistPct, btTrailActPct = btTrailActPct,
@@ -670,6 +677,7 @@ class AppGlobalsStore : EngineGlobalsStore {
         App.feePct = d.feePct
         App.slipPct = d.slipPct
         App.maxHolding = d.maxHolding
+        App.maxOpenTrades = d.maxOpenTrades
         App.slPct = d.slPct
         App.tpPct = d.tpPct
         App.tp2Pct = d.tp2Pct
@@ -744,6 +752,8 @@ private fun encodeParams(p: BacktestParams): JSONObject {
         .put("tpMode", p.tpMode).put("tp2Mult", p.tp2Mult).put("tp3Mult", p.tp3Mult)
         .put("trailOn", p.trailOn).put("trailDistPct", p.trailDistPct)
         .put("trailActPct", p.trailActPct)
+        // Tahap 4: batas posisi bagian snapshot.
+        .put("maxOpenTrades", p.maxOpenTrades)
     val fa = JSONArray()
     for (f in p.filters) fa.put(encodeFilterCfg(f))
     o.put("filters", fa)
@@ -790,6 +800,8 @@ private fun decodeParams(o: JSONObject): BacktestParams {
         trailOn = o.optBoolean("trailOn", false),
         trailDistPct = o.optDouble("trailDistPct", Double.NaN),
         trailActPct = o.optDouble("trailActPct", Double.NaN),
+        // Tahap 4: wajib ada pada skema v2 (-1 = hilang → ditolak validasi).
+        maxOpenTrades = o.optInt("maxOpenTrades", -1),
         filters = filters
     )
 }
@@ -804,6 +816,7 @@ private fun encodeGlobals(g: EngineGlobalsData): JSONObject {
         .put("engPairs", JSONArray(g.engPairs))
         .put("capital", g.capital).put("riskPct", g.riskPct).put("leverage", g.leverage)
         .put("feePct", g.feePct).put("slipPct", g.slipPct).put("maxHolding", g.maxHolding)
+        .put("maxOpenTrades", g.maxOpenTrades)
         .put("slPct", g.slPct).put("tpPct", g.tpPct)
         .put("tp2Pct", g.tp2Pct).put("tp3Pct", g.tp3Pct).put("tpMode", g.tpMode)
         .put("useAtr", g.useAtr).put("atrSlMult", g.atrSlMult).put("atrTpMult", g.atrTpMult)
@@ -843,6 +856,9 @@ private fun decodeGlobals(o: JSONObject): EngineGlobalsData {
         capital = o.optDouble("capital", Double.NaN), riskPct = o.optDouble("riskPct", Double.NaN),
         leverage = o.optInt("leverage", -1), feePct = o.optDouble("feePct", Double.NaN),
         slipPct = o.optDouble("slipPct", Double.NaN), maxHolding = o.optInt("maxHolding", -1),
+        // Tahap 4: snapshot v1 (pra-batas-posisi) tidak memiliki kunci ini (-1)
+        // dan DITOLAK saat decode versi (lihat decodeEngineSnapshot v2).
+        maxOpenTrades = o.optInt("maxOpenTrades", -1),
         slPct = o.optDouble("slPct", Double.NaN), tpPct = o.optDouble("tpPct", Double.NaN),
         tp2Pct = o.optDouble("tp2Pct", Double.NaN), tp3Pct = o.optDouble("tp3Pct", Double.NaN),
         tpMode = o.optInt("tpMode", -1), useAtr = o.optBoolean("useAtr", false),
@@ -863,9 +879,11 @@ private fun decodeGlobals(o: JSONObject): EngineGlobalsData {
     )
 }
 
-private fun encodeEngineSnapshot(s: EngineSnapshot): String {
+internal fun encodeEngineSnapshot(s: EngineSnapshot): String {
     val o = JSONObject()
-    o.put("v", 1)
+    // Tahap 4: skema v2 (v1 pra-batas-posisi tidak lagi dapat diterapkan —
+    // jalankan ulang backtest agar snapshot memuat maxOpenTrades).
+    o.put("v", 2)
     o.put("globals", encodeGlobals(s.globals))
     o.put("params", encodeParams(s.params))
     o.put("pairs", JSONArray(s.pairs))
@@ -875,10 +893,11 @@ private fun encodeEngineSnapshot(s: EngineSnapshot): String {
     return o.toString()
 }
 
-private fun decodeEngineSnapshot(raw: String): EngineSnapshot? {
+internal fun decodeEngineSnapshot(raw: String): EngineSnapshot? {
     try {
         val o = JSONObject(raw)
-        if (o.optInt("v", 0) != 1) return null
+        // Hanya skema v2 (dengan maxOpenTrades). v1 ditolak eksplisit.
+        if (o.optInt("v", 0) != 2) return null
         val go = o.optJSONObject("globals") ?: return null
         val po = o.optJSONObject("params") ?: return null
         val pa = o.optJSONArray("pairs") ?: return null

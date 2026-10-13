@@ -42,7 +42,9 @@ data class EngineDiagSnapshot(
     val sessionStrategy: String = "",
     val sessionTimeframe: String = "",
     val liveCfgFp: String = "",
-    val cfgDiverged: Boolean = false
+    val cfgDiverged: Boolean = false,
+    // Tahap 4/G: vonis per pair terakhir.
+    val pairVerdicts: List<PairVerdict> = emptyList()
 )
 
 object EngineDiag {
@@ -74,6 +76,10 @@ object EngineDiag {
     @Volatile var sessionTimeframe: String = ""
     @Volatile var liveCfgFp: String = ""
     @Volatile var cfgDiverged: Boolean = false
+    // Tahap 4/G: vonis terakhir per pair (sesi berjalan, tanpa persist).
+    // outcome: no-candidate | filtered:<alasan> | invalid-level | opened:<arah>
+    //   | blocked-position | error:<pesan> | no-data:<pesan>
+    private val verdicts: LinkedHashMap<String, PairVerdict> = LinkedHashMap()
     private val lock = Any()
     private val errors: LinkedHashMap<String, String> = LinkedHashMap()
     private val freasons: LinkedHashMap<String, Int> = LinkedHashMap()
@@ -109,6 +115,20 @@ object EngineDiag {
             errors[sym] = clean
             while (errors.size > 8) errors.remove(errors.keys.first())
         }
+        noteVerdict(sym, "error", clean)
+    }
+
+    /** Tahap 4/G: catat vonis evaluasi terakhir pair (maks 32 pair). */
+    fun noteVerdict(sym: String, outcome: String, detail: String = "") {
+        synchronized(lock) {
+            verdicts.remove(sym)
+            verdicts[sym] = PairVerdict(sym, outcome.take(24), detail.take(120), System.currentTimeMillis())
+            while (verdicts.size > 32) verdicts.remove(verdicts.keys.first())
+        }
+    }
+
+    fun clearVerdicts() {
+        synchronized(lock) { verdicts.clear() }
     }
 
     fun snapshot(
@@ -117,15 +137,25 @@ object EngineDiag {
     ): EngineDiagSnapshot {
         val errs = synchronized(lock) { errors.toList() }
         val ftop = synchronized(lock) { freasons.toList().sortedByDescending { it.second }.take(3) }
+        val pv = synchronized(lock) { verdicts.values.toList() }
         return EngineDiagSnapshot(
             running, startedAt, lastTickAt, lastDataAt, strategy, timeframe, pairs,
             evalTotal, evalOk, candidates, filteredOut, invalidLevels, dupHeld,
             stored, notifCalls, openPositions, oldestOpenAgeMs,
             errs.size, errs, lastPhase, lastError,
             totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
-            sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged)
+            sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged,
+            pv)
     }
 }
+
+/** Tahap 4/G: vonis evaluasi terakhir satu pair (diagnostik sesi). */
+data class PairVerdict(
+    val sym: String,
+    val outcome: String,
+    val detail: String = "",
+    val at: Long = 0L
+)
 
 // Batas usia data per TF agar label "data basi" jujur (2× interval wajar).
 fun dataStaleLimitMs(tfMinutes: Int): Long {
@@ -243,6 +273,12 @@ fun formatEngineDiag(
     }
     if (snap.pairErrors.isNotEmpty()) {
         b.append("\nGagal: " + snap.pairErrors.take(3).joinToString(" · ") { "${it.first}: ${it.second}" })
+    }
+    // Tahap 4/G: vonis per pair (maks 8 baris agar panel tetap ringkas).
+    if (snap.pairVerdicts.isNotEmpty()) {
+        b.append("\nPer pair: " + snap.pairVerdicts.take(8).joinToString(" · ") { v ->
+            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(40)})" else ""
+        })
     }
     if (snap.lastPhase.isNotEmpty()) b.append("\nTahap: ${snap.lastPhase}")
     b.append("\nAlasan: " + noSignalReason(

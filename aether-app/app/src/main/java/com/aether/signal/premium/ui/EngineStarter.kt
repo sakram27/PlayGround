@@ -90,6 +90,8 @@ fun engineStartFlow(a: Activity, onDone: () -> Unit) {
                         "${cur.params.strategy} · ${cur.params.timeframe} · " +
                         "${cur.pairs.joinToString(",")} · ${cur.provider}\n\n" +
                         "Referensi ($refLine):\n${driftText(drift)}\n\n" +
+                        "Batas posisi maks hanya berlaku di simulasi backtest " +
+                        "(Engine paper: 1 posisi per pair).\n\n" +
                         "Pilih: Batal (tidak ada yang berubah), " +
                         "pakai konfigurasi Engine saat ini, " +
                         "atau terapkan konfigurasi Backtest (bila valid)."

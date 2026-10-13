@@ -245,6 +245,7 @@ object BotEngine {
                 }
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
+                    EngineDiag.noteVerdict(sym, "blocked-position", open.dir)
                     // V32: posisi terbuka menahan entry baru pair ini (desain,
                     // bukan bug) — dihitung agar panel jujur.
                     EngineDiag.blockedPosition++
@@ -411,7 +412,10 @@ object BotEngine {
                     if (positions.any { it.pair == sym }) break
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
-                    if (!dec.passed) continue
+                    if (!dec.passed) {
+                        EngineDiag.noteVerdict(sym, "no-candidate", dec.strategy.ifEmpty { p.strategy })
+                        continue
+                    }
                     EngineDiag.candidates++
                     if (dec.direction == "LONG") EngineDiag.candLong++ else EngineDiag.candShort++
                     // Bar acuan = bar yang dievaluasi (waktu setup, bukan
@@ -436,19 +440,20 @@ object BotEngine {
                         if (!fr.passed) {
                             EngineDiag.filteredOut++
                             for (w in fr.failed) EngineDiag.noteFilterReject(w)
+                            EngineDiag.noteVerdict(sym, "filtered", fr.failed.firstOrNull()?.take(60) ?: "")
                             continue
                         }
                     }
                     var entry = last.c
                     entry = if (dec.direction == "LONG") entry * (1 + p.slippagePercent) else entry * (1 - p.slippagePercent)
                     val (sl, tp) = levels(entry, dec.direction, cache, i, p)
-                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) { EngineDiag.invalidLevels++; continue }
+                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "sl/tp"); continue }
                     val riskDist = Math.abs(entry - sl)
-                    if (!(riskDist > 0)) { EngineDiag.invalidLevels++; continue }
+                    if (!(riskDist > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "riskDist"); continue }
                     var qty = ((equity ?: p.initialCapital) * p.riskPerTrade) / riskDist
                     val maxNot = (equity ?: p.initialCapital) * p.leverage
                     if (qty * entry > maxNot) qty = maxNot / entry
-                    if (!(qty > 0)) { EngineDiag.invalidLevels++; continue }
+                    if (!(qty > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "qty"); continue }
                     positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
@@ -473,6 +478,7 @@ object BotEngine {
                         EngineDiag.noteStored()
                     }
                     App.pushSignal(sig)
+                    EngineDiag.noteVerdict(sym, "opened", dec.direction)
                     // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
                     EngineDiag.notifCalls++
                     try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
