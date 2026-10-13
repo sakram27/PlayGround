@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aether Signal</string>
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorBackground">#0B0E13</item>
+        <item name="android:colorAccent">#0ECB81</item>
+        <item name="android:colorPrimary">#12161D</item>
+        <item name="android:textColorPrimary">#E8EDF2</item>
+        <item name="android:textColorSecondary">#8B95A5</item>
+        <item name="android:windowBackground">#0B0E13</item>
+        <item name="android:alertDialogTheme">@style/AppDialog</item>
+    </style>
+    <style name="AppDialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorBackground">#12161D</item>
+        <item name="android:colorAccent">#0ECB81</item>
+        <item name="android:textColorPrimary">#E8EDF2</item>
+        <item name="android:textColorSecondary">#8B95A5</item>
+    </style>
+</resources>

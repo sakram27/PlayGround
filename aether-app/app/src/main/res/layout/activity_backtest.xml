@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/backtestScroll"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="STRATEGI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" style="@style/Field" android:hint="Strategi utama" app:endIconMode="dropdown_menu">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/spStrategy" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segPreset" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segPresetDefault" android:text="Default" style="@style/BtnGhost" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segPresetCustom" android:text="Custom" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:id="@+id/comboBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="MODE COMBO" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/segCombo" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                        app:singleSelection="true" app:selectionRequired="true">
+                        <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:id="@+id/segComboSingle" android:text="Single" style="@style/BtnGhost" />
+                        <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:id="@+id/segComboOr" android:text="OR" style="@style/BtnGhost" />
+                        <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:id="@+id/segComboAnd" android:text="AND" style="@style/BtnGhost" />
+                        <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:id="@+id/segComboMaj" android:text="MAJ" style="@style/BtnGhost" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Centang = ikut combo. Minimal 1 tambahan bila mode ≠ Single."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnComboAll" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Pilih Semua" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnComboClear" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Hapus Semua" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <TextView android:id="@+id/comboCount" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/mut" android:textSize="12sp"
+                        android:gravity="center_vertical|end" /></LinearLayout>
+                <ListView android:id="@+id/comboList" android:layout_width="match_parent"
+                    android:layout_height="160dp" android:layout_marginTop="8dp"
+                    android:choiceMode="multipleChoice" android:fastScrollEnabled="true"
+                    android:divider="@color/line" android:dividerHeight="1dp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Modal USDT">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inCapital" android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Risiko %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inRisk" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATA &amp; PASANGAN" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="MODE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segMode" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:id="@+id/segSingle" android:text="Single Pair" style="@style/BtnGhost" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:id="@+id/segMulti" android:text="Multi Pair" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:id="@+id/singleBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical">
+                    <Button android:id="@+id/btnPair" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" style="@style/BtnViolet"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/multiBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/multiCount" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="8dp" />
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chips" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <Button android:id="@+id/btnSelect" android:layout_width="0dp"
+                            android:layout_height="wrap_content" android:layout_weight="1"
+                            android:text="Select Pairs" style="@style/BtnViolet" />
+                        <Space android:layout_width="8dp" android:layout_height="1dp" />
+                        <Button android:id="@+id/btnReload" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:text="Reload"
+                            style="@style/BtnCyan" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Provider" app:endIconMode="dropdown_menu">
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/spProv" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Timeframe" app:endIconMode="dropdown_menu">
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/spTf" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/filterCard"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:id="@+id/filterHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="FILTER"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/presetLoose" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Longgar" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/presetBal" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Seimbang" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/presetStrict" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Ketat" style="@style/BtnViolet" /></LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnFilterAll" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Pilih Semua" style="@style/BtnViolet" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnFilterClear" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Hapus Semua" style="@style/BtnSlate" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <TextView android:id="@+id/filterCount" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/mut" android:textSize="12sp"
+                        android:gravity="center_vertical|end" /></LinearLayout>
+                <ListView android:id="@+id/filterList" android:layout_width="match_parent"
+                    android:layout_height="180dp" android:layout_marginTop="8dp"
+                    android:choiceMode="multipleChoice" android:fastScrollEnabled="true"
+                    android:divider="@color/line" android:dividerHeight="1dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RISIKO &amp; BIAYA" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Preset risiko mengisi parameter di bawah. Anda tetap dapat mengubahnya manual (status menjadi Kustom)."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnPresetConservative" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Konservatif" style="@style/BtnViolet"
+                        android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnPresetBalanced" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Seimbang" style="@style/BtnViolet"
+                        android:textSize="11sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnPresetAggressive" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Agresif" style="@style/BtnViolet"
+                        android:textSize="11sp" /></LinearLayout>
+                <TextView android:id="@+id/riskPresetStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/riskPreview" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:lineSpacingMultiplier="1.1"
+                    android:layout_marginTop="6dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="SL %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inSl" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swAtr" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Level ATR-14"
+                    android:textColor="@color/txt" android:layout_marginTop="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="METODE TAKE PROFIT" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segTp" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTpSingle" android:text="Single TP" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTp2" android:text="TP2" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segTp3" android:text="TP3" style="@style/BtnGhost" android:minHeight="38dp" android:textSize="11sp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="TP2 menutup 50/50 di TP1→TP2. TP3 menutup sepertiga di TP1→TP2→TP3. TP2/TP3 = jarak persen absolut dari entry (bukan harga). SL menutup seluruh sisa."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="4dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP2 %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp2Pct" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="TP3 %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTp3Pct" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <TextView android:id="@+id/tpSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="TRAILING STOP BACKTEST" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/swTrailBt" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Aktifkan Trailing Stop"
+                    android:textColor="@color/txt" android:layout_marginTop="4dp"
+                    android:minHeight="48dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Mati = SL/TP biasa. Aktif = stop mengikuti extreme setelah untung ≥ aktivasi; hanya menguat; menutup seluruh sisa (bukan TP biasa)."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Jarak trailing %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTrailDist" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Aktivasi untung %">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTrailAct" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <TextView android:id="@+id/trailSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <Button android:id="@+id/btnRiskReset" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Kembalikan bawaan"
+                    style="@style/BtnDanger" android:layout_marginTop="8dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RENTANG DATA &amp; CSV" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/segLimit" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    app:singleSelection="true" app:selectionRequired="true">
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segLimit200" android:text="200" style="@style/BtnGhost" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segLimit500" android:text="500" style="@style/BtnGhost" />
+                    <com.google.android.material.button.MaterialButton android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:id="@+id/segLimit1000" android:text="1000" style="@style/BtnGhost" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Dari tanggal"
+                        app:endIconMode="custom" app:endIconDrawable="@drawable/ic_calendar">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inFrom" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:focusable="false"
+                            android:clickable="true" android:cursorVisible="false"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" style="@style/Field" android:hint="Sampai tanggal"
+                        app:endIconMode="custom" app:endIconDrawable="@drawable/ic_calendar">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inTo" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:focusable="false"
+                            android:clickable="true" android:cursorVisible="false"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+                <Button android:id="@+id/btnDateClear" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Bersihkan tanggal"
+                    style="@style/BtnSlate" android:layout_marginTop="6dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnCsv" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Import CSV" style="@style/BtnCyan" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnCsvClear" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Hapus" style="@style/BtnSlate" />
+                </LinearLayout>
+                <TextView android:id="@+id/csvStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp"
+                    android:text="CSV tidak aktif." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:text="BACKTEST MONITOR"
+                        android:textColor="@color/dim" android:textSize="10sp"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/monStatus" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="IDLE"
+                        android:textColor="@color/mut" android:textSize="11sp"
+                        android:textStyle="bold" android:fontFamily="monospace"
+                        android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/btnMonToggle" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="▾"
+                        style="@style/BtnGhost"
+                        android:minWidth="48dp" />
+                </LinearLayout>
+                <TextView android:id="@+id/monSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Menunggu Backtest."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:id="@+id/monDetail" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monFacts"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="LOG AKTIVITAS" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/monLog"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+                    <Button android:id="@+id/btnMonClearLog" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Hapus Tampilan Log"
+                        style="@style/BtnSlate" android:layout_marginTop="6dp" android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="BACKTEST CONSOLE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/quickMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="KONFIGURASI EFEKTIF (YANG DIKIRIM KE MESIN)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/effCfg" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Belum ada run — ringkasan muncul saat Backtest dimulai."
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:layout_marginTop="2dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnRun" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶  Run Backtest" style="@style/BtnPrimary" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnCancel" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Batal"
+                        style="@style/BtnGhost" />
+                </LinearLayout>
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Siap."
+                    android:textColor="@color/mut" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/progCount" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/progList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="EQUITY CURVE" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/equity" android:layout_width="match_parent"
+                    android:layout_height="220dp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/equityMeta" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="11sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/equityMsg" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:gravity="center" android:padding="12dp"
+                    android:visibility="gone"
+                    android:text="Jalankan backtest untuk melihat equity curve." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="HASIL" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="24sp"
+                    android:fontFamily="monospace" android:textStyle="bold"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/heroSub" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/sumLine" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/whyBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone" android:layout_marginTop="8dp"
+                    android:background="@color/inset" android:padding="10dp">
+                    <TextView android:id="@+id/whyHead" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="MENGAPA TIDAK ADA TRANSAKSI?"
+                        android:textColor="@color/amber" android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <TextView android:id="@+id/whyBody" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/txt"
+                        android:textSize="12sp" android:lineSpacingMultiplier="1.1"
+                        android:layout_marginTop="6dp" />
+                    <Button android:id="@+id/btnWhyFilter" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Lihat Filter"
+                        style="@style/BtnInfo" android:layout_marginTop="8dp" android:visibility="gone" />
+                    <Button android:id="@+id/btnWhatIf" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="Simulasikan Tanpa Filter Ini"
+                        style="@style/BtnInfo" android:layout_marginTop="6dp" android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnReplay" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="▶ Replay per Candle" style="@style/BtnInfo" android:visibility="gone" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnMonteCarlo" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Monte Carlo" style="@style/BtnInfo" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnAblation" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Dampak Filter" style="@style/BtnInfo" android:textSize="12sp" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnConsensus" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Konsensus TF" style="@style/BtnInfo" android:textSize="12sp" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="6dp">
+                    <Button android:id="@+id/btnWalkFwd" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Walk-Forward" style="@style/BtnInfo" android:textSize="12sp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="BIAYA TRANSAKSI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:id="@+id/feeLine" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/kvList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <TextView android:id="@+id/pairsHead" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="PER PAIR"
+                    android:textColor="@color/dim" android:textSize="10sp"
+                    android:textStyle="bold" android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/pairsList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
+                    <Button android:id="@+id/tradePrev" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="‹" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <TextView android:id="@+id/tradePage" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:gravity="center" android:textColor="@color/mut"
+                        android:textSize="12sp" android:fontFamily="monospace" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/tradeNext" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="›" style="@style/BtnGhost" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/tradeCsv" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="CSV" style="@style/BtnCyan" /></LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/tradeList"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <Button android:id="@+id/btnDiagToggle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Buka diagnostik &amp; alasan filter ▾"
+                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/auditHead" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/diagBox" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:id="@+id/techHead" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="DIAGNOSTIK"
+                        android:textColor="@color/dim" android:textSize="10sp"
+                        android:textStyle="bold" android:layout_marginTop="8dp" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/techList"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="VALIDASI DATA" android:textColor="@color/dim"
+                        android:textSize="10sp" android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+                    <TextView android:id="@+id/auditBody" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/txt"
+                        android:textSize="11sp" android:fontFamily="monospace"
+                        android:lineSpacingMultiplier="1.15"
+                        android:layout_marginTop="4dp" />
+                    <Button android:id="@+id/btnAudit" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="Audit Konsistensi Live vs Backtest"
+                        style="@style/BtnCyan" android:layout_marginTop="8dp" />
+                    <TextView android:id="@+id/auditVerdict" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/mut"
+                        android:textSize="12sp" android:layout_marginTop="6dp" />
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PETA WAKTU (UTC)" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="10dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Agregat laba/rugi transaksi per jam &amp; hari keluar (UTC). Hijau = bersih positif, merah = negatif."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <TextView android:id="@+id/heatSummary" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <LinearLayout android:id="@+id/heatHours" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical"
+                    android:layout_marginTop="6dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PER HARI" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <LinearLayout android:id="@+id/heatDays" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="horizontal"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>
