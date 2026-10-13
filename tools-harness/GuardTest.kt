@@ -11,6 +11,9 @@ import com.aether.signal.premium.ui.decideStartAction
 import com.aether.signal.premium.ui.diffSnapshots
 import com.aether.signal.premium.ui.effectiveGlobalsForApply
 import com.aether.signal.premium.ui.freezeSession
+import com.aether.signal.premium.data.fetchUniverse
+import com.aether.signal.premium.ui.notifStageOf
+import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.ui.validateSnapshotForApply
 
 var gpass = 0
@@ -244,6 +247,48 @@ fun main() {
             e2.universe.containsAll(listOf("BTCUSDT", "ETHUSDT")) &&
             e2.engPairs == listOf("BTCUSDT", "ETHUSDT"))
     }
+    guardTest5()
     println("GUARD-TEST done pass=$gpass fail=$gfail")
     if (gfail > 0) kotlin.system.exitProcess(1)
+}
+
+fun guardTest5() {
+    // 5E: pemetaan tahap notifikasi terpadu.
+    run {
+        gok("t5e-stage-map", notifStageOf("DIKIRIM") == "NOTIFICATION_SUBMITTED" &&
+            notifStageOf("DITAHAN") == "NOTIFICATION_HELD" &&
+            notifStageOf("GAGAL") == "NOTIFICATION_FAILED" &&
+            notifStageOf("GAGAL_IZIN") == "NOTIFICATION_FAILED")
+    }
+    // 5F: universe offline (demo/yahoo) — diminta vs diterima, tanpa fallback.
+    run {
+        val d0 = fetchUniverse("demo", 0)
+        val d6 = fetchUniverse("demo", 200)
+        val dOver = fetchUniverse("demo", 500)
+        gok("t5f-demo", d0.requested == 1 && d0.pairs.size == 1 && !d0.fallback &&
+            d6.requested == 200 && d6.pairs.size == 6 && !d6.fallback &&
+            dOver.requested == 200 && dOver.pairs.size == 6)
+        val y = fetchUniverse("yahoo", 200)
+        gok("t5f-yahoo", !y.fallback && y.pairs.isNotEmpty() &&
+            y.pairs.size == y.pairs.distinct().size &&
+            y.pairs.size <= 200 && y.requested == 200, "n=${y.pairs.size}")
+    }
+    // 5F: normalisasi batch — duplikat ternormalisasi ke simbol sama (kontainer
+    // Set di pemanggil yang mendedup), simbol tak valid ditolak.
+    run {
+        val raw = listOf("BTC/USDT", "btcusdt", "ETHUSDT", "XAUUSD", "", "BTCUSDT")
+        val normed = raw.mapNotNull { s ->
+            val (n, e) = validateCustomPair(s, "binance")
+            if (e == null) n else null
+        }
+        gok("t5f-batch", normed.size == 4 && normed.distinct().size == 2 &&
+            normed.toSet() == setOf("BTCUSDT", "ETHUSDT") &&
+            LinkedHashSet(normed).size == 2,
+            "norm=$normed")
+    }
+    // 5F: batas provider tak dikenal → fallback eksplisit, bukan daftar diam-diam.
+    run {
+        val bad = fetchUniverse("nope_exchange", 200)
+        gok("t5f-unknown-prov", bad.fallback && bad.error != null, "err=${bad.error}")
+    }
 }

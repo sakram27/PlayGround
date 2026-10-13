@@ -44,6 +44,13 @@ fun baseParams(cap: Int, extra: BacktestParams.() -> BacktestParams = { this }):
 }
 
 fun main() {
+    capTestCore()
+    capTest5B()
+    println("CAP-TEST done pass=$cpass fail=$cfail")
+    if (cfail > 0) kotlin.system.exitProcess(1)
+}
+
+fun capTestCore() {
     // B4/C4: validasi rentang 1..10, tanpa clamp diam-diam di luar fungsi ini
     // (sanitize jujur: luar rentang → batas + dilaporkan via diff di guard).
     run {
@@ -249,6 +256,74 @@ fun main() {
             com.aether.signal.premium.ui.decodeEngineSnapshot("bukan-json") == null &&
             com.aether.signal.premium.ui.decodeEngineSnapshot(enc.replace("\"pairs\":[\"ETHUSDT\"]", "\"pairs\":[]")) == null)
     }
-    println("CAP-TEST done pass=$cpass fail=$cfail")
-    if (cfail > 0) kotlin.system.exitProcess(1)
+}
+
+// ---------- Tahap 5B: konsistensi temporal portofolio ----------
+fun capTest5B() {
+    // B-1: candle hilang (gap 10 bar di tengah) → tetap jalan, rekonsiliasi bersih.
+    run {
+        val full = mkBars(300, 100.0, { 0.001 })
+        val gap = full.filterIndexed { i, _ -> i < 140 || i >= 150 }
+        val pr = runPortfolioBacktest(
+            listOf(PortfolioAsset("AAA", full), PortfolioAsset("BBB", gap)),
+            baseParams(2))
+        val r = pr.result
+        cok("b01-gap", r.error == null && pr.excluded.isEmpty() && reconcileResult(r).isEmpty(),
+            "tr=${r.totalTrades} obs=${r.diag.maxOpenObserved}")
+    }
+    // B-2: timestamp beda antar pair (geser setengah interval) → deterministik.
+    run {
+        val a = mkBars(300, 100.0, { 0.001 })
+        val b = mkBars(300, 50.0, { 0.001 }).map { m ->
+            @Suppress("UNCHECKED_CAST")
+            val mm = (m as Map<String, Any?>).toMutableMap()
+            mm["t"] = (mm["t"] as Long) + TFMS / 2
+            mm as Any?
+        }
+        val assets = listOf(PortfolioAsset("AAA", a), PortfolioAsset("BBB", b))
+        val r1 = runPortfolioBacktest(assets, baseParams(2)).result
+        val r2 = runPortfolioBacktest(assets, baseParams(2)).result
+        cok("b02-ts-beda-deterministik", r1.error == null &&
+            r1.totalTrades == r2.totalTrades && r1.netProfit == r2.netProfit &&
+            r1.diag.maxOpenObserved <= 2 && reconcileResult(r1).isEmpty(),
+            "tr=${r1.totalTrades} obs=${r1.diag.maxOpenObserved}")
+    }
+    // B-3: histori berakhir beda (BBB berhenti 50 bar lebih awal).
+    run {
+        val a = mkBars(300, 100.0, { 0.001 })
+        val b = mkBars(250, 50.0, { 0.001 })
+        val pr = runPortfolioBacktest(
+            listOf(PortfolioAsset("AAA", a), PortfolioAsset("BBB", b)), baseParams(2))
+        val r = pr.result
+        val perSym = r.trades.groupBy { it.asset }.mapValues { it.value.size }
+        cok("b03-akhir-beda", r.error == null && pr.excluded.isEmpty() &&
+            (perSym["AAA"] ?: 0) > 0 && (perSym["BBB"] ?: 0) > 0 &&
+            reconcileResult(r).isEmpty(), "perSym=$perSym")
+    }
+    // B-4: satu aset kosong → excluded eksplisit, sisanya jalan.
+    run {
+        val pr = runPortfolioBacktest(
+            listOf(
+                PortfolioAsset("AAA", mkBars(300, 100.0, { 0.001 })),
+                PortfolioAsset("EMPTY", emptyList())),
+            baseParams(2))
+        cok("b04-excluded", pr.result.error == null && pr.excluded.containsKey("EMPTY") &&
+            pr.included == listOf("AAA") && pr.result.totalTrades > 0,
+            "excl=${pr.excluded}")
+    }
+    // B-5: ekuitas bersama konsisten — sizing posisi memakai ekuitas berjalan.
+    run {
+        val pr = runPortfolioBacktest(
+            listOf(
+                PortfolioAsset("AAA", mkBars(300, 100.0, { 0.001 })),
+                PortfolioAsset("BBB", mkBars(300, 50.0, { 0.001 }))),
+            baseParams(3))
+        val r = pr.result
+        val lastEq = r.equityCurve.filter { it.equity.isFinite() }.lastOrNull()?.equity
+        cok("b05-ekuitas", r.error == null && lastEq != null &&
+            kotlin.math.abs(lastEq - r.finalCapital) < 1e-6 &&
+            kotlin.math.abs(r.finalCapital - (r.initialCapital + r.netProfit)) < 1e-6 &&
+            r.equityCurve.zipWithNext { x, y -> y.t >= x.t }.all { it },
+            "final=${r.finalCapital} net=${r.netProfit}")
+    }
 }

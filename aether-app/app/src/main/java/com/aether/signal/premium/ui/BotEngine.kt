@@ -209,6 +209,7 @@ object BotEngine {
                 val candles = normalizeCandles(raw.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? })
                 if (candles.isEmpty()) {
                     EngineDiag.pairError(sym, "data kosong")
+                    EngineDiag.noteVerdict(sym, "INSUFFICIENT_DATA", "data kosong")
                     EngineDiag.lastError = "data kosong ($sym)"
                     continue
                 }
@@ -245,7 +246,7 @@ object BotEngine {
                 }
                 val open = positions.find { it.pair == sym }
                 if (open != null) {
-                    EngineDiag.noteVerdict(sym, "blocked-position", open.dir)
+                    EngineDiag.noteVerdict(sym, "BLOCKED_POSITION", open.dir)
                     // V32: posisi terbuka menahan entry baru pair ini (desain,
                     // bukan bug) — dihitung agar panel jujur.
                     EngineDiag.blockedPosition++
@@ -413,7 +414,7 @@ object BotEngine {
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
                     if (!dec.passed) {
-                        EngineDiag.noteVerdict(sym, "no-candidate", dec.strategy.ifEmpty { p.strategy })
+                        EngineDiag.noteVerdict(sym, "NO_CANDIDATE", dec.strategy.ifEmpty { p.strategy })
                         continue
                     }
                     EngineDiag.candidates++
@@ -440,20 +441,20 @@ object BotEngine {
                         if (!fr.passed) {
                             EngineDiag.filteredOut++
                             for (w in fr.failed) EngineDiag.noteFilterReject(w)
-                            EngineDiag.noteVerdict(sym, "filtered", fr.failed.firstOrNull()?.take(60) ?: "")
+                            EngineDiag.noteVerdict(sym, "FILTERED", fr.failed.firstOrNull()?.take(60) ?: "")
                             continue
                         }
                     }
                     var entry = last.c
                     entry = if (dec.direction == "LONG") entry * (1 + p.slippagePercent) else entry * (1 - p.slippagePercent)
                     val (sl, tp) = levels(entry, dec.direction, cache, i, p)
-                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "sl/tp"); continue }
+                    if (!sl.isFinite() || !tp.isFinite() || sl <= 0 || tp <= 0) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "INVALID_LEVEL", "sl/tp"); continue }
                     val riskDist = Math.abs(entry - sl)
-                    if (!(riskDist > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "riskDist"); continue }
+                    if (!(riskDist > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "INVALID_LEVEL", "riskDist"); continue }
                     var qty = ((equity ?: p.initialCapital) * p.riskPerTrade) / riskDist
                     val maxNot = (equity ?: p.initialCapital) * p.leverage
                     if (qty * entry > maxNot) qty = maxNot / entry
-                    if (!(qty > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "invalid-level", "qty"); continue }
+                    if (!(qty > 0)) { EngineDiag.invalidLevels++; EngineDiag.noteVerdict(sym, "INVALID_LEVEL", "qty"); continue }
                     positions.add(PaperPos(sym, dec.direction, entry, sigBar.t, sl, tp, qty, last.c, 0.0))
                     // V16 F2: skor dari komponen yang tersedia saat ini (parsial eksplisit).
                     val passedIds = activeIds.filter { !failedIds.contains(it) }
@@ -478,7 +479,7 @@ object BotEngine {
                         EngineDiag.noteStored()
                     }
                     App.pushSignal(sig)
-                    EngineDiag.noteVerdict(sym, "opened", dec.direction)
+                    EngineDiag.noteVerdict(sym, "SIGNAL_CREATED", dec.direction)
                     // Notifikasi entry NYATA (tepat setelah mesin valid) + dedup.
                     EngineDiag.notifCalls++
                     try { NotifBus.onSignal(sig) } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }

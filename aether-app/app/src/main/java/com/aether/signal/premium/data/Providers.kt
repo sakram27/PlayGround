@@ -449,6 +449,12 @@ fun topPairs(provider: String = "binance", limit: Int = 50): List<String> {
 
 private fun fetchTopPairs(provider: String, limit: Int): List<String> {
     val tmo = timeoutFor(provider)
+    // Tahap 5F: provider tak dikenal DITOLAK eksplisit — sebelumnya nama
+    // apa pun jatuh ke host Binance dan mengembalikan data provider yang
+    // salah tanpa pesan (misarah diam-diam).
+    if (provider != "binance" && provider != "bybit") {
+        throw IllegalArgumentException("Provider tidak dikenal: $provider")
+    }
     if (provider == "bybit") {
         val j = JSONObject(fetchText("https://api.bybit.com/v5/market/tickers?category=spot", tmo))
         val list = j.getJSONObject("result").getJSONArray("list")
@@ -480,5 +486,33 @@ fun topPairsWithSource(provider: String = "binance", limit: Int = 50): Pair<List
         fetchTopPairs(provider, limit) to false
     } catch (e: Exception) {
         FALLBACK_PAIRS to true
+    }
+}
+
+// Tahap 5F: kapasitas universe hingga 200 pair (satu panggilan ticker agregat,
+// bukan 200 request — biaya sama dengan 50). Bukan jaminan 200 tersedia di
+// semua provider; jumlah diminta vs diterima dilaporkan eksplisit.
+const val UNIVERSE_LIMIT = 200
+
+data class UniverseResult(
+    val requested: Int,
+    val pairs: List<String>,
+    val fallback: Boolean,
+    val error: String? = null
+)
+
+/** Muat universe jujur: berhasil/parsial/darurat selalu berlabel. Murni IO (thread pemanggil). */
+fun fetchUniverse(provider: String, requested: Int = UNIVERSE_LIMIT): UniverseResult {
+    val req = requested.coerceIn(1, UNIVERSE_LIMIT)
+    if (provider == "demo") {
+        return UniverseResult(req, listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT").take(req), false)
+    }
+    if (provider == "yahoo") {
+        return UniverseResult(req, YAHOO_UNIVERSE.keys.toList().take(req), false)
+    }
+    return try {
+        UniverseResult(req, fetchTopPairs(provider, req).distinct(), false)
+    } catch (e: Exception) {
+        UniverseResult(req, FALLBACK_PAIRS, true, e.message)
     }
 }

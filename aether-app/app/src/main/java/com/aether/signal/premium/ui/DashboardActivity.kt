@@ -100,11 +100,14 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
     private fun openEngPairSheet() {
         snack(this, "Memuat daftar pair…")
         runBg {
-            val base = try {
-                if (App.provider == "yahoo") YAHOO_UNIVERSE.keys.toList()
-                else if (App.provider == "demo") listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT")
-                else topPairs(App.provider, 50)
-            } catch (e: Exception) { FALLBACK_PAIRS }
+            // Tahap 5F: kandidat dari universe jujur (hingga 200) + pair engine saat ini.
+            val uni = try {
+                fetchUniverse(App.provider, UNIVERSE_LIMIT)
+            } catch (e: Exception) {
+                UniverseResult(UNIVERSE_LIMIT, FALLBACK_PAIRS, true, e.message)
+            }
+            val base = uni.pairs
+            if (uni.fallback) runOnUiThread { snack(this, "Universe darurat ${base.size}/${uni.requested} pair.") }
             val candidates = (LinkedHashSet(App.engPairs) + base).toList()
             runOnUiThread {
                 val staged = LinkedHashSet(App.engPairs)

@@ -44,12 +44,17 @@ data class EngineDiagSnapshot(
     val liveCfgFp: String = "",
     val cfgDiverged: Boolean = false,
     // Tahap 4/G: vonis per pair terakhir.
-    val pairVerdicts: List<PairVerdict> = emptyList()
+    val pairVerdicts: List<PairVerdict> = emptyList(),
+    // Tahap 5D: awal tick terakhir (lastTickAt = selesai).
+    val tickStartMs: Long = 0L
 )
 
 object EngineDiag {
     @Volatile var startedAt: Long = 0L
     @Volatile var lastTickAt: Long = 0L
+    // Tahap 5D: awal tick terakhir (lastTickAt = selesai). Membedakan
+    // "tick macet di tengah" dari "tidak ada tick".
+    @Volatile var tickStartMs: Long = 0L
     @Volatile var lastDataAt: Long = 0L
     @Volatile var evalTotal: Int = 0
     @Volatile var evalOk: Int = 0
@@ -76,9 +81,11 @@ object EngineDiag {
     @Volatile var sessionTimeframe: String = ""
     @Volatile var liveCfgFp: String = ""
     @Volatile var cfgDiverged: Boolean = false
-    // Tahap 4/G: vonis terakhir per pair (sesi berjalan, tanpa persist).
-    // outcome: no-candidate | filtered:<alasan> | invalid-level | opened:<arah>
-    //   | blocked-position | error:<pesan> | no-data:<pesan>
+    // Tahap 4/G + 5E: vonis terakhir per pair (sesi berjalan, tanpa persist).
+    // Nama tahap mengikuti konvensi misi: NO_CANDIDATE | FILTERED |
+    // INVALID_LEVEL | SIGNAL_CREATED | BLOCKED_POSITION | PROVIDER_ERROR |
+    // INSUFFICIENT_DATA. Sisi notifikasi: NOTIFICATION_SUBMITTED | HELD |
+    // FAILED (lihat notifStageOf di NotifyLogic.kt).
     private val verdicts: LinkedHashMap<String, PairVerdict> = LinkedHashMap()
     private val lock = Any()
     private val errors: LinkedHashMap<String, String> = LinkedHashMap()
@@ -86,6 +93,7 @@ object EngineDiag {
 
     fun beginTick() {
         totalTicks++
+        tickStartMs = System.currentTimeMillis()
         evalTotal = 0; evalOk = 0; candidates = 0; filteredOut = 0
         invalidLevels = 0; dupHeld = 0; stored = 0; notifCalls = 0
         candLong = 0; candShort = 0; blockedPosition = 0
@@ -115,7 +123,8 @@ object EngineDiag {
             errors[sym] = clean
             while (errors.size > 8) errors.remove(errors.keys.first())
         }
-        noteVerdict(sym, "error", clean)
+        // Tahap 5E: kegagalan provider/data = PROVIDER_ERROR (detail menyertakan pesan).
+        noteVerdict(sym, "PROVIDER_ERROR", clean)
     }
 
     /** Tahap 4/G: catat vonis evaluasi terakhir pair (maks 32 pair). */
@@ -145,7 +154,7 @@ object EngineDiag {
             errs.size, errs, lastPhase, lastError,
             totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
             sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged,
-            pv)
+            pv, tickStartMs)
     }
 }
 
@@ -235,6 +244,12 @@ fun formatEngineDiag(
     b.append("Status: $state")
     if (snap.running && snap.startedAt > 0) b.append(" · mulai ${ageText(snap.startedAt, nowMs)} lalu")
     b.append("\nTick terakhir: ${ageText(snap.lastTickAt, nowMs)}")
+    // Tahap 5D: durasi tick terakhir bila keduanya tersedia.
+    if (snap.tickStartMs > 0 && snap.lastTickAt >= snap.tickStartMs) {
+        b.append(" (mulai ${ageText(snap.tickStartMs, nowMs)} · durasi ${(snap.lastTickAt - snap.tickStartMs) / 1000} dtk)")
+    } else if (snap.tickStartMs > 0 && snap.running) {
+        b.append(" (dimulai ${ageText(snap.tickStartMs, nowMs)} · BELUM SELESAI)")
+    }
     val dataAge = if (snap.lastDataAt > 0) ageText(snap.lastDataAt, nowMs) else "belum ada"
     b.append(" · data terakhir: $dataAge")
     if (snap.lastDataAt > 0 && nowMs - snap.lastDataAt > dataStaleLimitMs(tfMinutes)) {

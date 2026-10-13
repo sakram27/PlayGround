@@ -227,3 +227,18 @@ fun filterNotifHistory(
             }
     }
 }
+
+/**
+ * Tahap 5E: tahap notifikasi terpadu (murni, teruji). Memetakan status riwayat
+ * internal ke nama tahap misi — tanpa mengubah status tersimpan:
+ * DIKIRIM → NOTIFICATION_SUBMITTED (diserahkan ke Android; terlihat di layar
+ *   HANYA terverifikasi via pengujian perangkat),
+ * DITAHAN → NOTIFICATION_HELD,
+ * GAGAL/GAGAL_IZIN → NOTIFICATION_FAILED.
+ */
+fun notifStageOf(status: String): String = when (status) {
+    "DIKIRIM" -> "NOTIFICATION_SUBMITTED"
+    "DITAHAN" -> "NOTIFICATION_HELD"
+    "GAGAL", "GAGAL_IZIN" -> "NOTIFICATION_FAILED"
+    else -> status
+}

@@ -666,11 +666,17 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         snack(this, "Memuat universe…")
         runBg {
             try {
-                App.universe = if (App.provider == "yahoo") YAHOO_UNIVERSE.keys.toList()
-                else if (App.provider == "demo") listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT")
-                else topPairs(App.provider, 50)
+                // Tahap 5F: hingga UNIVERSE_LIMIT (200) dengan laporan diminta vs diterima.
+                val uni = fetchUniverse(App.provider, UNIVERSE_LIMIT)
+                App.universe = uni.pairs
+                runOnUiThread {
+                    if (uni.fallback) {
+                        snack(this, "Universe gagal dimuat (${uni.error?.take(80)}?) — " +
+                            "memakai daftar darurat ${uni.pairs.size}/${uni.requested} pair.")
+                    }
+                    after?.invoke(); paintConfig()
+                }
             } catch (e: Exception) { runOnUiThread { snack(this, "Gagal: ${e.message}") }; return@runBg }
-            runOnUiThread { after?.invoke(); paintConfig() }
         }
     }
 
