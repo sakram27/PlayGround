@@ -96,6 +96,12 @@ class MonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Restart sistem (START_STICKY, intent null) tiba tanpa Activity:
+        // muat konfigurasi tersimpan DULU agar sesi memakai pair/provider/
+        // strategi pengguna, bukan default dalam-memori, dan tulis prefs
+        // (sinyal/riwayat) tidak melempar. Tanpa autostart baru — pemicu
+        // tetap intent/start() + always_on hasil persetujuan pengguna.
+        try { App.init(this) } catch (e: Exception) { /* dicatat di lastError tick */ }
         NotifBus.init(this)
         NotifBus.ensureChannels(this)
     }

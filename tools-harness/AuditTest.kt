@@ -2120,6 +2120,10 @@ fun v28() {
         ok("m1-dash-regime", dash.contains("paintHero(); paintRegime()"))
         val ms = java.io.File("aether-app/app/src/main/java/com/aether/signal/premium/ui/MonitorService.kt").readText()
         ok("m2-svc-label", ms.contains("engineStatusLine(") && !ms.contains("pair OK · \${App.signals"))
+        // Restart sistem tanpa Activity: onCreate wajib memuat konfigurasi
+        // tersimpan (App.init) sebelum tick — cegah sesi zombie berkonfigurasi default.
+        ok("m2-svc-init", ms.contains("override fun onCreate()") && ms.contains("App.init(this)")
+            && ms.indexOf("App.init(this)") < ms.indexOf("override fun onStartCommand"))
         val lay = java.io.File("aether-app/app/src/main/res/layout/activity_dashboard.xml").readText()
         ok("m2-lay-engpairs", lay.contains("@+id/engPairs") && lay.contains("@+id/btnEngSync"))
     }
