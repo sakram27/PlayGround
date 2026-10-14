@@ -234,6 +234,10 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
         auto(R.id.spProv, listOf("binance", "bybit", "yahoo", "demo"), listOf("binance", "bybit", "yahoo", "demo").indexOf(App.provider).coerceAtLeast(0)) {
             App.provider = listOf("binance", "bybit", "yahoo", "demo")[it]; App.universe = emptyList(); refreshAll()
+            // Seleksi lama tak boleh ikut diam-diam bila tak valid di provider baru.
+            val dropped = App.pruneMultiSelForProvider(App.provider)
+            if (dropped.isNotEmpty()) snack(this, "Seleksi multi dirapikan untuk ${App.provider}: " +
+                "dihapus ${dropped.size} (${dropped.take(5).joinToString(", ")}) — tak cocok provider baru.")
         }
         auto(R.id.spTf, listOf("1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"),
             listOf("1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w").indexOf(App.timeframe).coerceAtLeast(0)) {
@@ -640,17 +644,20 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val v = layoutInflater.inflate(R.layout.sheet_pair, null)
             val srcLine = try {
                 val u = App.pairUniverse
-                if (u.matches(App.provider, kindFor(App.provider)))
+                if (u.matches(App.provider, universeKindFor(App.provider), App.watchLimit))
                     " · sumber: scan Market (${u.sourceLabel(System.currentTimeMillis())})" else ""
             } catch (e: Exception) { "" }
+            // Pool penuh universe + kustom (tanpa batas take(60) diam-diam:
+            // pair ke-61+ sebelumnya ada tapi tak bisa dipilih).
+            val pool = selectionPool(pairs, App.customPairs)
             v.findViewById<TextView>(R.id.sym).text = "Pilih Pair"
-            v.findViewById<TextView>(R.id.meta).text = "${pairs.size} tersedia · ${App.provider} · ketuk = pakai$srcLine"
+            v.findViewById<TextView>(R.id.meta).text = "${pool.size} tersedia · ${App.provider} · ketuk = pakai$srcLine"
             v.findViewById<View>(R.id.btnBacktest).visibility = View.GONE
             v.findViewById<View>(R.id.btnChart).visibility = View.GONE
             val list = ListView(this)
             list.choiceMode = ListView.CHOICE_MODE_SINGLE
             (v as android.view.ViewGroup).addView(list)
-            val shown = pairs.take(60)
+            val shown = pool
             list.adapter = IconCheckAdapter(this, shown, true)
             list.setItemChecked(shown.indexOf(App.pair).coerceAtLeast(0), true)
             (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
@@ -662,18 +669,15 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         }
     }
 
-    private fun kindFor(provider: String) =
-        if (provider == "yahoo") UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO
-
     /**
      * Sumber tunggal daftar pair (dipakai picker single, sheet multi,
-     * dan reload): snapshot scan Market bila provider+jenis cocok,
-     * selain itu bangun ulang dengan batas watchLimit + simpan snapshot.
+     * dan reload): snapshot scan Market bila provider+jenis+batas cocok,
+     * selain itu bangun ulang dengan batas yang diminta + simpan snapshot.
      * Callback di UI thread.
      */
     private fun loadSharedUniverse(limit: Int, after: (List<String>) -> Unit) {
         val snap = App.pairUniverse
-        if (snap.matches(App.provider, kindFor(App.provider))) {
+        if (snap.matches(App.provider, universeKindFor(App.provider), limit)) {
             App.universe = snap.pairs
             if (snap.isFallback) {
                 snack(this, "Universe dari scan Market (${snap.pairs.size} pair, DARURAT) — " +
@@ -686,11 +690,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         snack(this, "Memuat universe…")
         runBg {
             try {
-                val uni = if (App.provider == "yahoo") {
-                    UniverseResult(YAHOO_UNIVERSE.size, YAHOO_UNIVERSE.keys.toList(), false)
-                } else fetchUniverse(App.provider, limit)
+                // Batas watchLimit dihormati semua provider termasuk Yahoo
+                // (dulu cabang Yahoo mengabaikan batas → diminta 10 tampil 24).
+                val uni = fetchUniverse(App.provider, limit)
                 App.universe = uni.pairs
-                App.savePairUniverse(PairUniverse(App.provider, kindFor(App.provider),
+                App.savePairUniverse(PairUniverse(App.provider, universeKindFor(App.provider),
                     uni.requested, uni.pairs, uni.fallback, System.currentTimeMillis()))
                 runOnUiThread {
                     if (uni.fallback) {
@@ -704,14 +708,20 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     }
 
     private fun reloadUniverse(after: (() -> Unit)?) {
-        // Fallback tanpa snapshot: universe penuh 200 (perilaku lama) agar
-        // pengguna yang tak pernah buka Market tak menyusut diam-diam.
-        loadSharedUniverse(UNIVERSE_LIMIT) { after?.invoke() }
+        // Tanpa snapshot cocok: bangun ulang dengan batas watchLimit pengguna
+        // (konsisten dengan tampilan Market), bukan 200 tetap.
+        loadSharedUniverse(App.watchLimit) { after?.invoke() }
     }
 
     private fun openMultiSheet() {
         val ensure = { done: () -> Unit -> if (App.universe.isEmpty()) reloadUniverse(done) else done() }
         ensure {
+            // Seleksi tersimpan bisa berasal dari provider/jenis lain (mis. sisa
+            // crypto saat provider kini yahoo). Saring dulu agar tak terhitung
+            // diam-diam di "N selected" padahal tak terlihat di daftar.
+            val dropped = App.pruneMultiSelForProvider(App.provider)
+            if (dropped.isNotEmpty()) snack(this, "Seleksi tak cocok ${App.provider} dihapus: " +
+                "${dropped.size} (${dropped.take(5).joinToString(", ")}).")
             staged = LinkedHashSet(App.multiSel)
             val sh = BottomSheetDialog(this, R.style.SheetTheme)
             val root = layoutInflater.inflate(R.layout.sheet_multi, null)
@@ -722,14 +732,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             val cnt = root.findViewById<TextView>(R.id.count)
             // Pool = universe scan + kustom pengguna (tak ada di universe).
             // Kustom ikut dapat dipilih agar tak hilang diam-diam dari Backtest.
-            val pool = (App.customPairs.filter { !App.universe.contains(it) } + App.universe).toList()
+            val pool = selectionPool(App.universe, App.customPairs)
             val nCustom = pool.size - App.universe.size
-            // Sumber daftar = snapshot scan Market yang sama (provider+jenis cocok).
+            // Sumber daftar = snapshot scan Market yang sama (provider+jenis+batas cocok).
             val srcLine = try {
                 val u = App.pairUniverse
-                if (u.matches(App.provider, kindFor(App.provider)))
+                if (u.matches(App.provider, universeKindFor(App.provider), App.watchLimit))
                     "Sumber: scan Market (${u.sourceLabel(System.currentTimeMillis())})"
-                else "Sumber: muat ulang mandiri (scan Market beda provider/jenis)"
+                else "Sumber: muat ulang mandiri (scan Market beda provider/jenis/batas)"
             } catch (e: Exception) { "" }
             fun render() {
                 val q = search.text.toString().uppercase()
@@ -739,9 +749,12 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 // Sinkron visual: ListView tak me-rebind baris saat setItemChecked,
                 // dan root baris bukan Checkable — paksa gambar ulang.
                 (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
+                val outside = staged.filter { it !in pool }
                 cnt.text = "${staged.size} pairs selected" +
                     (if (srcLine.isNotEmpty()) "\n$srcLine" else "") +
-                    (if (nCustom > 0) "\ntermasuk $nCustom kustom" else "")
+                    (if (nCustom > 0) "\ntermasuk $nCustom kustom" else "") +
+                    (if (outside.isNotEmpty()) "\nPERINGATAN: ${outside.size} di luar daftar " +
+                        "aktif (${outside.take(5).joinToString(", ")})" else "")
             }
             list.onItemClickListener = AdapterView.OnItemClickListener { _, view, pos, _ ->
                 val q = search.text.toString().uppercase()
@@ -1048,9 +1061,15 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         // V34: komit suntingan field dulu (mode sentuh tak melepas fokus).
         commitRiskInputs()
         if (!dateRangeOk()) return
+        // Saring simbol yang tak valid untuk provider aktif (mis. sisa crypto
+        // saat provider yahoo) — jangan tercampur diam-diam ke mesin.
+        val droppedWrongProvider = App.pruneMultiSelForProvider(App.provider)
         if (App.universe.isEmpty()) { reloadUniverse { doMulti() }; return }
         val sel = App.universe.filter { App.multiSel.contains(it) } + App.multiSel.filter { !App.universe.contains(it) }
         if (sel.isEmpty()) { setStatus("Pilih minimal satu pair.", true); return }
+        if (droppedWrongProvider.isNotEmpty()) setStatus(
+            "Dilewati ${droppedWrongProvider.size} pair tak cocok provider ${App.provider}: " +
+                droppedWrongProvider.take(6).joinToString(", "), false)
         cancelled = false
         markRunning()
         clearEquityForNewRun("Menyiapkan multi-pair…")

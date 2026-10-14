@@ -104,30 +104,34 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
     private fun openEngPairSheet() {
         snack(this, "Memuat daftar pair…")
         runBg {
-            // Sumber tunggal dengan Market: snapshot scan terakhir bila cocok;
-            // selain itu bangun ulang + simpan snapshot (bukan daftar lepas).
+            // Sumber tunggal dengan Market: snapshot scan terakhir bila
+            // provider+jenis+batas cocok; selain itu bangun ulang dengan
+            // batas watchLimit + simpan snapshot (bukan daftar lepas).
+            // Jenis diturunkan dari id provider (universeKindFor), bukan
+            // hardcoded crypto — snapshot yahoo/forex ikut cocok.
             val snap = App.pairUniverse
             val base: List<String>
             val srcNote: String
-            if (snap.matches(App.provider, UNIVERSE_KIND_CRYPTO)) {
+            if (snap.matches(App.provider, universeKindFor(App.provider), App.watchLimit)) {
                 base = snap.pairs
                 srcNote = "scan Market (${snap.sourceLabel(System.currentTimeMillis())})"
             } else {
                 val uni = try {
-                    fetchUniverse(App.provider, UNIVERSE_LIMIT)
+                    fetchUniverse(App.provider, App.watchLimit)
                 } catch (e: Exception) {
-                    UniverseResult(UNIVERSE_LIMIT, FALLBACK_PAIRS, true, e.message)
+                    UniverseResult(App.watchLimit, FALLBACK_PAIRS, true, e.message)
                 }
                 base = uni.pairs
-                App.savePairUniverse(PairUniverse(App.provider, UNIVERSE_KIND_CRYPTO,
-                    UNIVERSE_LIMIT, base, uni.fallback, System.currentTimeMillis()))
+                App.savePairUniverse(PairUniverse(App.provider, universeKindFor(App.provider),
+                    uni.requested, base, uni.fallback, System.currentTimeMillis()))
                 srcNote = if (uni.fallback) "DARURAT ${base.size}/${uni.requested}"
                 else "segar ${base.size} pair"
             }
             if (snap.isFallback || base.isEmpty()) {
                 runOnUiThread { snack(this, "Universe darurat ${base.size} pair.") }
             }
-            val candidates = resolveEngineCandidates(App.engPairs, base)
+            val candidates = resolveEngineCandidates(App.engPairs,
+                selectionPool(base, App.customPairs))
             runOnUiThread {
                 val staged = LinkedHashSet(App.engPairs)
                 val sh = BottomSheetDialog(this, R.style.SheetTheme)

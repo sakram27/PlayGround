@@ -11,13 +11,10 @@ import com.aether.signal.premium.data.MARKET_DEFAULT_TF
 import com.aether.signal.premium.data.BACKTEST_TIMEFRAMES
 import com.aether.signal.premium.data.PROVIDER_IDS
 import com.aether.signal.premium.data.PROVIDER_LABELS
-import com.aether.signal.premium.data.YAHOO_UNIVERSE
-import com.aether.signal.premium.data.getCandles
+import com.aether.signal.premium.data.fetchUniverse
 import com.aether.signal.premium.data.getCandlesRetry
 import com.aether.signal.premium.data.classifyFetchError
 import com.aether.signal.premium.data.FetchResult
-import com.aether.signal.premium.data.topPairs
-import com.aether.signal.premium.data.topPairsWithSource
 import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.engine.*
 import com.google.android.material.button.MaterialButton
@@ -28,6 +25,10 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     override val contentLayout = R.layout.activity_market
     private var prov = "binance"
     private var forex = false
+    // Provider crypto terakhir (binance/bybit/demo) agar kembali dari mode
+    // Forex tak menyisakan prov="yahoo" — kategori & provider selalu sinkron.
+    private var lastCryptoProv = "binance"
+    private var segCat: MaterialButtonToggleGroup? = null
     private var tf = MARKET_DEFAULT_TF
     private var query = ""
     private var rows: List<MktRow> = emptyList()
@@ -59,7 +60,11 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     override fun build() {
         setBar("Markets", "Watchlist profesional")
         prov = App.provider
+        if (prov != "yahoo") lastCryptoProv = prov
+        // Kategori awal mengikuti provider aktif (yahoo = Forex), bukan selalu Crypto.
+        forex = App.provider == "yahoo"
         val seg = findViewById<MaterialButtonToggleGroup>(R.id.segCat)
+        segCat = seg
         seg.check(if (forex) R.id.segForex else R.id.segCrypto)
         seg.addOnButtonCheckedListener { _, id, checked ->
             if (checked) {
@@ -67,10 +72,23 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                 if (forex) {
                     // Forex/metal hanya tersedia di Yahoo: cerminkan pada dropdown,
                     // jangan diam-diam memakai provider lain.
+                    if (App.provider != "yahoo") lastCryptoProv = App.provider
                     prov = "yahoo"
-                    paintProv()
                     setStatus("Kategori Forex → provider Yahoo (Forex & Metal).")
+                } else {
+                    // Kembali ke crypto: pulihkan provider crypto terakhir
+                    // (dulu prov tertinggal "yahoo" → kategori Crypto pakai Yahoo).
+                    prov = if (lastCryptoProv == "yahoo") "binance" else lastCryptoProv
                 }
+                // Provider aktif global harus mengikuti kategori Market agar
+                // Backtest/Engine membaca sumber yang sama. Saring seleksi multi
+                // yang tak valid untuk provider baru (jangan campur crypto↔forex).
+                App.provider = prov
+                App.prefs.edit().putString("provider", prov).apply()
+                val dropped = App.pruneMultiSelForProvider(prov)
+                if (dropped.isNotEmpty()) snack("Seleksi multi dirapikan untuk $prov: " +
+                    "dihapus ${dropped.size} (${dropped.take(5).joinToString(", ")}).")
+                paintProv()
                 paintProvStatus()
                 load()
             }
@@ -131,9 +149,19 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
         v.setText(PROVIDER_LABELS[PROVIDER_IDS.indexOf(prov).coerceAtLeast(0)], false)
         v.setOnClickListener { v.showDropDown() }
         v.setOnItemClickListener { _, _, pos, _ ->
-            prov = PROVIDER_IDS[pos]
+            val picked = PROVIDER_IDS[pos]
+            // Provider yahoo = kategori Forex; selainnya = Crypto. Selaraskan
+            // toggle agar kategori & provider tak pernah bertentangan; toggle
+            // yang menangani penetapan App.provider + saring seleksi.
+            if (picked == "yahoo" && !forex) { segCat?.check(R.id.segForex); return@setOnItemClickListener }
+            if (picked != "yahoo" && forex) { lastCryptoProv = picked; segCat?.check(R.id.segCrypto); return@setOnItemClickListener }
+            if (picked != "yahoo") lastCryptoProv = picked
+            prov = picked
             App.provider = prov
             App.prefs.edit().putString("provider", prov).apply()
+            val dropped = App.pruneMultiSelForProvider(prov)
+            if (dropped.isNotEmpty()) snack(this, "Seleksi multi dirapikan untuk $prov: " +
+                "dihapus ${dropped.size} (${dropped.take(5).joinToString(", ")}).")
             v.setText(PROVIDER_LABELS[pos], false)
             paintProvStatus()
             setStatus("Provider ${PROVIDER_LABELS[pos]} · memuat ulang…")
@@ -185,35 +213,36 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                 // Jujur soal sumber daftar (B): tandai bila ini daftar darurat.
                 // C: gabung daftar bawaan (dibatasi watchLimit) + pair kustom pengguna.
                 val t0 = System.nanoTime()
-                val base = if (pr == "yahoo") {
-                    YAHOO_UNIVERSE.keys.toList() to false
-                } else {
-                    topPairsWithSource(pr, App.watchLimit)
-                }
+                // Batas watchLimit dihormati semua provider termasuk Yahoo
+                // (dulu cabang Yahoo mengabaikan batas → diminta 10 tampil 24).
+                val base = fetchUniverse(pr, App.watchLimit)
+                val basePair = base.pairs to base.fallback
                 App.recordHealth(pr, true, (System.nanoTime() - t0) / 1_000_000, null,
-                    "${base.first.size} pair")
-                val merged = ArrayList(base.first)
+                    "${basePair.first.size} pair")
+                val merged = ArrayList(basePair.first)
                 for (c in App.customPairs) {
                     val s = resolveCustom(c, pr)
                     if (s.isNotEmpty() && merged.none { it == s }) merged.add(s)
                 }
                 rows = merged.map { MktRow(it, pr) }
                 val pairs = merged
-                val isFallback = base.second
+                val isFallback = basePair.second
                 // Sumber tunggal: tulis hasil scan (daftar dasar provider +
                 // batas + fallback) agar Backtest/sheet Engine memakai daftar
                 // yang SAMA — bukan daftar independen yang kebetulan mirip.
                 // App.universe disinkron HANYA bila provider Market sama dengan
                 // provider tersimpan (mode forex Yahoo tidak mencemari universe
                 // crypto Backtest, dan sebaliknya).
+                // Jenis diturunkan dari id provider (universeKindFor), bukan
+                // dari toggle UI lokal, agar cocok dibaca semua layar.
                 App.savePairUniverse(PairUniverse(
                     provider = pr,
-                    kind = if (forex) UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO,
-                    limit = App.watchLimit, pairs = base.first,
+                    kind = universeKindFor(pr),
+                    limit = base.requested, pairs = basePair.first,
                     isFallback = isFallback, updatedAt = System.currentTimeMillis()))
-                if (pr == App.provider) App.universe = base.first.toList()
+                if (pr == App.provider) App.universe = basePair.first.toList()
                 lastScanReq = App.watchLimit
-                lastScanGot = base.first.size
+                lastScanGot = base.pairs.size
                 // A7: isi awal dari cache harga terakhir (berlabel basi, bukan live).
                 for (r in rows) {
                     App.getLastPrice(pr, r.sym, tf)?.let { lp ->
@@ -601,6 +630,9 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                     // P3: simbol + TF mengikuti pilihan Market (divalidasi, tanpa diam-diam diganti).
                     App.pair = r.sym; App.savePair(); App.provider = r.prov
                     App.prefs.edit().putString("provider", r.prov).apply()
+                    val dropped = App.pruneMultiSelForProvider(r.prov)
+                    if (dropped.isNotEmpty()) snack(this, "Seleksi multi dirapikan untuk ${r.prov}: " +
+                        "dihapus ${dropped.size} (${dropped.take(5).joinToString(", ")}).")
                     val tfOk = BACKTEST_TIMEFRAMES.contains(tf)
                     App.timeframe = if (tfOk) tf else App.timeframe
                     startActivity(Intent(this, BacktestActivity::class.java).apply {

@@ -403,6 +403,7 @@ fun validateCustomPair(raw: String, provider: String): Pair<String, String?> {
         "yahoo" -> {
             val y = yahooSymbol(t)
             if (y == null) "" to "\"$t\" tidak dikenal di Yahoo. Contoh valid: EUR/USD, USD/IDR, XAU/USD."
+            else if (!isForexLike(t)) "" to "\"$t\" tidak dikenali sebagai pasangan forex/metal di Yahoo (contoh valid: EUR/USD, XAU/USD)."
             else t.trim().uppercase() to null
         }
         "binance", "bybit", "demo" -> {

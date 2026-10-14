@@ -12,6 +12,7 @@ import com.aether.signal.premium.data.ProviderStats
 import com.aether.signal.premium.data.decodeHealth
 import com.aether.signal.premium.data.encodeHealth
 import com.aether.signal.premium.data.summarizeHealth
+import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.engine.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -179,6 +180,26 @@ object App {
     }
 
     fun savePair() = prefs.edit().putString("pair", pair).apply()    fun saveMulti() = prefs.edit().putStringSet("multipair", LinkedHashSet(multiSel)).apply()
+    /**
+     * Saring seleksi multi tersimpan saat provider berganti: simbol yang tak
+     * valid untuk provider baru dikeluarkan agar tak diproses diam-diam
+     * (tak terlihat di sheet tapi ikut dihitung). Mengembalikan daftar yang
+     * dibuang agar pemanggil melapor jujur; seleksi disimpan bila berubah.
+     */
+    fun pruneMultiSelForProvider(provider: String): List<String> {
+        val (kept, dropped) = pruneSelectionForProvider(multiSel, provider) { s, p ->
+            try {
+                validateCustomPair(s, p).second == null
+            } catch (e: Exception) {
+                false
+            }
+        }
+        if (dropped.isNotEmpty()) {
+            multiSel = LinkedHashSet(kept)
+            saveMulti()
+        }
+        return dropped
+    }
     fun saveStrategy() = prefs.edit().putString("strategy", strategy).apply()
     fun saveEngPairs() = prefs.edit().putStringSet("engpairs", LinkedHashSet(engPairs)).apply()
     // V28: sinkronisasi EKSPLISIT pair Backtest → Engine. Hanya dipanggil dari

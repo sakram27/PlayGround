@@ -6,7 +6,7 @@ import android.widget.TextView
 import com.aether.signal.premium.R
 import com.aether.signal.premium.data.fetchHistory
 import com.aether.signal.premium.data.getCandles
-import com.aether.signal.premium.data.topPairs
+import com.aether.signal.premium.data.topPairsWithSource
 import com.aether.signal.premium.data.PROVIDER_IDS
 import com.aether.signal.premium.data.PROVIDER_LABELS
 import com.aether.signal.premium.data.providerSupports
@@ -29,7 +29,12 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             setSimpleItems(provs.toTypedArray())
             setText(App.provider, false)
             setOnClickListener { showDropDown() }
-            setOnItemClickListener { _, _, pos, _ -> App.provider = provs[pos] }
+            setOnItemClickListener { _, _, pos, _ ->
+                App.provider = provs[pos]
+                val dropped = App.pruneMultiSelForProvider(provs[pos])
+                if (dropped.isNotEmpty()) snack("Seleksi multi dirapikan untuk ${provs[pos]}: " +
+                    "dihapus ${dropped.size} (${dropped.take(5).joinToString(", ")}).")
+            }
         }
         findViewById<MaterialButton>(R.id.btnSave).setOnClickListener {
             App.prefs.edit().putString("provider", App.provider).apply()
@@ -494,7 +499,13 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
     /** Terapkan atomik setelah persetujuan (P11). */
     private fun applyImport(plan: ImportPlan) {
         try {
-            plan.provider?.let { App.provider = it }
+            var journalMsg = ""
+            plan.provider?.let {
+                App.provider = it
+                val dropped = App.pruneMultiSelForProvider(it)
+                if (dropped.isNotEmpty()) journalMsg +=
+                    " Seleksi multi dirapikan: ${dropped.size} pair tak cocok provider baru dihapus."
+            }
             plan.strategy?.let { App.strategy = it }
             plan.timeframe?.let { App.timeframe = it }
             App.customPairs = LinkedHashSet(plan.customPairs)
@@ -528,7 +539,6 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
             }
             // F8: jurnal digabung (lokal menang atas id ganda) — tak pernah hapus
             // jurnal lama tanpa persetujuan; persetujuan sudah diberikan via dialog.
-            var journalMsg = ""
             if (plan.journal.isNotEmpty()) {
                 val (merged, added, skipped) = mergeJournal(App.journal, plan.journal)
                 App.applyJournalMerge(merged)
@@ -560,8 +570,20 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
                     rows.add(SigItem("××", name, msg.take(60), ""))
                 }
             }
-            t("Binance", "binance") { val j = topPairs("binance", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
-            t("Bybit", "bybit") { val j = topPairs("bybit", 1); if (j.isEmpty()) throw RuntimeException("daftar kosong"); j[0] }
+            // Jujur soal fallback: daftar darurat = provider tak terjangkau,
+            // dilaporkan gagal — bukan "OK" palsu (topPairs menelan error).
+            t("Binance", "binance") {
+                val (j, fb) = topPairsWithSource("binance", 1)
+                if (j.isEmpty()) throw RuntimeException("daftar kosong")
+                if (fb) throw RuntimeException("tak terjangkau — hanya daftar darurat: ${j[0]}")
+                j[0]
+            }
+            t("Bybit", "bybit") {
+                val (j, fb) = topPairsWithSource("bybit", 1)
+                if (j.isEmpty()) throw RuntimeException("daftar kosong")
+                if (fb) throw RuntimeException("tak terjangkau — hanya daftar darurat: ${j[0]}")
+                j[0]
+            }
             t("Yahoo", "yahoo") { val c = getCandles("yahoo", "EUR/USD", "1h", 60); "${c.candles.size}c EUR/USD" }
             t("Demo", "demo") { val c = getCandles("demo", "BTCUSDT", "15m", 60); "${c.candles.size}c lokal" }
             runOnUiThread {

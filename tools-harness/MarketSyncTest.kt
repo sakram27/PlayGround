@@ -94,6 +94,57 @@ fun main() {
         smok("sync-g-gagal", b.ticks.keys == setOf("A") && b.missing == listOf("B"))
     }
 
+    // ===== Batas ikut menentukan kecocokan snapshot (limit lama ≠ hasil baru) =====
+    run {
+        val u50 = PairUniverse("binance", UNIVERSE_KIND_CRYPTO, 50,
+            (1..50).map { "P$it" }, false, 1L)
+        smok("u-match-limit-sama", u50.matches("binance", UNIVERSE_KIND_CRYPTO, 50))
+        smok("u-match-limit-beda", !u50.matches("binance", UNIVERSE_KIND_CRYPTO, 100) &&
+            !u50.matches("binance", UNIVERSE_KIND_CRYPTO, 10))
+        smok("u-match-kosong-tolak", PairUniverse("binance", UNIVERSE_KIND_CRYPTO, 50,
+            emptyList(), false, 1L).matches("binance", UNIVERSE_KIND_CRYPTO, 50) == false)
+    }
+
+    // ===== Jenis diturunkan dari id provider (tunggal di semua layar) =====
+    smok("u-kind", universeKindFor("binance") == UNIVERSE_KIND_CRYPTO &&
+        universeKindFor("bybit") == UNIVERSE_KIND_CRYPTO &&
+        universeKindFor("demo") == UNIVERSE_KIND_CRYPTO &&
+        universeKindFor("yahoo") == UNIVERSE_KIND_FOREX)
+
+    // ===== Pool sheet: universe + kustom-luar-universe, tanpa duplikat =====
+    smok("u-pool", selectionPool(listOf("A", "B"), setOf("B", "C")) == listOf("C", "A", "B") &&
+        selectionPool(emptyList(), setOf("X")) == listOf("X") &&
+        selectionPool(listOf("A"), emptySet()) == listOf("A"))
+
+    // ===== Yahoo menghormati batas (dulu selalu full 24 apa pun limitnya) =====
+    run {
+        val y10 = fetchUniverse("yahoo", 10)
+        smok("u-yahoo-limit", !y10.fallback && y10.requested == 10 &&
+            y10.pairs.size == 10 && y10.pairs.size == y10.pairs.distinct().size,
+            "n=${y10.pairs.size}")
+    }
+
+    // ===== Ganti provider: seleksi tak-valid dikeluarkan dengan laporan =====
+    run {
+        val isValid = { s: String, p: String ->
+            try {
+                validateCustomPair(s, p).second == null
+            } catch (e: Exception) {
+                false
+            }
+        }
+        val (kept1, drop1) = pruneSelectionForProvider(
+            setOf("BTCUSDT", "EUR/USD", "XAU/USD"), "binance", isValid)
+        smok("u-prune-binance", kept1 == listOf("BTCUSDT") &&
+            drop1.toSet() == setOf("EUR/USD", "XAU/USD"), "drop=$drop1")
+        val (kept2, drop2) = pruneSelectionForProvider(
+            setOf("BTCUSDT", "EUR/USD", "XAU/USD"), "yahoo", isValid)
+        smok("u-prune-yahoo", drop2.contains("BTCUSDT") &&
+            kept2.containsAll(listOf("EUR/USD", "XAU/USD")), "kept=$kept2")
+        val (kept3, drop3) = pruneSelectionForProvider(emptySet(), "binance", isValid)
+        smok("u-prune-kosong", kept3.isEmpty() && drop3.isEmpty())
+    }
+
     println("MARKET-SYNC done pass=$smpass fail=$smfail")
     if (smfail > 0) kotlin.system.exitProcess(1)
 }

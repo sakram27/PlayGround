@@ -102,6 +102,17 @@ val WATCH_LIMIT_OPTIONS = listOf(10, 20, 30, 50, 100, 150, 200)
 const val UNIVERSE_KIND_CRYPTO = "crypto"
 const val UNIVERSE_KIND_FOREX = "forex"
 
+/**
+ * SATU-SATUNYA penentu jenis universe dari id provider.
+ * Dipakai Market, Backtest, dan sheet Engine agar snapshot yang ditulis
+ * satu layar selalu cocok dibaca layar lain untuk provider yang sama.
+ * (Bug: Market dulu menurunkan jenis dari toggle UI lokal `forex`,
+ * sehingga snapshot yahoo/crypto tak pernah cocok dengan Backtest
+ * yang menurunkan dari id provider → rebuild sia-sia + pesan keliru.)
+ */
+fun universeKindFor(provider: String): String =
+    if (provider == "yahoo") UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO
+
 data class PairUniverse(
     val provider: String = "",
     val kind: String = UNIVERSE_KIND_CRYPTO,
@@ -110,9 +121,17 @@ data class PairUniverse(
     val isFallback: Boolean = false,
     val updatedAt: Long = 0L
 ) {
-    /** Cocok untuk konfigurasi pemindaian saat ini (provider+jenis). */
+    /** Cocok untuk konfigurasi pemindaian saat ini (provider+jenis+batas).
+     *  Batas ikut dibandingkan: snapshot limit-50 tidak boleh dipakai sebagai
+     *  hasil scan limit-100 (data lama bukan hasil terbaru). */
+    fun matches(provider: String, kind: String, limit: Int): Boolean =
+        this.provider == provider && this.kind == kind &&
+            this.limit == limit && pairs.isNotEmpty()
+
+    /** Kompatibilitas baca: snapshot lama tanpa batas dianggap cocok bila
+     *  provider+jenis sama (dipakai migrasi satu arah). */
     fun matches(provider: String, kind: String): Boolean =
-        this.provider == provider && this.kind == kind && pairs.isNotEmpty()
+        matches(provider, kind, this.limit)
 
     /** Label jujur untuk header sheet (sumber + umur + fallback). */
     fun sourceLabel(nowMs: Long): String {
@@ -131,6 +150,33 @@ fun resolveBacktestSel(
     for (s in universe) if (multiSel.contains(s)) sel.add(s)
     for (s in multiSel) if (!universe.contains(s)) sel.add(s)
     return sel.toList()
+}
+
+/**
+ * Pool daftar pair untuk sheet pemilih (single & multi & Engine):
+ * universe scan + kustom pengguna yang tak ada di universe.
+ * Kustom ikut dapat dipilih agar tak hilang diam-diam dari Backtest.
+ */
+fun selectionPool(universe: List<String>, customs: Set<String>): List<String> =
+    (customs.filter { !universe.contains(it) } + universe).toList()
+
+/**
+ * Saring seleksi tersimpan saat provider berganti: hanya simbol yang valid
+ * untuk provider baru yang dipertahankan (aturan validateCustomPair:
+ * format + forex-vs-crypto + quote). Mengembalikan (dipertahankan, dibuang)
+ * agar pemanggil melapor jujur, bukan menghapus diam-diam.
+ */
+fun pruneSelectionForProvider(
+    sel: Set<String>,
+    provider: String,
+    isValid: (String, String) -> Boolean
+): Pair<List<String>, List<String>> {
+    val kept = ArrayList<String>()
+    val dropped = ArrayList<String>()
+    for (s in sel) {
+        if (s.isNotBlank() && isValid(s, provider)) kept.add(s) else dropped.add(s)
+    }
+    return kept to dropped
 }
 
 /** Kandidat sheet Engine = pair Engine saat ini + universe (urutan deterministik). */
