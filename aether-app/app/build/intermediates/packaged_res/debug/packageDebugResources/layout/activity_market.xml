@@ -91,7 +91,7 @@
                     android:gravity="center_vertical">
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" style="@style/Field" android:hint="Jumlah tampil (maks 30)">
+                        android:layout_weight="1" style="@style/Field" android:hint="Jumlah tampil (maks 200)">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inWatchLimit" android:layout_width="match_parent"
                             android:layout_height="wrap_content" android:inputType="number"
@@ -102,6 +102,15 @@
                         android:layout_height="wrap_content" android:text="Terapkan"
                         style="@style/BtnViolet" />
                 </LinearLayout>
+                <HorizontalScrollView android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    android:scrollbars="none">
+                    <LinearLayout android:id="@+id/limitChips" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:orientation="horizontal" />
+                </HorizontalScrollView>
+                <TextView android:id="@+id/freshStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <Button android:id="@+id/btnAddPair" android:layout_width="0dp"

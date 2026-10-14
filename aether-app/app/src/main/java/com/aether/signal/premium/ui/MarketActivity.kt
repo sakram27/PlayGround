@@ -46,6 +46,9 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private var lastRefreshAt: Long = 0L
     private var lastRefreshOk: Int = 0
     private var lastRefreshTotal: Int = 0
+    // Ringkasan scan terakhir (TAHAP 3): diminta vs diterima provider.
+    private var lastScanReq: Int = 0
+    private var lastScanGot: Int = 0
 
     /** Normalisasi simbol kustom sesuai provider aktif (C). */
     private fun resolveCustom(sym: String, pr: String): String =
@@ -200,11 +203,17 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                 // Sumber tunggal: tulis hasil scan (daftar dasar provider +
                 // batas + fallback) agar Backtest/sheet Engine memakai daftar
                 // yang SAMA — bukan daftar independen yang kebetulan mirip.
+                // App.universe disinkron HANYA bila provider Market sama dengan
+                // provider tersimpan (mode forex Yahoo tidak mencemari universe
+                // crypto Backtest, dan sebaliknya).
                 App.savePairUniverse(PairUniverse(
                     provider = pr,
                     kind = if (forex) UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO,
                     limit = App.watchLimit, pairs = base.first,
                     isFallback = isFallback, updatedAt = System.currentTimeMillis()))
+                if (pr == App.provider) App.universe = base.first.toList()
+                lastScanReq = App.watchLimit
+                lastScanGot = base.first.size
                 // A7: isi awal dari cache harga terakhir (berlabel basi, bukan live).
                 for (r in rows) {
                     App.getLastPrice(pr, r.sym, tf)?.let { lp ->
@@ -418,7 +427,8 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                         val live = rows.count { it.err == null && !it.stale }
                         val cached = rows.count { it.stale && it.price != "—" }
                         val failed = rows.count { it.err != null && it.price == "—" }
-                        if (live + cached > 0) setStatus("$live live · $cached cache · $failed gagal / $total · $tf · klik = detail")
+                        if (live + cached > 0) setStatus("$live live · $cached cache · $failed gagal / $total · $tf · klik = detail" +
+                            " · scan diminta $lastScanReq, daftar $lastScanGot")
                         else {
                             setStatus("Semua pair gagal — coba Demo/Yahoo atau Coba lagi.")
                             findViewById<View>(R.id.btnRetry).visibility = View.VISIBLE

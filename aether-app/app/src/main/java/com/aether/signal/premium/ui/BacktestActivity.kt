@@ -632,70 +632,81 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         App.saveFilters()
     }
 
-    // ---------- pair pickers ----------
+    // ---------- pair pickers (sumber tunggal: snapshot scan Market) ----------
     private fun pickSinglePair() {
         snack(this, "Memuat daftar pair…")
-        runBg {
-            val pairs = try {
-                if (App.provider == "yahoo") YAHOO_UNIVERSE.keys.toList() else topPairs(App.provider, 50)
-            } catch (e: Exception) { listOf("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT") }
-            runOnUiThread {
-                val sh = com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.SheetTheme)
-                val v = layoutInflater.inflate(R.layout.sheet_pair, null)
-                v.findViewById<TextView>(R.id.sym).text = "Pilih Pair"
-                v.findViewById<TextView>(R.id.meta).text = "${pairs.size} tersedia · ${App.provider} · ketuk = pakai"
-                v.findViewById<View>(R.id.btnBacktest).visibility = View.GONE
-                v.findViewById<View>(R.id.btnChart).visibility = View.GONE
-                val list = ListView(this)
-                list.choiceMode = ListView.CHOICE_MODE_SINGLE
-                (v as android.view.ViewGroup).addView(list)
-                val shown = pairs.take(60)
-                list.adapter = IconCheckAdapter(this, shown, true)
-                list.setItemChecked(shown.indexOf(App.pair).coerceAtLeast(0), true)
-                (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
-                list.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
-                    App.pair = shown[pos]; App.savePair(); sh.dismiss(); paintConfig(); paintQuick()
-                }
-                sh.setContentView(v)
-                sh.show()
+        loadSharedUniverse(App.watchLimit) { pairs ->
+            val sh = com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.SheetTheme)
+            val v = layoutInflater.inflate(R.layout.sheet_pair, null)
+            val srcLine = try {
+                val u = App.pairUniverse
+                if (u.matches(App.provider, kindFor(App.provider)))
+                    " · sumber: scan Market (${u.sourceLabel(System.currentTimeMillis())})" else ""
+            } catch (e: Exception) { "" }
+            v.findViewById<TextView>(R.id.sym).text = "Pilih Pair"
+            v.findViewById<TextView>(R.id.meta).text = "${pairs.size} tersedia · ${App.provider} · ketuk = pakai$srcLine"
+            v.findViewById<View>(R.id.btnBacktest).visibility = View.GONE
+            v.findViewById<View>(R.id.btnChart).visibility = View.GONE
+            val list = ListView(this)
+            list.choiceMode = ListView.CHOICE_MODE_SINGLE
+            (v as android.view.ViewGroup).addView(list)
+            val shown = pairs.take(60)
+            list.adapter = IconCheckAdapter(this, shown, true)
+            list.setItemChecked(shown.indexOf(App.pair).coerceAtLeast(0), true)
+            (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
+            list.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
+                App.pair = shown[pos]; App.savePair(); sh.dismiss(); paintConfig(); paintQuick()
             }
+            sh.setContentView(v)
+            sh.show()
         }
     }
 
-    private fun reloadUniverse(after: (() -> Unit)?) {
+    private fun kindFor(provider: String) =
+        if (provider == "yahoo") UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO
+
+    /**
+     * Sumber tunggal daftar pair (dipakai picker single, sheet multi,
+     * dan reload): snapshot scan Market bila provider+jenis cocok,
+     * selain itu bangun ulang dengan batas watchLimit + simpan snapshot.
+     * Callback di UI thread.
+     */
+    private fun loadSharedUniverse(limit: Int, after: (List<String>) -> Unit) {
+        val snap = App.pairUniverse
+        if (snap.matches(App.provider, kindFor(App.provider))) {
+            App.universe = snap.pairs
+            if (snap.isFallback) {
+                snack(this, "Universe dari scan Market (${snap.pairs.size} pair, DARURAT) — " +
+                    "buka Market untuk scan ulang bila perlu.")
+            }
+            paintConfig()
+            after(snap.pairs)
+            return
+        }
         snack(this, "Memuat universe…")
         runBg {
             try {
-                // Sumber tunggal dengan Market: pakai snapshot scan terakhir bila
-                // provider+jenis cocok (daftar SAMA yang tampil di Market);
-                // selain itu bangun ulang dengan batas watchLimit yang sama.
-                val kind = UNIVERSE_KIND_CRYPTO
-                val snap = App.pairUniverse
-                if (snap.matches(App.provider, kind)) {
-                    App.universe = snap.pairs
-                    runOnUiThread {
-                        if (snap.isFallback) {
-                            snack(this, "Universe dari scan Market (${snap.pairs.size} pair, DARURAT) — " +
-                                "buka Market untuk scan ulang bila perlu.")
-                        }
-                        after?.invoke(); paintConfig()
-                    }
-                    return@runBg
-                }
-                // Tahap 5F: hingga UNIVERSE_LIMIT (200) dengan laporan diminta vs diterima.
-                val uni = fetchUniverse(App.provider, UNIVERSE_LIMIT)
+                val uni = if (App.provider == "yahoo") {
+                    UniverseResult(YAHOO_UNIVERSE.size, YAHOO_UNIVERSE.keys.toList(), false)
+                } else fetchUniverse(App.provider, limit)
                 App.universe = uni.pairs
-                App.savePairUniverse(PairUniverse(App.provider, kind, UNIVERSE_LIMIT,
-                    uni.pairs, uni.fallback, System.currentTimeMillis()))
+                App.savePairUniverse(PairUniverse(App.provider, kindFor(App.provider),
+                    uni.requested, uni.pairs, uni.fallback, System.currentTimeMillis()))
                 runOnUiThread {
                     if (uni.fallback) {
                         snack(this, "Universe gagal dimuat (${uni.error?.take(80)}?) — " +
                             "memakai daftar darurat ${uni.pairs.size}/${uni.requested} pair.")
                     }
-                    after?.invoke(); paintConfig()
+                    after(uni.pairs); paintConfig()
                 }
             } catch (e: Exception) { runOnUiThread { snack(this, "Gagal: ${e.message}") }; return@runBg }
         }
+    }
+
+    private fun reloadUniverse(after: (() -> Unit)?) {
+        // Fallback tanpa snapshot: universe penuh 200 (perilaku lama) agar
+        // pengguna yang tak pernah buka Market tak menyusut diam-diam.
+        loadSharedUniverse(UNIVERSE_LIMIT) { after?.invoke() }
     }
 
     private fun openMultiSheet() {
@@ -709,27 +720,32 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             list.fixScrollConflict()
             list.choiceMode = ListView.CHOICE_MODE_MULTIPLE
             val cnt = root.findViewById<TextView>(R.id.count)
+            // Pool = universe scan + kustom pengguna (tak ada di universe).
+            // Kustom ikut dapat dipilih agar tak hilang diam-diam dari Backtest.
+            val pool = (App.customPairs.filter { !App.universe.contains(it) } + App.universe).toList()
+            val nCustom = pool.size - App.universe.size
             // Sumber daftar = snapshot scan Market yang sama (provider+jenis cocok).
             val srcLine = try {
                 val u = App.pairUniverse
-                if (u.matches(App.provider, UNIVERSE_KIND_CRYPTO))
+                if (u.matches(App.provider, kindFor(App.provider)))
                     "Sumber: scan Market (${u.sourceLabel(System.currentTimeMillis())})"
                 else "Sumber: muat ulang mandiri (scan Market beda provider/jenis)"
             } catch (e: Exception) { "" }
             fun render() {
                 val q = search.text.toString().uppercase()
-                val vis = App.universe.filter { q.isEmpty() || it.contains(q) }
+                val vis = pool.filter { q.isEmpty() || it.contains(q) }
                 list.adapter = IconCheckAdapter(this, vis, false)
                 vis.forEachIndexed { i, s -> list.setItemChecked(i, staged.contains(s)) }
                 // Sinkron visual: ListView tak me-rebind baris saat setItemChecked,
                 // dan root baris bukan Checkable — paksa gambar ulang.
                 (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
                 cnt.text = "${staged.size} pairs selected" +
-                    (if (srcLine.isNotEmpty()) "\n$srcLine" else "")
+                    (if (srcLine.isNotEmpty()) "\n$srcLine" else "") +
+                    (if (nCustom > 0) "\ntermasuk $nCustom kustom" else "")
             }
             list.onItemClickListener = AdapterView.OnItemClickListener { _, view, pos, _ ->
                 val q = search.text.toString().uppercase()
-                val vis = App.universe.filter { q.isEmpty() || it.contains(q) }
+                val vis = pool.filter { q.isEmpty() || it.contains(q) }
                 val s = vis.getOrNull(pos) ?: return@OnItemClickListener
                 if (list.isItemChecked(pos)) staged.add(s) else staged.remove(s)
                 // Perbarui centang baris ini langsung (tanpa tunggu rebind).
@@ -741,7 +757,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             render()
             root.findViewById<View>(R.id.btnAll).setOnClickListener {
                 val q = search.text.toString().uppercase()
-                App.universe.filter { q.isEmpty() || it.contains(q) }.forEach { staged.add(it) }
+                pool.filter { q.isEmpty() || it.contains(q) }.forEach { staged.add(it) }
                 render()
             }
             root.findViewById<View>(R.id.btnClear).setOnClickListener { staged.clear(); render() }
