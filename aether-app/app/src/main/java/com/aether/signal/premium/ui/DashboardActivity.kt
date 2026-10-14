@@ -187,7 +187,9 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
                 return
             }
             val now = System.currentTimeMillis()
-            tv.text = App.engPairs.take(8).joinToString("\n") { sym ->
+            // Maks 12 baris: menampung 9 pair + cadangan (sebelumnya 8
+            // memotong pair ke-9 dari panel KONDISI PASAR).
+            tv.text = App.engPairs.take(12).joinToString("\n") { sym ->
                 regimeLine(sym, App.regimeDiag[sym], App.regime[sym], App.engRunning, now)
             }
         } catch (e: Exception) { /* abaikan */ }

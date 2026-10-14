@@ -1797,6 +1797,16 @@ fun main() {
             pairErrors = listOf("ETHUSDT" to "timeout")), "ema_trend", "15m", "binance",
             true, true, false, 0, 0, 0, 15, 60000L)
         ok("diag-error", tErr.contains("ERROR") && tErr.contains("ETHUSDT: timeout"))
+        // Akses diagnostik 9 pair: vonis pair ke-9 tak boleh terpotong.
+        val nine = (1..9).map { "P$it" to "NO_CANDIDATE" }
+        val t9 = formatEngineDiag(
+            snap(true).copy(
+                pairs = nine.map { it.first },
+                pairVerdicts = nine.map { PairVerdict(it.first, it.second, "det-${it.first}") }
+            ), "ema_trend", "15m", "binance",
+            true, true, false, 0, 0, 0, 15, 60000L)
+        ok("diag-9pair", nine.all { (s, _) -> t9.contains("$s=NO_CANDIDATE") },
+            t9.substringAfter("Per pair:").take(120))
     }
     run {
         EngineDiag.beginTick()

@@ -350,9 +350,10 @@ fun formatEngineDiag(
     if (snap.pairErrors.isNotEmpty()) {
         b.append("\nGagal: " + snap.pairErrors.take(3).joinToString(" · ") { "${it.first}: ${it.second}" })
     }
-    // Tahap 4/G: vonis per pair (maks 8 baris agar panel tetap ringkas).
+    // Tahap 4/G: vonis per pair (maks 12 baris: menampung 9 pair +
+    // cadangan; tetap ringkas, bukan dump tak terbatas).
     if (snap.pairVerdicts.isNotEmpty()) {
-        b.append("\nPer pair: " + snap.pairVerdicts.take(8).joinToString(" · ") { v ->
+        b.append("\nPer pair: " + snap.pairVerdicts.take(12).joinToString(" · ") { v ->
             v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(40)})" else ""
         })
     }
