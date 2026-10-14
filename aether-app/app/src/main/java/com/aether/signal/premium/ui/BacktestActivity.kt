@@ -1203,7 +1203,11 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             }
             MonitorBus.pairProgress(monId, done, "")
             runOnUiThread { paintQuick(); paintChart(); paintResult() }
-            setStatus("$overall: $okN of ${rows.size} pairs processed successfully", okN == 0)
+            // Status jujur: dipilih vs diproses vs berhasil/gagal + status run
+            // + status snapshot Engine (hanya SUCCESS yang menyimpan snapshot).
+            val failed = rows.filter { it.err != null || it.res?.error != null }
+            setStatus(multiRunStatus(sel.size, rows.size, okN,
+                failed.map { it.sym }, overall, overall == "SUCCESS" && !wasCancelled), okN == 0)
             finishRun()
         }
     }
@@ -1256,11 +1260,23 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
     private fun paintChart() {
         val r = App.result
         if (App.multiRows.isNotEmpty()) {
-            val cmb = buildCombinedEquity(App.multiRows, App.params?.initialCapital ?: 1000.0)
-            // V30: label parsial jujur bila run dibatalkan (App.result = error).
-            val partial = if (r?.error?.contains("Batal") == true) " (parsial — dibatalkan)" else ""
-            paintEquityCurve(cmb.curve, App.params?.initialCapital ?: 1000.0,
-                "Gabungan ${cmb.n} transaksi$partial")
+            // Sumber tunggal dengan ringkasan: kurva memakai equity curve
+            // portofolio global bila tersedia (basis sama dengan hero/KV/
+            // tabel transaksi); fallback standalone hanya bila portofolio
+            // gagal — selalu berlabel agar dua basis tak tertukar.
+            // Jangan tampilkan kurva portofolio basi bila run terakhir
+            // dibatalkan/gagal (App.portfolio milik run sukses sebelumnya).
+            val pf = App.portfolio?.takeIf { it.error == null && r?.error == null }
+            if (pf != null) {
+                paintEquityCurve(pf.equityCurve, pf.initialCapital,
+                    "Portofolio ${pf.totalTrades} transaksi (batas global)")
+            } else {
+                val cmb = buildCombinedEquity(App.multiRows, App.params?.initialCapital ?: 1000.0)
+                // V30: label parsial jujur bila run dibatalkan (App.result = error).
+                val partial = if (r?.error?.contains("Batal") == true) " (parsial — dibatalkan)" else ""
+                paintEquityCurve(cmb.curve, App.params?.initialCapital ?: 1000.0,
+                    "Gabungan ${cmb.n} transaksi$partial (mandiri per-pair)")
+            }
         } else {
             val eq = r?.equityCurve ?: emptyList()
             paintEquityCurve(eq, r?.initialCapital ?: (App.params?.initialCapital ?: 1000.0),
@@ -1379,11 +1395,14 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             text = if (hNoTr && agg == null) mQ(r.netProfit, r.asset) else mQ(hNet, hAsset)
             setTextColor(if (hNoTr) 0xFFF1F5F9.toInt() else if (hNet >= 0) 0xFF10B981.toInt() else 0xFFF87171.toInt())
         }
+        // Basis agregat dinyatakan eksplisit: portofolio (batas global) vs
+        // mandiri per-pair — metrik dua basis tidak boleh tertukar.
+        val basisTag = if (agg == null) "" else if (pf != null) " · portofolio" else " · mandiri"
         findViewById<TextView>(R.id.heroSub).text =
-            (if (agg != null) "MULTI (${App.multiRows.size} pair)" else "${r.asset} ${r.timeframe} · ${r.strategy}") +
+            (if (agg != null) "MULTI (${App.multiRows.size} pair)$basisTag" else "${r.asset} ${r.timeframe} · ${r.strategy}") +
             " · ${if (hNoTr) "NO TRADES" else "Win " + App.fmt(hWR, 1) + "%"} · PF ${App.fmtD(hPF)} · DD ${App.fmt(hDD)}%"
         findViewById<TextView>(R.id.sumLine).text =
-            (if (agg != null) "Gabungan ${agg.pairsOk}/${App.multiRows.size} pair · " else "") +
+            (if (agg != null) "Gabungan ${agg.pairsOk}/${App.multiRows.size} pair$basisTag · " else "") +
             "Net ${App.fmt(if (agg != null) (if (r.initialCapital != 0.0) hNet / r.initialCapital * 100 else 0.0) else r.netProfitPercent)}% · " +
             "Final ${mQ(r.initialCapital + hNet, hAsset)} · TP: ${tpModeLabel(App.lastTpMode)}"
         // V30: nama lengkap Indonesia + singkatan; kategori pnl (untung/rugi/
@@ -1614,7 +1633,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             vertical(this@BacktestActivity)
             adapter = SigAdapter(page.mapIndexed { k, t ->
                 SigItem(t.direction, "${tradePage * per + k + 1}. ${t.asset}",
-                    "${App.fmtT(t.exitTime)} · in ${App.fmt(t.entry, 4)} out ${App.fmt(t.exit, 4)} · R ${App.fmt(t.rMultiple)} · ${t.result}",
+                    "${App.fmtT(t.exitTime)} · in ${App.fmtPx(t.entry)} out ${App.fmtPx(t.exit)} · R ${App.fmt(t.rMultiple)} · ${t.result}",
                     mQ(t.pnl, t.asset), t.asset)
             }, onClick = { pos -> if (pos in page.indices) openTradeDetail(page[pos]) })
         }
@@ -2030,9 +2049,9 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         val notes = notesForTrade(App.journal, key)
         val msg = StringBuilder()
         msg.append("${t.direction} ${t.asset}${if (t.timeframe.isNotEmpty()) " · ${t.timeframe}" else ""}\n")
-        msg.append("Masuk ${App.fmtT(t.entryTime)} @ ${App.fmt(t.entry, 4)}\n")
-        msg.append("Keluar ${App.fmtT(t.exitTime)} @ ${App.fmt(t.exit, 4)}\n")
-        msg.append("SL ${App.fmt(t.stopLoss, 4)} · TP ${App.fmt(t.takeProfit, 4)}\n")
+        msg.append("Masuk ${App.fmtT(t.entryTime)} @ ${App.fmtPx(t.entry)}\n")
+        msg.append("Keluar ${App.fmtT(t.exitTime)} @ ${App.fmtPx(t.exit)}\n")
+        msg.append("SL ${App.fmtPx(t.stopLoss)} · TP ${App.fmtPx(t.takeProfit)}\n")
         msg.append("R ${App.fmt(t.rMultiple)} · ${t.result} · PnL ${mQ(t.pnl, t.asset)}\n\n")
         if (notes.isEmpty()) {
             msg.append("Belum ada catatan jurnal untuk transaksi ini.")

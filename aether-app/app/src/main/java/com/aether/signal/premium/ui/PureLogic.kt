@@ -193,3 +193,20 @@ fun buildHistCsv(trades: List<com.aether.signal.premium.engine.Trade>): String {
     }
     return sb.toString()
 }
+
+/**
+ * Murni & teruji JVM: ringkasan status run multi-pair untuk UI.
+ * Membedakan dipilih/diproses/berhasil/gagal + status run + status snapshot
+ * Engine (snapshot hanya disimpan bila SUCCESS penuh).
+ */
+fun multiRunStatus(
+    selected: Int, processed: Int, ok: Int, failedSyms: List<String>,
+    overall: String, snapshotSaved: Boolean
+): String {
+    val snapNote = if (snapshotSaved) "snapshot Engine tersimpan"
+    else "snapshot Engine TIDAK disimpan ($overall)"
+    return "$overall: dipilih $selected · diproses $processed · " +
+        "berhasil $ok · gagal ${failedSyms.size}" +
+        (if (failedSyms.isNotEmpty()) " (${failedSyms.joinToString(", ")})" else "") +
+        " · $snapNote"
+}

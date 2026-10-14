@@ -373,7 +373,7 @@
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" style="@style/Field" android:hint="Dari tanggal"
+                        android:layout_weight="1" style="@style/Field" android:hint="Ketuk untuk pilih tanggal awal"
                         app:endIconMode="custom" app:endIconDrawable="@drawable/ic_calendar">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inFrom" android:layout_width="match_parent"
@@ -384,7 +384,7 @@
                     <Space android:layout_width="8dp" android:layout_height="1dp" />
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" style="@style/Field" android:hint="Sampai tanggal"
+                        android:layout_weight="1" style="@style/Field" android:hint="Ketuk untuk pilih tanggal akhir"
                         app:endIconMode="custom" app:endIconDrawable="@drawable/ic_calendar">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inTo" android:layout_width="match_parent"

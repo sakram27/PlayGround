@@ -629,6 +629,24 @@ object App {
         if (!v.isFinite()) return "—"
         return String.format(Locale("id", "ID"), "%,.${d}f", v)
     }
+    /**
+     * Format harga adaptif skala: nilai >= $0,01 memakai 4 desimal seperti
+     * sebelumnya; nilai lebih kecil memakai desimal secukupnya (maks 12)
+     * agar harga aset mikro (PEPE/SHIB) tidak tampil sebagai nol visual.
+     * Nilai numerik asli tidak diubah — hanya tampilan. Nol yang sah tetap "0".
+     */
+    fun fmtPx(v: Double): String {
+        if (!v.isFinite()) return "—"
+        if (v == 0.0) return "0"
+        if (abs(v) >= 0.01) return fmt(v, 4)
+        var s = String.format(Locale.US, "%.12f", v).trimEnd('0').trimEnd('.')
+        if (s == "0" || s == "-0" || s.isEmpty()) {
+            // Di bawah resolusi 12 desimal: tampilkan notasi ilmiah jujur
+            // daripada nol visual.
+            return String.format(Locale.US, "%e", v).replace('.', ',')
+        }
+        return s.replace('.', ',')
+    }
     fun fmtD(v: Double): String = if (v.isNaN()) "—" else if (v.isInfinite() || v >= 999) "∞" else fmt(v)
     fun fmtMoney(v: Double): String {
         if (!v.isFinite()) return "—"
