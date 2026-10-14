@@ -189,7 +189,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "bos" -> {
-            if (i < 11) none()
+            // F-01 lanjutan: jendela 10 bar (i-10..i-1) valid sejak i==10.
+            if (i < 10) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 10 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -254,7 +255,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "breaker" -> {
-            if (i < 12) none()
+            // F-01 lanjutan: jendela 11 bar (i-11..i-2) valid sejak i==11.
+            if (i < 11) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 11 until i - 1) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -266,7 +268,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "fibonacci" -> {
-            if (i < 31) none()
+            // F-01 lanjutan: jendela 30 bar (i-30..i-1) valid sejak i==30.
+            if (i < 30) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 30 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -284,7 +287,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "smc_basic" -> {
-            if (i < 11) none()
+            // F-01 lanjutan: jendela 10 bar (i-10..i-1) valid sejak i==10.
+            if (i < 10) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 10 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -315,7 +319,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "volume" -> {
-            if (i < 21) none()
+            // F-01 lanjutan: sVol20 (SMA-20) valid sejak i==19.
+            if (i < 19) none()
             else {
                 val avg = x.sVol20[i]
                 if (avg == 0.0 || avg.isNaN()) none()
@@ -338,7 +343,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "donchian_momentum" -> {
-            if (i < 21 || x.rsi14[i].isNaN()) none()
+            // F-01 lanjutan: jendela 20 bar valid sejak i==20 (rsi14 siap sejak 14).
+            if (i < 20 || x.rsi14[i].isNaN()) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 20 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }

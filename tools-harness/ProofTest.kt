@@ -178,6 +178,45 @@ fun main() {
             "tr=${pr.result.totalTrades}")
     }
 
+    // ===== T4 F-01 lanjutan: 6 guard sekelas (bukti pola-valid di bar batas) =====
+    run {
+        // bos LONG tepat di bar 10.
+        val cs = ArrayList<Candle>()
+        var t = 1_700_000_000_000L
+        repeat(10) { cs.add(Candle(t, 100.0, 100.1, 99.9, 100.0, 100.0)); t += 900000L }
+        cs.add(Candle(t, 100.0, 100.9, 99.9, 100.8, 100.0))
+        pok("t4-bos-bar10", strategyFn("bos", cs, 10, buildCache(cs), emptyMap()).first == "LONG")
+        // smc_basic LONG tepat di bar 10.
+        pok("t4-smc-bar10", strategyFn("smc_basic", cs, 10, buildCache(cs), emptyMap()).first == "LONG")
+        // volume LONG tepat di bar 19 (sVol20 siap) — spike 8x + body hijau.
+        val cv = ArrayList<Candle>()
+        var tv = 1_700_000_000_000L
+        repeat(19) { cv.add(Candle(tv, 100.0, 100.1, 99.9, 100.0, 100.0)); tv += 900000L }
+        cv.add(Candle(tv, 100.0, 100.9, 99.9, 100.8, 800.0))
+        pok("t4-volume-bar19", strategyFn("volume", cv, 19, buildCache(cv), emptyMap()).first == "LONG")
+        // breaker LONG tepat di bar 11 (false-break low bar 10 + reclaim).
+        val cb = ArrayList<Candle>()
+        var tb = 1_700_000_000_000L
+        repeat(10) { cb.add(Candle(tb, 100.0, 100.1, 99.9, 100.0, 100.0)); tb += 900000L }
+        cb.add(Candle(tb, 100.0, 100.05, 99.0, 99.5, 100.0)); tb += 900000L // i-1 = 10
+        cb.add(Candle(tb, 99.5, 100.0, 99.4, 100.3, 100.0)) // i = 11
+        pok("t4-breaker-bar11", strategyFn("breaker", cb, 11, buildCache(cb), emptyMap()).first == "LONG")
+        // fibonacci LONG tepat di bar 30 (retrace 0.5 zona emas + naik).
+        val cf = ArrayList<Candle>()
+        var tf = 1_700_000_000_000L
+        repeat(28) { cf.add(Candle(tf, 100.0, 100.1, 99.9, 100.0, 100.0)); tf += 900000L }
+        cf.add(Candle(tf, 100.0, 110.0, 99.9, 104.0, 100.0)); tf += 900000L // bar 28: hh
+        cf.add(Candle(tf, 104.0, 104.1, 103.9, 103.0, 100.0)); tf += 900000L // bar 29
+        cf.add(Candle(tf, 103.0, 105.5, 102.9, 105.0, 100.0)) // bar 30
+        pok("t4-fib-bar30", strategyFn("fibonacci", cf, 30, buildCache(cf), emptyMap()).first == "LONG")
+        // donchian LONG tepat di bar 20 (mid cross-up + RSI>50 di tren datar-naik).
+        val cd = ArrayList<Candle>()
+        var td = 1_700_000_000_000L
+        repeat(20) { cd.add(Candle(td, 100.0, 100.1, 99.9, 100.0, 100.0)); td += 900000L }
+        cd.add(Candle(td, 100.0, 100.6, 99.9, 100.5, 100.0))
+        pok("t4-donchian-bar20", strategyFn("donchian_momentum", cd, 20, buildCache(cd), emptyMap()).first == "LONG")
+    }
+
     println("PROOF-TEST done pass=$ppass fail=$pfail")
     if (pfail > 0) kotlin.system.exitProcess(1)
 }
