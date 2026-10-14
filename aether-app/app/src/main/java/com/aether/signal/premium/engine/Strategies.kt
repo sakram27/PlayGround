@@ -133,7 +133,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "support_resistance" -> {
-            if (i < 21) none()
+            // F-01: jendela 20 bar (i-20..i-1) valid sejak i==20.
+            if (i < 20) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 20 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -145,7 +146,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "breakout" -> {
-            if (i < 21) none()
+            // F-01: jendela 20 bar (i-20..i-1) + sVol20 (butuh i>=19) valid sejak i==20.
+            if (i < 20) none()
             else {
                 var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
                 for (j in i - 20 until i) { hh = maxOf(hh, c[j].h); ll = minOf(ll, c[j].l) }
@@ -214,7 +216,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "liquidity_sweep" -> {
-            if (i < 21) none()
+            // F-01: jendela 20 bar (i-20..i-1) valid sejak i==20.
+            if (i < 20) none()
             else {
                 var ll = Double.POSITIVE_INFINITY; var hh = Double.NEGATIVE_INFINITY
                 for (j in i - 20 until i) { ll = minOf(ll, c[j].l); hh = maxOf(hh, c[j].h) }
@@ -238,7 +241,8 @@ fun strategyFn(id: String, c: List<Candle>, i: Int, x: Cache, p: Map<String, Dou
             }
         }
         "fvg" -> {
-            if (i < 4) none()
+            // F-01: memakai i-2/i-3, valid sejak i==3.
+            if (i < 3) none()
             else {
                 val gapUp = c[i - 2].l > c[i - 3].h
                 val gapDn = c[i - 2].h < c[i - 3].l
