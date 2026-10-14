@@ -104,15 +104,30 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
     private fun openEngPairSheet() {
         snack(this, "Memuat daftar pair…")
         runBg {
-            // Tahap 5F: kandidat dari universe jujur (hingga 200) + pair engine saat ini.
-            val uni = try {
-                fetchUniverse(App.provider, UNIVERSE_LIMIT)
-            } catch (e: Exception) {
-                UniverseResult(UNIVERSE_LIMIT, FALLBACK_PAIRS, true, e.message)
+            // Sumber tunggal dengan Market: snapshot scan terakhir bila cocok;
+            // selain itu bangun ulang + simpan snapshot (bukan daftar lepas).
+            val snap = App.pairUniverse
+            val base: List<String>
+            val srcNote: String
+            if (snap.matches(App.provider, UNIVERSE_KIND_CRYPTO)) {
+                base = snap.pairs
+                srcNote = "scan Market (${snap.sourceLabel(System.currentTimeMillis())})"
+            } else {
+                val uni = try {
+                    fetchUniverse(App.provider, UNIVERSE_LIMIT)
+                } catch (e: Exception) {
+                    UniverseResult(UNIVERSE_LIMIT, FALLBACK_PAIRS, true, e.message)
+                }
+                base = uni.pairs
+                App.savePairUniverse(PairUniverse(App.provider, UNIVERSE_KIND_CRYPTO,
+                    UNIVERSE_LIMIT, base, uni.fallback, System.currentTimeMillis()))
+                srcNote = if (uni.fallback) "DARURAT ${base.size}/${uni.requested}"
+                else "segar ${base.size} pair"
             }
-            val base = uni.pairs
-            if (uni.fallback) runOnUiThread { snack(this, "Universe darurat ${base.size}/${uni.requested} pair.") }
-            val candidates = (LinkedHashSet(App.engPairs) + base).toList()
+            if (snap.isFallback || base.isEmpty()) {
+                runOnUiThread { snack(this, "Universe darurat ${base.size} pair.") }
+            }
+            val candidates = resolveEngineCandidates(App.engPairs, base)
             runOnUiThread {
                 val staged = LinkedHashSet(App.engPairs)
                 val sh = BottomSheetDialog(this, R.style.SheetTheme)
@@ -128,7 +143,7 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
                     list.adapter = IconCheckAdapter(this, vis, false)
                     vis.forEachIndexed { i, s -> list.setItemChecked(i, staged.contains(s)) }
                     (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
-                    cnt.text = "${staged.size} pair engine dipilih"
+                    cnt.text = "${staged.size} pair engine dipilih\nSumber: $srcNote"
                 }
                 list.onItemClickListener = AdapterView.OnItemClickListener { _, view, pos, _ ->
                     val q = search.text.toString().uppercase()

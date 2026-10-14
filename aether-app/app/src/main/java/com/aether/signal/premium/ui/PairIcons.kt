@@ -9,22 +9,34 @@ import com.aether.signal.premium.R
 
 // SATU-SATUNYA sumber pemetaan ikon pair (3D).
 // Visual dipisah dari simbol provider/mesin: fungsi ini TIDAK mengubah simbol.
-// Sumber: logo crypto CC0-1.0 (spothq/cryptocurrency-icons, bundel lokal),
-// bendera flagcdn (bundel lokal), vektor emas/perak/koin digambar sendiri.
+// Sumber:
+// - logo crypto CC0-1.0 (spothq/cryptocurrency-icons, bundel lokal),
+// - logo proyek resmi via CoinGecko CDN (coin-images.coingecko.com),
+//   diunduh sekali lalu dibundel lokal; identitas diverifikasi per id+nama
+//   (lihat LogoCatalog/audit). Atribusi: data/logo via CoinGecko.
+// - bendera flagcdn (bundel lokal), vektor emas/perak/koin digambar sendiri.
+// Basis multiplier terverifikasi (1000SATS->sats, 1MBABYDOGE->babydoge)
+// dipetakan eksplisit via MULTIPLIER_BASES (data/Symbols.kt); basis lain
+// yang belum terverifikasi memakai placeholder netral — tanpa logo karangan.
 
 object PairIcons {
 
-    /** Basis kripto yang logonya tersedia lokal (coin_<id>.png). */
+    /** Basis kripto yang logonya tersedia lokal (coin_<id>.png/.jpg). */
     private val COIN_IDS = setOf(
         "btc", "eth", "usdt", "sol", "bnb", "xrp", "doge", "ada", "avax",
         "link", "dot", "matic", "trx", "ltc", "bch", "atom", "etc", "fil",
-        "apt", "wbtc", "usdc", "dai", "uni"
+        "apt", "wbtc", "usdc", "dai", "uni",
+        "pepe", "shib", "near", "arb", "op", "inj", "sui", "fdusd", "bonk",
+        "floki", "wif", "ordi", "lunc", "luna", "rune", "sei", "tia", "pyth",
+        "jup", "ondo", "ena", "render", "fet", "ar", "cake", "axs", "sand",
+        "mana", "stx", "xlm", "hbar", "vet", "algo", "qnt", "aave", "snx",
+        "comp", "bat", "chz", "icp", "gala", "flow", "lrc", "mkr", "pol",
+        "sats", "1inch", "babydoge", "1000cat", "1000cheems", "0g", "2z"
     )
 
     /** Basis TANPA logo resmi terverifikasi -> ilustrasi koin netral (dilaporkan). */
     val GENERIC_COINS = setOf(
-        "near", "arb", "op", "inj", "sui", "pepe", "ton", "fdusd", "shib",
-        "fog", "steth"
+        "ton", "steth", "fog", "enj"
     )
 
     private val QUOTES = listOf("USDT", "USDC", "FDUSD", "TUSD", "BUSD", "BTC", "ETH", "BNB", "USD")
@@ -43,6 +55,14 @@ object PairIcons {
         }
         return s
     }
+
+    /**
+     * Id aset untuk pencarian logo: digit dipertahankan lalu dipetakan via
+     * MULTIPLIER_BASES terverifikasi (1000SATS->sats, 1MBABYDOGE->babydoge).
+     * Tidak dipakai untuk request pasar — hanya tampilan.
+     */
+    fun iconBase(sym: String): String =
+        com.aether.signal.premium.data.iconBaseId(sym)
 
     fun isMetal(sym: String): String? {
         val b = baseAsset(sym)
@@ -97,7 +117,7 @@ object PairIcons {
             if (ra != 0 && rb != 0) return DualFlagDrawable(ctx, ra, rb)
             if (ra != 0) return ContextCompat.getDrawable(ctx, ra)!!
         }
-        val base = baseAsset(sym).lowercase()
+        val base = iconBase(sym)
         if (base == "btc" || base == "eth") {
             // BTC/USD & ETH/USD Yahoo memakai logo kriptonya.
             return coinOrGeneric(ctx, base)

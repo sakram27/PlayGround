@@ -84,10 +84,58 @@ fun <T> moveItem(list: MutableList<T>, from: Int, to: Int): Boolean {
     return true
 }
 
-// Batas wajar jumlah watchlist (C9): tiap pair = 1 request + komputasi indikator
-// 200 candle. 30 menjaga baterai/rate-limit; ditampilkan di UI.
-const val MAX_WATCH_PAIRS = 30
+// Batas maksimum pair Market/Backtest: 200 (syarat misi). Aman karena
+// daftar memakai endpoint agregat (1 panggilan) dan refresh harga memakai
+// ticker batch (1-2 panggilan/siklus), bukan 1 request per pair.
+const val MAX_WATCH_PAIRS = 200
 const val DEFAULT_WATCH_LIMIT = 12
+
+/** Pilihan batas maksimum pair di Market (syarat: naik, maks 200). */
+val WATCH_LIMIT_OPTIONS = listOf(10, 20, 30, 50, 100, 150, 200)
+
+// ---------- PairUniverse: SATU sumber daftar pair terverifikasi ----------
+// Ditulis oleh Market setiap scan sukses (atau providing fallback berlabel),
+// dibaca oleh Backtest, sheet Engine, dan Engine. Membedakan eksplisit:
+// tersedia (provider) → memenuhi kriteria → dalam batas → dipilih pengguna
+// → dipakai Backtest/Engine. Persist ringan agar selamat restart.
+/** Jenis pasar sesuai kategori Market (crypto spot vs forex/metal Yahoo). */
+const val UNIVERSE_KIND_CRYPTO = "crypto"
+const val UNIVERSE_KIND_FOREX = "forex"
+
+data class PairUniverse(
+    val provider: String = "",
+    val kind: String = UNIVERSE_KIND_CRYPTO,
+    val limit: Int = 0,
+    val pairs: List<String> = emptyList(),
+    val isFallback: Boolean = false,
+    val updatedAt: Long = 0L
+) {
+    /** Cocok untuk konfigurasi pemindaian saat ini (provider+jenis). */
+    fun matches(provider: String, kind: String): Boolean =
+        this.provider == provider && this.kind == kind && pairs.isNotEmpty()
+
+    /** Label jujur untuk header sheet (sumber + umur + fallback). */
+    fun sourceLabel(nowMs: Long): String {
+        val age = staleAgeLabel(updatedAt, nowMs)
+        val fb = if (isFallback) " · DARURAT" else ""
+        return "$provider/$kind · ${pairs.size} pair$fb · $age"
+    }
+}
+
+/** Daftar Backtest = irisan seleksi pengguna dengan universe + sisa manual. */
+fun resolveBacktestSel(
+    universe: List<String>,
+    multiSel: Set<String>
+): List<String> {
+    val sel = LinkedHashSet<String>()
+    for (s in universe) if (multiSel.contains(s)) sel.add(s)
+    for (s in multiSel) if (!universe.contains(s)) sel.add(s)
+    return sel.toList()
+}
+
+/** Kandidat sheet Engine = pair Engine saat ini + universe (urutan deterministik). */
+fun resolveEngineCandidates(current: Set<String>, universe: List<String>): List<String> =
+    (LinkedHashSet(current) + universe).toList()
 
 // A7: serialisasi cache harga terakhir (murni, teruji). Format: price|chg|spark|t
 // price = string tampilan, chg = "null" bila tak ada, spark = csv maks 60 titik.

@@ -132,6 +132,30 @@ object App {
     var engRunning: Boolean = false
     // P7: mode hemat baterai (persist).
     var batterySaver: Boolean = false
+    // PairUniverse terpusat (sumber tunggal Market = Backtest = sheet Engine).
+    var pairUniverse: PairUniverse = PairUniverse()
+
+    fun savePairUniverse(u: PairUniverse) {
+        pairUniverse = u
+        try {
+            prefs.edit().putString("pair_universe_v1",
+                JSONObject()
+                    .put("provider", u.provider).put("kind", u.kind)
+                    .put("limit", u.limit).put("pairs", JSONArray(u.pairs))
+                    .put("fallback", u.isFallback).put("at", u.updatedAt)
+                    .toString()).apply()
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun loadPairUniverse(): PairUniverse {
+        return try {
+            val o = JSONObject(prefs.getString("pair_universe_v1", null) ?: return PairUniverse())
+            val a = o.optJSONArray("pairs") ?: JSONArray()
+            PairUniverse(o.optString("provider"), o.optString("kind"),
+                o.optInt("limit"), (0 until a.length()).map { a.getString(it) },
+                o.optBoolean("fallback"), o.optLong("at"))
+        } catch (e: Exception) { PairUniverse() }
+    }
 
     fun init(ctx: Context) {
         if (this::prefs.isInitialized) return
@@ -146,6 +170,7 @@ object App {
         customPairs = LinkedHashSet(prefs.getStringSet("custompairs", emptySet()) ?: emptySet())
         watchLimit = prefs.getInt("watchlimit", DEFAULT_WATCH_LIMIT).coerceIn(1, MAX_WATCH_PAIRS)
         batterySaver = prefs.getBoolean("batterySaver", false)
+        pairUniverse = loadPairUniverse()
         val savedFilters = prefs.getStringSet("filteron", null)
         if (savedFilters != null) {
             for (id in FILTER_DEFS.map { it.id }) filterOn[id] = savedFilters.contains(id)

@@ -316,7 +316,15 @@ private fun fetchNetwork(provider: String, rawSymbol: String, sym: String, timef
         "demo" -> genDemoCandles(rawSymbol.length * 777 + timeframe.length * 131, lim, guessPrice(rawSymbol), parseTimeframe(timeframe))
         "binance" -> {
             if (sym.isEmpty()) throw RuntimeException("Pilih pair dulu dari listview.")
-            val (_, txt) = binanceFetch("/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(timeframe, "UTF-8")}&limit=$lim", tmo)
+            val (_, txt) = try {
+                binanceFetch("/api/v3/klines?symbol=${java.net.URLEncoder.encode(sym, "UTF-8")}&interval=${java.net.URLEncoder.encode(timeframe, "UTF-8")}&limit=$lim", tmo)
+            } catch (e: Exception) {
+                // Simbol tak terdaftar (mis. simbol futures seperti 1000PEPEUSDT
+                // pada pasar spot) dilaporkan eksplisit — bukan dialihkan.
+                if (httpCodeOf(e.message) == "400") throw RuntimeException(
+                    unlistedMessage(rawSymbol) + " Pasar spot memakai simbol persis exchange.")
+                throw e
+            }
             val j = JSONArray(txt)
             if (j.length() == 0) throw RuntimeException("Binance mengembalikan data kosong untuk $sym $timeframe. Cek penulisan simbol.")
             List(j.length()) { k ->
@@ -348,7 +356,7 @@ private fun fetchNetwork(provider: String, rawSymbol: String, sym: String, timef
     }
 }
 
-private fun guessPrice(sym: String): Double = when {
+internal fun guessPrice(sym: String): Double = when {
     sym.contains("BTC") -> 67000.0
     sym.contains("ETH") -> 3500.0
     sym.contains("SOL") -> 170.0

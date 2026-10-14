@@ -666,9 +666,27 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
         snack(this, "Memuat universe…")
         runBg {
             try {
+                // Sumber tunggal dengan Market: pakai snapshot scan terakhir bila
+                // provider+jenis cocok (daftar SAMA yang tampil di Market);
+                // selain itu bangun ulang dengan batas watchLimit yang sama.
+                val kind = UNIVERSE_KIND_CRYPTO
+                val snap = App.pairUniverse
+                if (snap.matches(App.provider, kind)) {
+                    App.universe = snap.pairs
+                    runOnUiThread {
+                        if (snap.isFallback) {
+                            snack(this, "Universe dari scan Market (${snap.pairs.size} pair, DARURAT) — " +
+                                "buka Market untuk scan ulang bila perlu.")
+                        }
+                        after?.invoke(); paintConfig()
+                    }
+                    return@runBg
+                }
                 // Tahap 5F: hingga UNIVERSE_LIMIT (200) dengan laporan diminta vs diterima.
                 val uni = fetchUniverse(App.provider, UNIVERSE_LIMIT)
                 App.universe = uni.pairs
+                App.savePairUniverse(PairUniverse(App.provider, kind, UNIVERSE_LIMIT,
+                    uni.pairs, uni.fallback, System.currentTimeMillis()))
                 runOnUiThread {
                     if (uni.fallback) {
                         snack(this, "Universe gagal dimuat (${uni.error?.take(80)}?) — " +
@@ -691,6 +709,13 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             list.fixScrollConflict()
             list.choiceMode = ListView.CHOICE_MODE_MULTIPLE
             val cnt = root.findViewById<TextView>(R.id.count)
+            // Sumber daftar = snapshot scan Market yang sama (provider+jenis cocok).
+            val srcLine = try {
+                val u = App.pairUniverse
+                if (u.matches(App.provider, UNIVERSE_KIND_CRYPTO))
+                    "Sumber: scan Market (${u.sourceLabel(System.currentTimeMillis())})"
+                else "Sumber: muat ulang mandiri (scan Market beda provider/jenis)"
+            } catch (e: Exception) { "" }
             fun render() {
                 val q = search.text.toString().uppercase()
                 val vis = App.universe.filter { q.isEmpty() || it.contains(q) }
@@ -699,7 +724,8 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 // Sinkron visual: ListView tak me-rebind baris saat setItemChecked,
                 // dan root baris bukan Checkable — paksa gambar ulang.
                 (list.adapter as? android.widget.BaseAdapter)?.notifyDataSetChanged()
-                cnt.text = "${staged.size} pairs selected"
+                cnt.text = "${staged.size} pairs selected" +
+                    (if (srcLine.isNotEmpty()) "\n$srcLine" else "")
             }
             list.onItemClickListener = AdapterView.OnItemClickListener { _, view, pos, _ ->
                 val q = search.text.toString().uppercase()

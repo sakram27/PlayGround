@@ -37,6 +37,15 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     // P2: generasi pemuatan (abaikan hasil basi) + dedup permintaan berjalan.
     private var loadGen = 0
     private val inflight = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    // Pembaruan harga berkala (REST batch, tanpa WebSocket — lihat Quotes.kt):
+    // 30 dtk untuk binance/bybit/demo, 90 dtk untuk yahoo (24 pair, per-simbol).
+    // Hanya harga/chg/updatedAt yang disegarkan; sparkline & sinyal tetap dari
+    // pemindaian penuh agar tak membanjiri API. Berhenti saat layar pergi.
+    private var refresher: java.util.concurrent.ScheduledFuture<*>? = null
+    private val refreshExec = java.util.concurrent.Executors.newSingleThreadScheduledExecutor()
+    private var lastRefreshAt: Long = 0L
+    private var lastRefreshOk: Int = 0
+    private var lastRefreshTotal: Int = 0
 
     /** Normalisasi simbol kustom sesuai provider aktif (C). */
     private fun resolveCustom(sym: String, pr: String): String =
@@ -186,6 +195,16 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                     if (s.isNotEmpty() && merged.none { it == s }) merged.add(s)
                 }
                 rows = merged.map { MktRow(it, pr) }
+                val pairs = merged
+                val isFallback = base.second
+                // Sumber tunggal: tulis hasil scan (daftar dasar provider +
+                // batas + fallback) agar Backtest/sheet Engine memakai daftar
+                // yang SAMA — bukan daftar independen yang kebetulan mirip.
+                App.savePairUniverse(PairUniverse(
+                    provider = pr,
+                    kind = if (forex) UNIVERSE_KIND_FOREX else UNIVERSE_KIND_CRYPTO,
+                    limit = App.watchLimit, pairs = base.first,
+                    isFallback = isFallback, updatedAt = System.currentTimeMillis()))
                 // A7: isi awal dari cache harga terakhir (berlabel basi, bukan live).
                 for (r in rows) {
                     App.getLastPrice(pr, r.sym, tf)?.let { lp ->
@@ -193,8 +212,6 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                         r.stale = true; r.updatedAt = lp.t
                     }
                 }
-                val pairs = merged
-                val isFallback = base.second
                 runOnUiThread {
                     findViewById<View>(R.id.loading).visibility = View.GONE
                     if (isFallback) {
@@ -236,6 +253,23 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private fun paintCustom() {
         findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inWatchLimit)
             .setText(App.watchLimit.toString())
+        // Pilihan batas maksimum pair (10/20/30/50/100/150/200, maks 200).
+        try {
+            val chips = findViewById<android.widget.LinearLayout>(R.id.limitChips)
+            chips.removeAllViews()
+            for (n in WATCH_LIMIT_OPTIONS) {
+                val b = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
+                b.text = "$n"
+                b.isCheckable = true
+                b.isChecked = App.watchLimit == n
+                b.setOnClickListener {
+                    App.watchLimit = n; App.saveWatchLimit()
+                    paintCustom()
+                    load()
+                }
+                chips.addView(b)
+            }
+        } catch (e: Exception) { /* layout lama: abaikan */ }
         // C11: jumlah yang benar-benar ditampilkan = bawaan (dibatasi) + kustom.
         findViewById<TextView>(R.id.customCount).text =
             "Menampilkan maks ${App.watchLimit} bawaan + ${App.customPairs.size} kustom"
@@ -341,7 +375,8 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
                     if (res != null) {
                         val cs = res.candles
                         val last = cs.last(); val ref = cs[maxOf(0, cs.size - 25)]
-                        r.price = App.fmt(last.c, if (last.c > 1000) 2 else 4)
+                        // fmtPx adaptif: koin mikro (PEPE/SHIB) tetap terbaca.
+                        r.price = App.fmtPx(last.c)
                         r.chg = (last.c - ref.c) / ref.c * 100
                         // Sparkline dari close historis yang SAMA (bukan data lain).
                         r.spark = cs.takeLast(60).map { it.c }
@@ -398,6 +433,99 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     override fun onResume() {
         super.onResume()
         try { paintSignals() } catch (e: Exception) { /* layout belum siap */ }
+        startRefresher()
+    }
+
+    override fun onPause() {
+        try { stopRefresher() } catch (e: Exception) { /* abaikan */ }
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        try { stopRefresher(); refreshExec.shutdownNow() } catch (e: Exception) { /* abaikan */ }
+        super.onDestroy()
+    }
+
+    private fun refreshIntervalSec(): Long =
+        if ((if (forex) "yahoo" else prov) == "yahoo") 90L else 30L
+
+    private fun startRefresher() {
+        stopRefresher()
+        val interval = refreshIntervalSec()
+        try {
+            refresher = refreshExec.scheduleWithFixedDelay({
+                try {
+                    if (isFinishing || isDestroyed) return@scheduleWithFixedDelay
+                    refreshPrices()
+                } catch (e: Exception) { /* siklus berikut mencoba lagi */ }
+            }, interval, interval, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun stopRefresher() {
+        try { refresher?.cancel(false) } catch (e: Exception) { /* abaikan */ }
+        refresher = null
+    }
+
+    /** Satu siklus refresh harga ringan: ticker batch, tanpa rescan klines. */
+    private fun refreshPrices() {
+        val gen = loadGen
+        val snapshot = rows.toList()
+        if (snapshot.isEmpty()) return
+        val pr = snapshot.firstOrNull()?.prov ?: return
+        val syms = snapshot.map { it.sym }.distinct()
+        val batch = try {
+            com.aether.signal.premium.data.fetchQuotes(pr, syms)
+        } catch (e: Exception) {
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed && gen == loadGen) paintFreshness(0, syms.size)
+            }
+            return
+        }
+        if (gen != loadGen) return // basi: reload baru sudah jalan
+        var updated = 0
+        for (r in snapshot) {
+            val q = batch.ticks[r.sym] ?: continue
+            // Guard anti-tukar: kunci identity pair (sym+prov+tf implisit per baris).
+            if (r.sym != q.sym) continue
+            r.price = App.fmtPx(q.price)
+            if (q.chgPct != null) r.chg = q.chgPct
+            r.err = null; r.stale = false; r.updatedAt = q.fetchedAt
+            App.saveLastPrice(pr, r.sym, tf, r.price, r.chg, r.spark)
+            updated++
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed && gen == loadGen) {
+                    try {
+                        (findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list).adapter as? WatchAdapter)
+                            ?.notifyRow(r.sym, toItem(r))
+                    } catch (e: Exception) { /* abaikan */ }
+                }
+            }
+        }
+        lastRefreshAt = batch.at
+        lastRefreshOk = updated
+        lastRefreshTotal = syms.size
+        runOnUiThread {
+            if (!isFinishing && !isDestroyed && gen == loadGen) {
+                paintFreshness(updated, syms.size)
+                if (batch.missing.isNotEmpty()) {
+                    setStatus("Refresh ${batch.source}: $updated/${syms.size} · " +
+                        "hilang ${batch.missing.size} (${batch.missing.take(3).joinToString(",")})")
+                }
+            }
+        }
+    }
+
+    /** Status kesegaran jujur: LIVE bila siklus terakhir sukses, else STALE/OFFLINE. */
+    private fun paintFreshness(ok: Int, total: Int) {
+        try {
+            val ageS = if (lastRefreshAt > 0)
+                ((System.currentTimeMillis() - lastRefreshAt) / 1000).toInt() else -1
+            val txt = if (ok > 0 && ageS >= 0)
+                "LIVE · $ok/$total diperbarui ${ageS}d lalu · via ${if (forex) "yahoo" else prov}"
+            else "STALE · refresh terakhir gagal — menampilkan data terakhir yang valid"
+            findViewById<TextView>(R.id.freshStatus).text = txt
+        } catch (e: Exception) { /* layout lama: abaikan */ }
     }
 
     private fun paintSignals() {
