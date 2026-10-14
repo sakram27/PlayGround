@@ -15,6 +15,32 @@ android {
         versionCode = 37
         versionName = "7.13"
     }
+    // Signing rilis TANPA menanam kunci di repo: baca keystore.properties
+    // (git-ignored, lihat template-nya) atau ENV (KEYSTORE_FILE,
+    // KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). Bila tak ada → build
+    // release tetap jalan tanpa signingConfig khusus, debug tak terpengaruh.
+    // Kunci privat tidak pernah di-commit.
+    def ksProps = new Properties()
+    def ksFile = rootProject.file("keystore.properties")
+    if (ksFile.exists()) ksFile.withInputStream { ksProps.load(it) }
+    def ksOf = { String envName, String propName ->
+        def v = System.getenv(envName) ?: ksProps.getProperty(propName)
+        (v != null && !v.trim().isEmpty() && !v.startsWith("ISI_DI_SINI")) ? v.trim() : null
+    }
+    def ksfPath = ksOf("KEYSTORE_FILE", "storeFile")
+    def ksfPass = ksOf("KEYSTORE_PASSWORD", "storePassword")
+    def ksAlias = ksOf("KEY_ALIAS", "keyAlias")
+    def ksKeyPass = ksOf("KEY_PASSWORD", "keyPassword")
+    signingConfigs {
+        if (ksfPath != null && ksfPass != null && ksAlias != null && ksKeyPass != null) {
+            release {
+                storeFile file(ksfPath)
+                storePassword ksfPass
+                keyAlias ksAlias
+                keyPassword ksKeyPass
+            }
+        }
+    }
     buildTypes {
         getByName("debug") {
             minifyEnabled false
@@ -22,6 +48,9 @@ android {
         }
         getByName("release") {
             minifyEnabled false
+            // Hanya bila keystore rilis tersedia (lihat signingConfigs di atas).
+            def rel = signingConfigs.findByName("release")
+            if (rel != null) signingConfig rel
         }
     }
     compileOptions {

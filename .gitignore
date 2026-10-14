@@ -16,3 +16,8 @@ screenshots/
 .opencode-web/
 
 node_modules/
+
+# Kunci signing rilis — JANGAN commit keystore/password ke repo.
+*.jks
+*.keystore
+keystore.properties
