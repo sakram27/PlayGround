@@ -104,7 +104,7 @@ class NotifHistoryActivity : BaseActivity(0) {
             SigItem(
                 if (r.dir == "LONG") "▲" else if (r.dir == "SHORT") "▼" else "•",
                 "${notifKindLabel(r.kind)} · ${r.dir} ${r.pair}",
-                "${App.fmtDate(r.at)} · ${r.tf} · harga ${App.fmt(r.price, 4)}",
+                "${App.fmtDate(r.at)} · ${r.tf} · harga ${App.fmtPx(r.price)}",
                 notifStatusLabel(r.status),
                 r.pair
             )

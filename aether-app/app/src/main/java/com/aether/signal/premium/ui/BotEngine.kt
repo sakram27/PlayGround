@@ -326,8 +326,8 @@ object BotEngine {
                                         try {
                                             NotifBus.trailEvent("trail_on", "ton|$key", sym, p.timeframe, open.dir, cl,
                                                 "Trailing Stop Aktif",
-                                                "$sym ${open.dir} — Trailing Stop aktif pada harga ${App.fmt(cl, 4)}. " +
-                                                    "Harga acuan ${if (open.dir == "LONG") "tertinggi" else "terendah"}: ${App.fmt(ne, 4)}. " +
+                                                "$sym ${open.dir} — Trailing Stop aktif pada harga ${App.fmtPx(cl)}. " +
+                                                    "Harga acuan ${if (open.dir == "LONG") "tertinggi" else "terendah"}: ${App.fmtPx(ne)}. " +
                                                     "Jarak trailing: ${App.fmt(App.trailLockPct, 0)}%.")
                                         } catch (e: Exception) { /* notifikasi tak boleh matikan tick */ }
                                     }
@@ -336,7 +336,7 @@ object BotEngine {
                                         try {
                                             NotifBus.trailEvent("trail_move", "tmv|$key", sym, p.timeframe, open.dir, cl,
                                                 "Trailing Stop Diperbarui",
-                                                "$sym ${open.dir} — Harga trailing stop bergerak dari ${App.fmt(prevStop, 4)} ke ${App.fmt(cl, 4)}.",
+                                                "$sym ${open.dir} — Harga trailing stop bergerak dari ${App.fmtPx(prevStop)} ke ${App.fmtPx(cl)}.",
                                                 dedupe = false)
                                         } catch (e: Exception) { /* abaikan */ }
                                     }
@@ -366,7 +366,7 @@ object BotEngine {
                                         val tsig = Sig(sym, p.timeframe, open.dir, exit, open.sl, open.tp, b.t,
                                             "dryrun-trail", engineSignalId('t', b.t, sym, open.dir),
                                             strategy = "", confidence = 0.0,
-                                            reasons = listOf("trailing stop tersentuh @ ${App.fmt(cl, 4)}"),
+                                            reasons = listOf("trailing stop tersentuh @ ${App.fmtPx(cl)}"),
                                             decidedAt = System.currentTimeMillis())
                                         if (App.signals.any { it.pair == tsig.pair && it.tf == tsig.tf && it.t == tsig.t && it.dir == tsig.dir }) {
                                             EngineDiag.dupHeld++

@@ -106,18 +106,18 @@ class SignalDetailActivity : BaseActivity(0) {
     private fun paintPrices(s: Sig) {
         val entryLike = isEntryLike(s.src)
         t(R.id.dPriceLabel).text = if (entryLike) "Harga entry (tersimpan)" else "Harga keluar / exit (tersimpan)"
-        t(R.id.dPrice).text = App.fmt(s.price, 4)
+        t(R.id.dPrice).text = App.fmtPx(s.price)
         t(R.id.dEntryExtra).text = "Entry tambahan: Belum tersedia (strategi hanya menyimpan satu level entry)."
         // Peringatan arah eksplisit — nilai TIDAK diubah diam-diam.
         val geoOk = levelGeometryOk(s.dir, s.price, s.sl, s.tp)
-        t(R.id.dSl).text = "SL  ${App.fmt(s.sl, 4)}"
-        t(R.id.dTp1).text = "TP  ${App.fmt(s.tp, 4)}"
+        t(R.id.dSl).text = "SL  ${App.fmtPx(s.sl)}"
+        t(R.id.dTp1).text = "TP  ${App.fmtPx(s.tp)}"
         t(R.id.dTpMulti).text = "TP2 / TP3: Tidak tersedia (strategi hanya menyimpan satu target)."
 
         if (entryLike) {
             val d = signalDistances(s.price, s.sl, s.tp)
-            val slTxt = if (d.slDistPrice != null) "${App.fmt(d.slDistPrice, 4)} (${App.fmt(d.slDistPct ?: 0.0)}%)" else "Tidak tersedia"
-            val tpTxt = if (d.tpDistPrice != null) "${App.fmt(d.tpDistPrice, 4)} (${App.fmt(d.tpDistPct ?: 0.0)}%)" else "Tidak tersedia"
+            val slTxt = if (d.slDistPrice != null) "${App.fmtPx(d.slDistPrice)} (${App.fmt(d.slDistPct ?: 0.0)}%)" else "Tidak tersedia"
+            val tpTxt = if (d.tpDistPrice != null) "${App.fmtPx(d.tpDistPrice)} (${App.fmt(d.tpDistPct ?: 0.0)}%)" else "Tidak tersedia"
             t(R.id.dDist).text = "Jarak entry→SL: $slTxt\nJarak entry→TP: $tpTxt"
             t(R.id.dRr).text = if (d.rr != null && d.rr.isFinite())
                 "Rasio potensi untung : risiko (dari nilai tersimpan): 1 : ${App.fmt(d.rr, 2)}"

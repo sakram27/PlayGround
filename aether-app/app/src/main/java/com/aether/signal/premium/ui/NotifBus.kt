@@ -320,7 +320,7 @@ object NotifBus {
                 if (!markSeen(key)) return
                 dispatch("entry", CH_ENTRY, key.hashCode(),
                     "Entry ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · SL ${App.fmt(s.sl, 4)} · TP ${App.fmt(s.tp, 4)} · ${App.fmtDate(s.t)}", s)
+                    "${s.tf} @ ${App.fmtPx(s.price)} · SL ${App.fmtPx(s.sl)} · TP ${App.fmtPx(s.tp)} · ${App.fmtDate(s.t)}", s)
             }
             s.src == "dryrun-TP" -> {
                 if (!tpOn) return
@@ -328,7 +328,7 @@ object NotifBus {
                 if (!markSeen(key)) return
                 dispatch("tp", CH_SLTP, key.hashCode(),
                     "Take profit tercapai · ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
+                    "${s.tf} @ ${App.fmtPx(s.price)} · ${App.fmtDate(s.t)}", s)
             }
             s.src == "dryrun-SL" -> {
                 if (!slOn) return
@@ -336,7 +336,7 @@ object NotifBus {
                 if (!markSeen(key)) return
                 dispatch("sl", CH_SLTP, key.hashCode(),
                     "Stop loss tercapai · ${s.dir} ${s.pair}",
-                    "${s.tf} @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)}", s)
+                    "${s.tf} @ ${App.fmtPx(s.price)} · ${App.fmtDate(s.t)}", s)
             }
             // V31: penutupan trailing paper NYATA dari BotEngine (bukan simulasi
             // historis). Sig tak membawa pnl/qty → hanya tampilkan yang tersedia,
@@ -347,7 +347,7 @@ object NotifBus {
                 if (!markSeen(key)) return
                 dispatch("trail_hit", CH_SLTP, key.hashCode(),
                     "Trailing Stop Hit · ${s.dir} ${s.pair}",
-                    "${s.tf} · posisi ditutup @ ${App.fmt(s.price, 4)} · ${App.fmtDate(s.t)} · alasan: Trailing Stop", s)
+                    "${s.tf} · posisi ditutup @ ${App.fmtPx(s.price)} · ${App.fmtDate(s.t)} · alasan: Trailing Stop", s)
             }
             else -> { /* sumber Engine lain tanpa bunyi (mis. trail/expired): hanya arsip */ }
         }

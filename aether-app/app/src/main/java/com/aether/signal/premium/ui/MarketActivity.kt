@@ -405,7 +405,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
         list.vertical(this)
         val vis = engineSignalsOnly(App.signals).take(3)
         val items = vis.map {
-            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
+            SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src}${signalRowExtra(it)}", App.fmtPx(it.price), it.pair)
         }
         list.adapter = SigAdapter(items, onClick = { pos ->
             vis.getOrNull(pos)?.let { openSignalDetail(it.id) }

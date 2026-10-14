@@ -155,7 +155,7 @@ class ReplayActivity : BaseActivity(0) {
         val tag = "Bar ${f.idx + 1}/${f.total}"
         if (f.justOpened != null) {
             val o = f.justOpened
-            pushLog("$tag · ENTRY ${o.dir} @ ${App.fmt(o.entry, 4)} · SL ${App.fmt(o.sl, 4)} · TP ${App.fmt(o.tp, 4)}")
+            pushLog("$tag · ENTRY ${o.dir} @ ${App.fmtPx(o.entry)} · SL ${App.fmtPx(o.sl)} · TP ${App.fmtPx(o.tp)}")
         }
         if (f.closed != null) {
             val t = f.closed
@@ -192,14 +192,14 @@ class ReplayActivity : BaseActivity(0) {
                 findViewById<TextView>(R.id.rpBar).text = "Bar ${f.idx + 1}/${f.total}"
                 findViewById<TextView>(R.id.rpTime).text = App.fmtT(c.t)
                 findViewById<TextView>(R.id.rpOhlc).text =
-                    "O ${App.fmt(c.o, 4)} · H ${App.fmt(c.h, 4)} · L ${App.fmt(c.l, 4)} · C ${App.fmt(c.c, 4)}"
+                    "O ${App.fmtPx(c.o)} · H ${App.fmtPx(c.h)} · L ${App.fmtPx(c.l)} · C ${App.fmtPx(c.c)}"
                 val ind = s.indAt(f.idx)
                 findViewById<TextView>(R.id.rpInd).text =
                     "EMA50 ${indText(ind.ema50)} · RSI ${indText(ind.rsi14, 1)} · ADX ${indText(ind.adx14, 1)} · ATR ${indText(ind.atr14, 4)}"
                 findViewById<TextView>(R.id.rpDecision).text = describe(f)
                 val o = f.open
                 findViewById<TextView>(R.id.rpPosition).text = if (o == null) "Posisi: — (datar)"
-                else "Posisi ${o.dir}: entry ${App.fmt(o.entry, 4)} · SL ${App.fmt(o.sl, 4)} · TP ${App.fmt(o.tp, 4)} · qty ${App.fmt(o.qty, 4)}"
+                else "Posisi ${o.dir}: entry ${App.fmtPx(o.entry)} · SL ${App.fmtPx(o.sl)} · TP ${App.fmtPx(o.tp)} · qty ${App.fmt(o.qty, 4)}"
                 paintStrip(f)
             }
             findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rpLog).apply {
@@ -211,7 +211,7 @@ class ReplayActivity : BaseActivity(0) {
 
     private fun describe(f: ReplayFrame): String = when {
         f.justOpened != null -> "ENTRY dieksekusi @ open bar ini."
-        f.closed != null -> "EXIT ${f.closed.result} @ ${App.fmt(f.closed.exit, 4)}."
+        f.closed != null -> "EXIT ${f.closed.result} @ ${App.fmtPx(f.closed.exit)}."
         f.signalDir != null && f.pendingEntry -> "SINYAL ${f.signalDir} — filter LOLOS. Entry dijadwalkan @ open bar berikut."
         f.signalDir != null && f.filterPassed == false -> {
             val tops = f.filterFailed.take(2).joinToString("; ") { humanFilterReason(it) }
