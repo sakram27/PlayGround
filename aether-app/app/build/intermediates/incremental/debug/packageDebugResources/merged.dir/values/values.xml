@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="amber">#FBBF24</color>
+    <color name="blue">#3B82F6</color>
+    <color name="card">#101722</color>
+    <color name="cyan">#2DD4BF</color>
+    <color name="cyan_ink">#06222E</color>
+    <color name="dim">#64748B</color>
+    <color name="disabled">#334155</color>
+    <color name="disabled_ink">#94A3B8</color>
+    <color name="gold">#D4AF37</color>
+    <color name="graphite_800">#101722</color>
+    <color name="graphite_900">#080B12</color>
+    <color name="green">#10B981</color>
+    <color name="green_ink">#06110D</color>
+    <color name="green_soft">#0A2E22</color>
+    <color name="inset">#151E2B</color>
+    <color name="line">#253244</color>
+    <color name="mut">#94A3B8</color>
+    <color name="red">#F87171</color>
+    <color name="red_soft">#3A1E22</color>
+    <color name="slate">#64748B</color>
+    <color name="txt">#F1F5F9</color>
+    <color name="violet">#A78BFA</color>
+    <color name="violet_ink">#0E1220</color>
+    <color name="white">#FFFFFF</color>
+    <dimen name="dot_status">10dp</dimen>
+    <dimen name="gap_row">8dp</dimen>
+    <dimen name="gap_section">10dp</dimen>
+    <dimen name="gap_small">6dp</dimen>
+    <dimen name="gap_tiny">4dp</dimen>
+    <dimen name="pad_card">14dp</dimen>
+    <dimen name="pad_screen">12dp</dimen>
+    <dimen name="radius_card">10dp</dimen>
+    <dimen name="radius_pill">20dp</dimen>
+    <dimen name="text_body">13sp</dimen>
+    <dimen name="text_caption">11sp</dimen>
+    <dimen name="text_hero">26sp</dimen>
+    <dimen name="text_label">10sp</dimen>
+    <dimen name="text_section">15sp</dimen>
+    <dimen name="text_small">12sp</dimen>
+    <dimen name="text_title">17sp</dimen>
+    <dimen name="touch_min">48dp</dimen>
+    <string name="app_name">Aether Signal</string>
+    <style name="AppActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/green_soft</item>
+    </style>
+    <style name="AppBottomNav" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/nav_tint</item>
+        <item name="itemTextColor">@color/nav_tint</item>
+        <item name="backgroundTint">@color/graphite_800</item>
+    </style>
+    <style name="AppSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/graphite_800</item>
+    </style>
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/green</item>
+        <item name="colorOnPrimary">@color/green_ink</item>
+        <item name="colorPrimaryContainer">@color/green_soft</item>
+        <item name="colorSecondary">@color/green</item>
+        <item name="colorSurface">@color/graphite_800</item>
+        <item name="colorOnSurface">@color/txt</item>
+        <item name="colorSurfaceVariant">@color/card</item>
+        <item name="colorOnSurfaceVariant">@color/mut</item>
+        <item name="colorError">@color/red</item>
+        <item name="android:colorBackground">@color/graphite_900</item>
+        <item name="android:windowBackground">@color/graphite_900</item>
+        <item name="android:textColorPrimary">@color/txt</item>
+        <item name="android:textColorSecondary">@color/mut</item>
+        <item name="bottomNavigationStyle">@style/AppBottomNav</item>
+    </style>
+    <style name="BtnBase" parent="Widget.Material3.Button">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+    <style name="BtnBaseLine" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textSize">14sp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="iconPadding">8dp</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+    <style name="BtnCyan" parent="BtnBase">
+        <item name="backgroundTint">@color/cyan</item>
+        <item name="android:textColor">@color/cyan_ink</item>
+    </style>
+    <style name="BtnDanger" parent="BtnBase">
+        <item name="backgroundTint">@color/red</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name="BtnGhost" parent="BtnBaseLine">
+        <item name="strokeColor">@color/line</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+    <style name="BtnInfo" parent="BtnBase">
+        <item name="backgroundTint">@color/blue</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name="BtnPrimary" parent="BtnBase">
+        <item name="android:background">@drawable/grad_primary</item>
+        <item name="android:textColor">@color/green_ink</item>
+    </style>
+    <style name="BtnSlate" parent="BtnBaseLine">
+        <item name="strokeColor">@color/slate</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <style name="BtnSmall" parent="BtnGhost">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="BtnSmallDanger" parent="BtnDanger">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+    <style name="BtnViolet" parent="BtnBase">
+        <item name="backgroundTint">@color/violet</item>
+        <item name="android:textColor">@color/violet_ink</item>
+    </style>
+    <style name="Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/card</item>
+        <item name="cardCornerRadius">10dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/line</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="contentPadding">14dp</item>
+    </style>
+    <style name="Field" parent="Widget.Material3.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/line</item>
+        <item name="boxBackgroundColor">@color/inset</item>
+        <item name="hintTextColor">@color/mut</item>
+        <item name="android:textColorHint">@color/mut</item>
+    </style>
+    <style name="SheetTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/AppSheet</item>
+    </style>
+    <style name="TxBody">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+    <style name="TxCaption">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/dim</item>
+    </style>
+    <style name="TxHero">
+        <item name="android:textSize">@dimen/text_hero</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <style name="TxLabel">
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+    <style name="TxMono">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <style name="TxMut">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <style name="TxSection">
+        <item name="android:textSize">@dimen/text_section</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+</resources>

@@ -464,6 +464,117 @@ fun main() {
             pairDataHealth(300, 300, 300, 220) == "SEHAT")
     }
 
+    // ===== DIAG-NOL: perincian NO_CANDIDATE (diagnostik saja, keputusan utuh) =====
+    // Data SINTETIS BERLABEL — bentuk kasus, bukan bukti pasar nyata.
+    run {
+        fun ncSnap(
+            running: Boolean, lastTickAt: Long = 0L, lastDataAt: Long = 0L,
+            evalTotal: Int = 0, evalOk: Int = 0, stored: Int = 0,
+            openPositions: Int = 0
+        ) = EngineDiagSnapshot(
+            running = running, startedAt = 1000L, lastTickAt = lastTickAt, lastDataAt = lastDataAt,
+            strategy = "support_resistance", timeframe = "15m", pairs = listOf("BTCUSDT"),
+            evalTotal = evalTotal, evalOk = evalOk, candidates = 0,
+            filteredOut = 0, invalidLevels = 0, dupHeld = 0, stored = stored,
+            notifCalls = 0, openPositions = openPositions, oldestOpenAgeMs = 0L,
+            failCount = 0, pairErrors = emptyList(), lastPhase = "selesai", lastError = "")
+        val ncNow = 60000L
+        // Kasus cermin live: SR + MTF dua-duanya NONE pada bar datar.
+        val flat = ArrayList<Candle>(); var ft = SAT0
+        repeat(120) { flat.add(saC(100.0, 100.0, 100.0, 100.0, ft, 0.0)); ft += SATF }
+        val fcache = buildCache(flat)
+        val k = 100
+        val pOr = BacktestParams(strategy = "support_resistance",
+            combo = Combo("OR", listOf("support_resistance", "mtf_confirm")))
+        val ra = strategyFn("support_resistance", flat, k, fcache, emptyMap()).first
+        val rb = strategyFn("mtf_confirm", flat, k, fcache, emptyMap()).first
+        saok("n-dua-none", ra == "NONE" && rb == "NONE", "$ra/$rb")
+        val legs = comboLegDirs(pOr, flat, k, fcache)
+        saok("n-legs", legs == listOf("support_resistance" to "NONE", "mtf_confirm" to "NONE"), "$legs")
+        val det = noCandidateDetail(pOr, flat, k, fcache)
+        saok("n-detail", det == "MODE=OR | SR=NONE | MTF=NONE | BAR=${flat[k].t}", det)
+        saok("n-detail-cap", det.length <= 120)
+        saok("n-detail-tanpa-rahasia", !det.lowercase().contains("token") &&
+            !det.lowercase().contains("key") && !det.lowercase().contains("secret"))
+        // decideAt tak berubah: OR dua-NONE tetap tak lolos.
+        val decOr = decideAt(flat, k, fcache, pOr)
+        saok("n-decide-tetap", !decOr.passed && decOr.direction == "NONE")
+        // Tunggal: MODE=SINGLE.
+        val detS = noCandidateDetail(BacktestParams(strategy = "rsi"), flat, k, fcache)
+        saok("n-single", detS.startsWith("MODE=SINGLE | ") && detS.endsWith("BAR=${flat[k].t}"), detS)
+        // Konflik arah pada AND (konstruksi deterministik tren + pullback merah).
+        val cs = ArrayList<Candle>(); var px = 100.0; var tt = SAT0; var rnd = 5L
+        fun rand(): Double {
+            rnd = (rnd * 6364136223846793005L + 1442695040888963407L) ushr 11
+            return (rnd.toDouble() / Long.MAX_VALUE.toDouble() + 1.0) / 2.0
+        }
+        repeat(300) {
+            val o = px
+            val c = (o * (1 + 0.0015 + (rand() - 0.5) * 0.002)).coerceAtLeast(1.0)
+            cs.add(saC(o, maxOf(o, c) * 1.001, minOf(o, c) * 0.999, c, tt)); px = c; tt += SATF
+        }
+        repeat(6) {
+            val o = px
+            val c = o * 0.997
+            cs.add(saC(o, o * 1.0005, c * 0.9995, c, tt)); px = c; tt += SATF
+        }
+        val cc = buildCache(cs)
+        var tieAt = -1
+        for (kk in 290 until cs.size) {
+            if (strategyFn("ema_trend", cs, kk, cc, emptyMap()).first == "LONG" &&
+                strategyFn("rsi", cs, kk, cc, emptyMap()).first == "SHORT") { tieAt = kk; break }
+        }
+        saok("n-konflik-ada", tieAt >= 0, "tieAt=$tieAt")
+        if (tieAt >= 0) {
+            val pAnd = BacktestParams(strategy = "x", combo = Combo("AND", listOf("ema_trend", "rsi")))
+            saok("n-konflik-and-none", !decideAt(cs, tieAt, cc, pAnd).passed)
+            val detC = noCandidateDetail(pAnd, cs, tieAt, cc)
+            saok("n-konflik-detail", detC.contains("MODE=AND") && detC.contains("EMATREND=LONG") &&
+                detC.contains("RSI=SHORT") && detC.endsWith("BAR=${cs[tieAt].t}") && detC.length <= 120, detC)
+        }
+        // Dua strategi searah: OR lolos LONG, detail mencatat keduanya.
+        var sameAt = -1
+        for (kk in 100 until 880 step 5) {
+            if (strategyFn("ema_trend", up, kk, cup, emptyMap()).first == "LONG" &&
+                strategyFn("adx", up, kk, cup, emptyMap()).first == "LONG") { sameAt = kk; break }
+        }
+        saok("n-searah-ada", sameAt >= 0, "sameAt=$sameAt")
+        if (sameAt >= 0) {
+            val pOr2 = BacktestParams(strategy = "x", combo = Combo("OR", listOf("ema_trend", "adx")))
+            val dSame = decideAt(up, sameAt, cup, pOr2)
+            saok("n-searah-lolos", dSame.passed && dSame.direction == "LONG")
+            val detS2 = noCandidateDetail(pOr2, up, sameAt, cup)
+            saok("n-searah-detail", detS2.contains("MODE=OR") && detS2.contains("EMATREND=LONG") &&
+                detS2.contains("ADX=LONG"), detS2)
+        }
+        // 5 kaki tetap ≤120 char; engineEvalIndices & ambang tak berubah.
+        val p5 = BacktestParams(strategy = "x",
+            combo = Combo("OR", listOf("ema_trend", "adx", "rsi", "macd", "supertrend")))
+        saok("n-5kaki-cap", noCandidateDetail(p5, flat, k, fcache).length <= 120)
+        saok("n-eval-tetap", engineEvalIndices(300, 1000L, 1100L, 900000L) == listOf(298) &&
+            engineEvalIndices(300, 1000L, 1000L + 900000L, 900000L) == listOf(298, 299))
+        saok("n-ambang-tetap", strategyFn("support_resistance", flat, 19, fcache, emptyMap()).first == "NONE" &&
+            strategyFn("mtf_confirm", flat, 49, fcache, emptyMap()).first == "NONE")
+        // Sesi kombo tampil terpisah di panel + salinan.
+        val snapCombo = ncSnap(true, lastTickAt = 59000L, lastDataAt = 59000L, evalTotal = 2, evalOk = 2).copy(
+            sessionCfgFp = "fp-demo-1234567890", sessionStrategy = "support_resistance",
+            sessionTimeframe = "15m", sessionPairs = listOf("BTCUSDT"),
+            sessionComboMode = "OR", sessionComboExtra = listOf("mtf_confirm"))
+        val tCombo = formatEngineDiag(snapCombo, "support_resistance", "15m", "binance",
+            true, true, false, 0, 0, 0, 15, ncNow)
+        saok("n-sesi-panel", tCombo.contains("Strategi utama: support_resistance") &&
+            tCombo.contains("mtf_confirm") && tCombo.contains("mode: OR"), "")
+        val cCombo = buildDiagCopyText(snapCombo, "support_resistance", "15m", "binance", ncNow, 0, 0, 0)
+        saok("n-sesi-copy", cCombo.contains("Strategi utama: support_resistance") &&
+            cCombo.contains("Strategi tambahan: mtf_confirm") &&
+            cCombo.contains("Mode kombinasi: OR"), "")
+        // Sesi tunggal: baris kombo tak muncul (jujur, bukan klaim kosong).
+        val tSingle = formatEngineDiag(ncSnap(true, lastTickAt = 59000L, evalTotal = 2, evalOk = 2).copy(
+            sessionCfgFp = "fp-demo", sessionStrategy = "rsi"),
+            "rsi", "15m", "binance", true, true, false, 0, 0, 0, 15, ncNow)
+        saok("n-sesi-tunggal", !tSingle.contains("Strategi utama:"), "")
+    }
+
     println("SIGNAL-AUDIT-FULL done pass=$sapass fail=$safail")
     if (safail > 0) kotlin.system.exitProcess(1)
 }

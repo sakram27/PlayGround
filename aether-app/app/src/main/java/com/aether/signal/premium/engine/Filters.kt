@@ -196,5 +196,47 @@ fun decideAt(candles: List<Candle>, idx: Int, cache: Cache, params: BacktestPara
     return SignalDecision(false, "NONE", 0.0, emptyList(), combo.strategies.joinToString("+"))
 }
 
+// ---------- Diagnostik NO_CANDIDATE (murni, tanpa ubah keputusan) ----------
+// ATURAN DIJAGA (audit nol-kandidat): ambang entry, EMA/RSI, mode OR/AND/
+// MAJORITY, dan penggabungan hasil TIDAK disentuh — decideAt/strategyFn di
+// atas tidak berubah. Helper di bawah hanya MEMBACA ulang strategyFn yang
+// murni (tanpa fetch jaringan, tanpa state) pada input yang SAMA dengan yang
+// dipakai decideAt, lalu merangkumnya agar vonis dapat dibedakan:
+// mode aktual + arah tiap kaki + waktu bar yang dievaluasi.
+
+/** Label ringkas strategi untuk detail vonis (deterministik, tanpa rahasia). */
+fun shortStrategyLabel(id: String): String = when (id) {
+    "support_resistance" -> "SR"
+    "mtf_confirm" -> "MTF"
+    else -> id.uppercase().replace("_", "").take(8).ifEmpty { "?" }
+}
+
+/** Arah tiap kaki (tunggal/kombo) pada bar ini — input sama dengan decideAt. */
+fun comboLegDirs(params: BacktestParams, candles: List<Candle>, idx: Int, cache: Cache): List<Pair<String, String>> {
+    val combo = params.combo
+    if (combo == null || combo.strategies.isEmpty()) {
+        return listOf(params.strategy to strategyFn(params.strategy, candles, idx, cache, params.strategyParams).first)
+    }
+    return combo.strategies.map { name ->
+        name to if (!STRATEGIES.containsKey(name)) "NONE"
+        else strategyFn(name, candles, idx, cache, params.strategyParams).first
+    }
+}
+
+/** Detail vonis NO_CANDIDATE: MODE + arah per kaki + waktu bar. Maks 120 char. */
+fun noCandidateDetail(params: BacktestParams, candles: List<Candle>, idx: Int, cache: Cache): String {
+    val combo = params.combo
+    val mode = if (combo == null || combo.strategies.isEmpty()) "SINGLE" else combo.mode.ifEmpty { "OR" }
+    val barT = candles.getOrNull(idx)?.t ?: 0L
+    val sb = StringBuilder("MODE=$mode")
+    for ((name, dir) in comboLegDirs(params, candles, idx, cache)) {
+        val seg = " | ${shortStrategyLabel(name)}=$dir"
+        if (sb.length + seg.length + " | BAR=$barT".length > 120) break
+        sb.append(seg)
+    }
+    sb.append(" | BAR=$barT")
+    return sb.toString().take(120)
+}
+
 fun fmt2(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)
 fun fmt0(v: Double): String = String.format(java.util.Locale.US, "%.0f", v)

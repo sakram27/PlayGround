@@ -51,7 +51,11 @@ data class EngineDiagSnapshot(
     val rejectedCap: Int = 0,
     val tickSkipped: Int = 0,
     // Bagian B: peringatan sesi lama (kosong = tidak ada).
-    val staleNote: String = ""
+    val staleNote: String = "",
+    // Diagnostik kombo sesi: strategi utama/tambahan/mode terpisah.
+    // Default kosong = sesi tunggal/lama; konstruksi posisional lama tetap kompil.
+    val sessionComboMode: String = "",
+    val sessionComboExtra: List<String> = emptyList()
 )
 
 object EngineDiag {
@@ -84,6 +88,9 @@ object EngineDiag {
     @Volatile var sessionPairs: List<String> = emptyList()
     @Volatile var sessionStrategy: String = ""
     @Volatile var sessionTimeframe: String = ""
+    // Diagnostik kombo sesi (dicatat freezeSessionNow; dibersihkan clearSession).
+    @Volatile var sessionComboMode: String = ""
+    @Volatile var sessionComboExtra: List<String> = emptyList()
     @Volatile var liveCfgFp: String = ""
     @Volatile var cfgDiverged: Boolean = false
     // Bagian A: penolakan cap global + tick yang dilewat (anti-tumpang).
@@ -168,7 +175,7 @@ object EngineDiag {
             errs.size, errs, lastPhase, lastError,
             totalTicks, candLong, candShort, blockedPosition, ftop, lastSignalAt, lastCfgFp,
             sessionCfgFp, sessionPairs, sessionStrategy, sessionTimeframe, liveCfgFp, cfgDiverged,
-            pv, tickStartMs, rejectedCap, tickSkipped, staleNote)
+            pv, tickStartMs, rejectedCap, tickSkipped, staleNote, sessionComboMode, sessionComboExtra)
     }
 }
 
@@ -326,6 +333,12 @@ fun formatEngineDiag(
     if (snap.sessionCfgFp.isNotEmpty()) {
         b.append("\nSesi Engine: ${snap.sessionStrategy} · ${snap.sessionTimeframe} · " +
             "${snap.sessionPairs.size} pair · fp ${snap.sessionCfgFp.take(16)}")
+        // Kombo sesi terpisah: utama + tambahan + mode (bukan hanya nama utama).
+        if (snap.sessionComboMode.isNotEmpty() && snap.sessionComboExtra.isNotEmpty()) {
+            b.append("\nStrategi utama: ${snap.sessionStrategy.ifEmpty { "—" }}" +
+                " · tambahan: ${snap.sessionComboExtra.joinToString("+")}" +
+                " · mode: ${snap.sessionComboMode}")
+        }
         if (snap.cfgDiverged) {
             b.append(" · DIVERGEN: global disunting saat berjalan (sesi beku tetap dipakai)")
         }
@@ -352,11 +365,12 @@ fun formatEngineDiag(
     if (snap.pairErrors.isNotEmpty()) {
         b.append("\nGagal: " + snap.pairErrors.take(3).joinToString(" · ") { "${it.first}: ${it.second}" })
     }
-    // Tahap 4/G: vonis per pair (maks 12 baris: menampung 9 pair +
-    // cadangan; tetap ringkas, bukan dump tak terbatas).
+    // Tahap 4/G: vonis per pair. Detail penuh (maks 120 char) agar BAR
+    // waktu candle yang dievaluasi tetap terlihat; bukan dump tak terbatas
+    // (maks 12 pair).
     if (snap.pairVerdicts.isNotEmpty()) {
         b.append("\nPer pair: " + snap.pairVerdicts.take(12).joinToString(" · ") { v ->
-            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(40)})" else ""
+            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(120)})" else ""
         })
     }
     if (snap.lastPhase.isNotEmpty()) b.append("\nTahap: ${snap.lastPhase}")
@@ -461,13 +475,16 @@ fun buildDiagCopyText(
     if (snap.sessionStrategy.isNotEmpty() || snap.sessionPairs.isNotEmpty())
         b.append("Sesi: ${snap.sessionStrategy.ifEmpty { "—" }} · ${snap.sessionTimeframe.ifEmpty { "—" }} · ${snap.sessionPairs.size} pair" +
             (if (snap.cfgDiverged) " · DIVERGEN dari konfigurasi live" else "") + "\n")
+    if (snap.sessionComboMode.isNotEmpty() && snap.sessionComboExtra.isNotEmpty())
+        b.append("Strategi utama: ${snap.sessionStrategy.ifEmpty { "—" }} · Strategi tambahan: " +
+            "${snap.sessionComboExtra.joinToString(", ")} · Mode kombinasi: ${snap.sessionComboMode}\n")
     if (snap.openPositions > 0)
         b.append("Posisi terbuka: ${snap.openPositions}\n")
     if (snap.pairErrors.isNotEmpty())
         b.append("Gagal: " + snap.pairErrors.take(8).joinToString(" · ") { "${it.first}: ${it.second}" } + "\n")
     if (snap.pairVerdicts.isNotEmpty())
         b.append("Per pair: " + snap.pairVerdicts.take(12).joinToString(" · ") { v ->
-            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(40)})" else ""
+            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(120)})" else ""
         } + "\n")
     if (snap.lastPhase.isNotEmpty()) b.append("Tahap: ${snap.lastPhase}\n")
     if (snap.lastError.isNotEmpty()) b.append("Error: ${snap.lastError}\n")

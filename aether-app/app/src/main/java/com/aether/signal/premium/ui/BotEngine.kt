@@ -58,6 +58,11 @@ object BotEngine {
         EngineDiag.sessionPairs = s.pairs
         EngineDiag.sessionStrategy = s.params.strategy
         EngineDiag.sessionTimeframe = s.params.timeframe
+        // Diagnostik kombo: strategi utama/tambahan/mode terpisah (bukan
+        // hanya nama strategi utama). Murni pencatatan; keputusan tak berubah.
+        EngineDiag.sessionComboMode = s.params.combo?.mode?.ifEmpty { "OR" } ?: ""
+        EngineDiag.sessionComboExtra = s.params.combo?.strategies
+            ?.filter { it != s.params.strategy } ?: emptyList()
         return s
     }
 
@@ -70,6 +75,8 @@ object BotEngine {
         EngineDiag.sessionPairs = emptyList()
         EngineDiag.sessionStrategy = ""
         EngineDiag.sessionTimeframe = ""
+        EngineDiag.sessionComboMode = ""
+        EngineDiag.sessionComboExtra = emptyList()
         EngineDiag.cfgDiverged = false
         EngineDiag.liveCfgFp = ""
     }
@@ -463,7 +470,10 @@ object BotEngine {
                     EngineDiag.lastPhase = "evaluasi strategi ($sym)"
                     val dec = decideAt(candles, i, cache, p)
                     if (!dec.passed) {
-                        val det = dec.strategy.ifEmpty { p.strategy } +
+                        // Diagnostik nol-kandidat: mode + arah per kaki + waktu bar
+                        // dari hasil evaluasi aktual (tanpa fetch tambahan, tanpa
+                        // ubah keputusan). Akhiran kesehatan data dipertahankan.
+                        val det = noCandidateDetail(p, candles, i, cache) +
                             (if (dataHealth != "SEHAT") " · data $dataHealth" else "")
                         EngineDiag.noteVerdict(sym, "NO_CANDIDATE", det)
                         continue
