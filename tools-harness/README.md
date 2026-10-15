@@ -7,7 +7,7 @@ untuk + `ScannerLiveTest` (HTTP nyata, read-only).
 
 | Suite | Lingkungan | Kebutuhan |
 |---|---|---|
-| ForensicFixTest, GuardTest, CapTest, ProofTest, F01ImpactTest, ParamMatrixTest | JVM (`run-jvm.sh`) | `kotlinc`, `android.jar`, `org.json` |
+| ForensicFixTest, GuardTest, CapTest, ProofTest, F01ImpactTest, ParamMatrixTest, FullMatrixTest, SignalAuditFullTest | JVM (`run-jvm.sh`) | `kotlinc`, `android.jar`, `org.json` |
 | ScannerLiveTest | JVM + jaringan | endpoint publik Binance/Yahoo |
 | AuditTest, EngineLifecycleTest | **Bukan JVM** — butuh graph Android penuh (R generated + AAR AndroidX: lifecycle/material/charts) | `gradle :app:assembleDebug` (kompilasi) dan/atau instrumentation di perangkat |
 | Perangkat | HP/emulator | notifikasi-shade, Doze/OEM, semalaman, reboot, scanner-200 live |

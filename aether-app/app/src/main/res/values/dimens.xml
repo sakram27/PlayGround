@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TAHAP 2.1 skala dimensi bersama: satu-satunya acuan spacing/teks/radius.
+     Layar memakai @dimen ini, bukan angka bebas, agar konsisten. -->
+<resources>
+    <!-- Spacing -->
+    <dimen name="pad_screen">12dp</dimen>
+    <dimen name="pad_card">14dp</dimen>
+    <dimen name="gap_section">10dp</dimen>
+    <dimen name="gap_small">6dp</dimen>
+    <dimen name="gap_tiny">4dp</dimen>
+    <dimen name="gap_row">8dp</dimen>
+    <!-- Radius -->
+    <dimen name="radius_card">10dp</dimen>
+    <dimen name="radius_pill">20dp</dimen>
+    <!-- Status dot -->
+    <dimen name="dot_status">10dp</dimen>
+    <!-- Sentuh minimum (aksesibilitas) -->
+    <dimen name="touch_min">48dp</dimen>
+    <!-- Tipografi: hero hanya angka terpenting; label kecil tetap ≥10sp -->
+    <dimen name="text_hero">26sp</dimen>
+    <dimen name="text_title">17sp</dimen>
+    <dimen name="text_section">15sp</dimen>
+    <dimen name="text_body">13sp</dimen>
+    <dimen name="text_small">12sp</dimen>
+    <dimen name="text_caption">11sp</dimen>
+    <dimen name="text_label">10sp</dimen>
+</resources>

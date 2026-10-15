@@ -31,7 +31,7 @@ fun genDrift(n: Int, seed: Long, drift: Double, px0: Double = 100.0, vol: Double
     return out
 }
 
-fun rawOf(cs: List<Candle>): List<Any?> =
+fun fmRawOf(cs: List<Candle>): List<Any?> =
     cs.map { mapOf("t" to it.t, "o" to it.o, "h" to it.h, "l" to it.l, "c" to it.c, "v" to it.v) as Any? }
 
 val ALL_STRATS = listOf(
@@ -254,7 +254,7 @@ fun main() {
     // ===== D: filter — none/tunggal/pasangan/semua + OFF + NaN =====
     run {
         val p0 = BacktestParams(asset = "TST", timeframe = "15m", strategy = "ema_trend")
-        val d0 = runBacktest(rawOf(up), p0)
+        val d0 = runBacktest(fmRawOf(up), p0)
         fmok("d-tanpa-filter-jalan", d0.error == null && d0.totalTrades >= 0,
             "tr=${d0.totalTrades} raw=${d0.diag.signalsRaw}")
         for (f in listOf("trend", "ema", "htf", "volume", "atr_vol", "adx", "rsi",
@@ -277,7 +277,7 @@ fun main() {
         }
         // Semua filter aktif bersamaan di backtest: selesai + alasan tercatat.
         val all = FILTER_DEFS.map { FilterCfg(it.id, true, it.defaults, null) }
-        val dall = runBacktest(rawOf(up), p0.copy(filters = all))
+        val dall = runBacktest(fmRawOf(up), p0.copy(filters = all))
         fmok("d-semua-filter", dall.error == null, "tr=${dall.totalTrades} filt=${dall.diag.filteredOut}")
         // NaN / data belum siap -> gagal eksplisit, bukan lolos diam-diam.
         val flat = ArrayList<Candle>()
@@ -290,11 +290,11 @@ fun main() {
         fmok("d-nan-gagal-eksplisit", !frNaN.passed && frNaN.failed.isNotEmpty(),
             frNaN.failed.joinToString(";"))
         // Pasangan filter: dua filter ketat menyaring >= masing-masing sendiri.
-        val rsiOnly = runBacktest(rawOf(up), p0.copy(filters = listOf(
+        val rsiOnly = runBacktest(fmRawOf(up), p0.copy(filters = listOf(
             FilterCfg("rsi", true, mapOf("longMax" to 72.0, "shortMin" to 28.0), null))))
-        val adxOnly = runBacktest(rawOf(up), p0.copy(filters = listOf(
+        val adxOnly = runBacktest(fmRawOf(up), p0.copy(filters = listOf(
             FilterCfg("adx", true, mapOf("min" to 20.0), null))))
-        val both = runBacktest(rawOf(up), p0.copy(filters = listOf(
+        val both = runBacktest(fmRawOf(up), p0.copy(filters = listOf(
             FilterCfg("rsi", true, mapOf("longMax" to 72.0, "shortMin" to 28.0), null),
             FilterCfg("adx", true, mapOf("min" to 20.0), null))))
         fmok("d-pasangan-monoton", both.totalTrades <= minOf(rsiOnly.totalTrades, adxOnly.totalTrades),
@@ -304,7 +304,7 @@ fun main() {
     // ===== E: single vs multi pair =====
     run {
         fun series(seed: Long, drift: Double) =
-            rawOf(genDrift(600, seed, drift))
+            fmRawOf(genDrift(600, seed, drift))
         val p = sanitizeParams(BacktestParams(asset = "A", timeframe = "15m",
             strategy = "ema_trend", maxOpenTrades = 2))
         val pr = runPortfolioBacktest(
@@ -333,7 +333,7 @@ fun main() {
 
     // ===== F: RR ladder + trailing =====
     run {
-        val data = rawOf(genDrift(700, 77L, 0.0007))
+        val data = fmRawOf(genDrift(700, 77L, 0.0007))
         val base = sanitizeParams(BacktestParams(asset = "T", timeframe = "15m",
             strategy = "ema_trend", maxOpenTrades = 1))
         val m1 = runBacktest(data, base.copy(tpMode = 1))
@@ -382,7 +382,7 @@ fun main() {
             "h2" to BacktestParams(asset = "H", timeframe = "15m", strategy = "rsi",
                 trailOn = true, trailDistPct = 0.01, trailActPct = 0.005, maxOpenTrades = 2)
         )) {
-            val r = runBacktest(rawOf(genDrift(700, 91L, 0.0007)), sanitizeParams(pp))
+            val r = runBacktest(fmRawOf(genDrift(700, 91L, 0.0007)), sanitizeParams(pp))
             if (r.error != null) { fmok("h-$tag-jalan", false, r.error); continue }
             var ok = true
             val why = ArrayList<String>()
@@ -415,7 +415,7 @@ fun main() {
         val empty = runBacktest(emptyList(), sanitizeParams(
             BacktestParams(asset = "H", timeframe = "15m", strategy = "ema_trend")))
         fmok("h-kosong-ditolak", empty.error != null)
-        val dupBars = rawOf(genDrift(100, 92L, 0.0005)) + rawOf(genDrift(100, 92L, 0.0005))
+        val dupBars = fmRawOf(genDrift(100, 92L, 0.0005)) + fmRawOf(genDrift(100, 92L, 0.0005))
         val dd = runBacktest(dupBars, sanitizeParams(
             BacktestParams(asset = "H", timeframe = "15m", strategy = "ema_trend")))
         fmok("h-duplikat-dedup", dd.error == null, "norm=${dd.diag.normalizedCount}")

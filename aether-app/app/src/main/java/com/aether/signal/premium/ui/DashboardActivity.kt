@@ -16,6 +16,8 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
 
     override fun build() {
         setBar("Aether Signal", "Terminal Sinyal Trading")
+        // TAHAP 2.1 identitas brand: judul emas (dekoratif saja, bukan status).
+        try { toolbar.setTitleTextColor(getColor(R.color.gold)) } catch (e: Exception) { /* abaikan */ }
         paintHero()
         findViewById<MaterialButton>(R.id.btnEngine).setOnClickListener {
             // Tahap 3: Start melalui guard (drift backtest vs engine + sesi beku).
@@ -29,6 +31,25 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         }
         findViewById<MaterialButton>(R.id.btnAllSig).setOnClickListener { openSignals() }
         findViewById<MaterialButton>(R.id.btnLab).setOnClickListener { navTo("lab") }
+        findViewById<MaterialButton>(R.id.btnDiag).setOnClickListener { SignalsActivity.openTab(this, 1) }
+        // FLAGSHIP hub terminal: semua rute pre-eksisting, hanya dikelompokkan.
+        findViewById<MaterialButton>(R.id.hubSignals).setOnClickListener { openSignals() }
+        findViewById<MaterialButton>(R.id.hubMarkets).setOnClickListener { navTo("markets") }
+        findViewById<MaterialButton>(R.id.hubNotif).setOnClickListener {
+            try { startActivity(android.content.Intent(this, NotifHistoryActivity::class.java)) }
+            catch (e: Exception) { snack(this, "Gagal membuka notifikasi: ${e.message}") }
+        }
+        findViewById<MaterialButton>(R.id.hubSettings).setOnClickListener { navTo("settings") }
+        findViewById<MaterialButton>(R.id.hubBacktest).setOnClickListener { navKeep("backtest") }
+        findViewById<MaterialButton>(R.id.hubLab).setOnClickListener { navTo("lab") }
+        findViewById<MaterialButton>(R.id.hubReplay).setOnClickListener {
+            try { startActivity(android.content.Intent(this, ReplayActivity::class.java)) }
+            catch (e: Exception) { snack(this, "Gagal membuka replay: ${e.message}") }
+        }
+        findViewById<MaterialButton>(R.id.hubJournal).setOnClickListener {
+            try { startActivity(android.content.Intent(this, JournalActivity::class.java)) }
+            catch (e: Exception) { snack(this, "Gagal membuka jurnal: ${e.message}") }
+        }
         // V28: kelola daftar pair Engine secara eksplisit (lihat resolveEnginePairs).
         findViewById<MaterialButton>(R.id.btnEngPairs).setOnClickListener { openEngPairSheet() }
         findViewById<MaterialButton>(R.id.btnEngSync).setOnClickListener {
@@ -70,27 +91,48 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             if (App.hist.isNotEmpty()) App.fmt(wins.toDouble() / App.hist.size * 100, 1) + "%" else "—"
         findViewById<android.widget.TextView>(R.id.kPos).text = BotEngine.positions.size.toString()
         findViewById<MaterialButton>(R.id.btnEngine).let { paintEngineButton(it, App.engRunning) }
-        // V28: status berlabel — daftar pair yang dipantau + hitungan jujur.
-        // RUNNING hanya klaim proses; bila semua pair gagal, tick mencatat 0 OK
-        // dan teks menunjukkan "0/N pair data OK".
+        // UI-1: status tunggal dari engineStatusSummary (sumber yang sama dengan
+        // tab Positions + formatEngineDiag). RUNNING hanya klaim proses;
+        // degradasi jujur dipertahankan: TERDEGRADASI = DATA BELUM SIAP
+        // (0/N pair OK); loop macet = TIDAK MERESPON dari umur tick (bukan
+        // klaim sehat karena flag hidup). Alasan memakai noSignalReason().
+        val nowH = System.currentTimeMillis()
+        val oldestH = BotEngine.positions.minOfOrNull { it.entryT }?.let { nowH - it } ?: 0L
+        val heroSnap = EngineDiag.snapshot(App.engRunning, App.strategy, App.timeframe,
+            App.engPairs.toList(), BotEngine.positions.size, oldestH)
+        // TAHAP 2.1 titik status: warna dari sumber tunggal; teks di engStatus
+        // tetap penjelas utama (jangan andalkan warna saja).
+        try {
+            findViewById<android.view.View>(R.id.engDot).backgroundTintList =
+                android.content.res.ColorStateList.valueOf(
+                    statusColorFor(engineStatusLabel(heroSnap, nowH)))
+        } catch (e: Exception) { /* dekoratif, jangan matikan layar */ }
         findViewById<android.widget.TextView>(R.id.engStatus).text = when {
             MonitorService.running -> "Selalu Siaga · ${MonitorService.statusText()}"
-            // V32: degradasi jujur — 0 OK bukan RUN normal; loop macet terdeteksi
-            // dari umur tick (bukan klaim sehat karena flag hidup).
-            App.engRunning && BotEngine.lastTotalPairs > 0 && BotEngine.lastOkPairs == 0 ->
-                "RUN TERDEGRADASI · 0/${BotEngine.lastTotalPairs} pair data OK\n" +
-                "Dipantau: ${App.engPairs.joinToString(", ")}\n${EngineDiag.lastError.ifEmpty { BotEngine.lastScan }}"
-            App.engRunning && EngineDiag.lastTickAt > 0 &&
-                System.currentTimeMillis() - EngineDiag.lastTickAt > 5 * 60 * 1000L ->
-                "RUN TIDAK MERESPON · tick terakhir >5 mnt lalu — Stop lalu Start.\n${BotEngine.lastScan}"
-            App.engRunning -> "RUN · ${BotEngine.lastOkPairs}/${BotEngine.lastTotalPairs} pair data OK\n" +
-                "Dipantau: ${App.engPairs.joinToString(", ")}\n${BotEngine.lastScan}"
-            else -> "Engine berhenti."
+            else -> {
+                val s = engineStatusSummary(heroSnap, nowH)
+                val scan = BotEngine.lastScan
+                if (scan.isNotEmpty()) "$s\n$scan" else s
+            }
         }.let { base ->
             // Bagian B: peringatan sesi lama tak selesai (bila ada).
             val stale = EngineDiag.staleNote
             if (stale.isNotEmpty() && App.engRunning) "$base\n$stale" else base
         }
+        findViewById<android.widget.TextView>(R.id.engReason).text =
+            "Alasan: " + noSignalReason(App.engRunning, heroSnap.evalTotal, heroSnap.evalOk,
+                heroSnap.candidates, heroSnap.stored, heroSnap.failCount,
+                heroSnap.openPositions, heroSnap.pairs.size, heroSnap.lastTickAt, nowH,
+                heroSnap.blockedPosition)
+        // FLAGSHIP hero: label status besar + konteks provider/timeframe aktual.
+        try {
+            findViewById<android.widget.TextView>(R.id.engHeroStatus).text =
+                engineStatusLabel(heroSnap, nowH)
+        } catch (e: Exception) { /* abaikan */ }
+        try {
+            findViewById<android.widget.TextView>(R.id.brandLine).text =
+                "${App.provider.uppercase()} · ${App.timeframe}"
+        } catch (e: Exception) { /* abaikan */ }
     }
 
     /** V28: daftar pair Engine yang benar-benar dipakai tick (bukan tebakan). */
@@ -191,8 +233,19 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         })
         findViewById<android.widget.TextView>(R.id.sigEmpty).apply {
             visibility = if (vis.isEmpty()) View.VISIBLE else View.GONE
-            text = "Belum ada sinyal Engine — tekan Start Engine."
+            text = if (vis.isEmpty()) dashboardEmptySignalText() else ""
         }
+    }
+
+    /** UI-1: empty state kontekstual dari angka aktual (bukan teks statis). */
+    private fun dashboardEmptySignalText(): String {
+        return try {
+            val now = System.currentTimeMillis()
+            val s = EngineDiag.snapshot(App.engRunning, App.strategy, App.timeframe,
+                App.engPairs.toList(), BotEngine.positions.size, 0L)
+            emptySignalText(App.engRunning, s.evalTotal, s.evalOk, s.candidates,
+                s.blockedPosition, s.openPositions, s.pairs.size, s.lastTickAt, now, s.stored, s.failCount)
+        } catch (e: Exception) { "Belum ada sinyal Engine — tekan Start Engine." }
     }
 
     /** V16 F7 + V27: label regime dari cache engine + alasan terukur bila tak ada.

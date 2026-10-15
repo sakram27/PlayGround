@@ -286,12 +286,14 @@ fun formatEngineDiag(
     val b = StringBuilder()
     // V32: loop macet terdeteksi dari umur tick (bukan klaim sehat karena hidup).
     // Interval terjadwal 90 dtk; >5 mnt tanpa tick selesai = tidak merespons.
-    val tickStale = snap.running && snap.lastTickAt > 0 && nowMs - snap.lastTickAt > 5 * 60 * 1000L
-    val state = when {
-        !snap.running -> "BERHENTI"
-        tickStale -> "TIDAK MERESPON (loop macet?)"
-        snap.lastError.isNotEmpty() && snap.evalOk == 0 -> "ERROR"
-        snap.running && snap.evalTotal > 0 && snap.evalOk == 0 -> "TERDEGRADASI (semua pair gagal)"
+    // UI-1: status tunggal dari engineStatusLabel (sumber yang sama dipakai
+    // kartu ringkas Dashboard/Positions); teks tampilan lama dipertahankan
+    // agar panel detail tak berubah arti (DATA BELUM SIAP = TERDEGRADASI).
+    val state = when (engineStatusLabel(snap, nowMs)) {
+        "BERHENTI" -> "BERHENTI"
+        "TIDAK MERESPON" -> "TIDAK MERESPON (loop macet?)"
+        "ERROR" -> "ERROR"
+        "DATA BELUM SIAP" -> "TERDEGRADASI (semua pair gagal)"
         else -> "BERJALAN"
     }
     b.append("Status: $state")
@@ -391,4 +393,114 @@ fun noSignalReason(
     openPositions >= pairsTotal && pairsTotal > 0 ->
         "Semua pair memiliki posisi terbuka (posisi menahan entry baru)."
     else -> "Sebagian sinyal tersimpan; sisanya tertahan filter/level/duplikat."
+}
+
+// ---------- UI-1: status ringkas tunggal + salinan diagnostik ----------
+// Satu-satunya penentu label status Engine — dipakai kartu ringkas Dashboard
+// dan tab Positions; formatEngineDiag memetakan label ini ke teks tampilannya
+// sehingga tak ada dua sumber status yang bertentangan. Murni & teruji JVM.
+fun engineStatusLabel(snap: EngineDiagSnapshot, nowMs: Long): String = when {
+    !snap.running -> "BERHENTI"
+    snap.lastTickAt > 0 && nowMs - snap.lastTickAt > 5 * 60 * 1000L -> "TIDAK MERESPON"
+    snap.lastError.isNotEmpty() && snap.evalOk == 0 -> "ERROR"
+    snap.evalTotal > 0 && snap.evalOk == 0 -> "DATA BELUM SIAP"
+    snap.stored == 0 -> "BERJALAN TANPA SINYAL"
+    else -> "BERJALAN"
+}
+
+/** Satu baris status kartu: label + umur tick + umur data. Jujur bila kosong ("belum pernah"/"belum ada"). */
+fun engineStatusSummary(snap: EngineDiagSnapshot, nowMs: Long): String {
+    val tick = if (snap.lastTickAt > 0) "tick ${ageText(snap.lastTickAt, nowMs)} lalu" else "tick belum pernah"
+    val data = if (snap.lastDataAt > 0) "data ${ageText(snap.lastDataAt, nowMs)} lalu" else "data belum ada"
+    return "${engineStatusLabel(snap, nowMs)} · $tick · $data"
+}
+
+/** Teks empty-state "belum ada sinyal" dari angka aktual — dipakai Signals + Dashboard. */
+fun emptySignalText(
+    running: Boolean, evalTotal: Int, evalOk: Int, candidates: Int,
+    blockedPosition: Int, openPositions: Int, pairsTotal: Int,
+    lastTickAt: Long, nowMs: Long, stored: Int, failCount: Int
+): String = when {
+    !running -> "Belum ada sinyal Engine — tekan Start Engine."
+    evalTotal == 0 -> "Belum ada sinyal Engine — engine berjalan, menunggu tick evaluasi pertama."
+    evalOk == 0 -> "Belum ada sinyal Engine — data pasar belum siap (semua pair gagal diambil). Periksa provider/koneksi, lalu lihat tab Positions."
+    candidates == 0 && blockedPosition > 0 && openPositions >= pairsTotal && pairsTotal > 0 ->
+        "Belum ada sinyal Engine — semua pair memiliki posisi terbuka yang menahan entry baru."
+    else -> "Belum ada sinyal Engine — " + noSignalReason(
+        running, evalTotal, evalOk, candidates, stored, failCount,
+        openPositions, pairsTotal, lastTickAt, nowMs, blockedPosition
+    ).replaceFirstChar { it.lowercase() }
+}
+
+/** Teks salinan diagnostik: snapshot aktual saja, tanpa rahasia (snapshot tak memuat kunci/token). */
+fun buildDiagCopyText(
+    snap: EngineDiagSnapshot, strategy: String, timeframe: String, provider: String, nowMs: Long,
+    notifSent: Int = -1, notifHeld: Int = -1, notifFailed: Int = -1
+): String {
+    fun age(t: Long) = if (t > 0) "${ageText(t, nowMs)} lalu" else "belum pernah"
+    fun cnt(v: Int) = if (v >= 0) v.toString() else "tak tersedia"
+    val wall = try {
+        val f = java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", java.util.Locale("id", "ID"))
+        f.timeZone = java.util.TimeZone.getTimeZone("Asia/Jakarta")
+        f.format(java.util.Date(nowMs)) + " WIB"
+    } catch (e: Exception) { "epoch $nowMs" }
+    val b = StringBuilder()
+    b.append("Aether Signal — Diagnostik Engine\n")
+    b.append("Waktu snapshot: $wall (epoch $nowMs)\n")
+    b.append("Status: ${engineStatusLabel(snap, nowMs)}\n")
+    b.append("Tick terakhir: ${age(snap.lastTickAt)} · Data terakhir: ${age(snap.lastDataAt)}\n")
+    b.append("Strategi: ${strategy.ifEmpty { "—" }} · Timeframe: ${timeframe.ifEmpty { "—" }} · Provider: ${provider.ifEmpty { "—" }}\n")
+    b.append("Pair: ${if (snap.pairs.isEmpty()) "belum dipilih" else snap.pairs.joinToString(", ")}\n")
+    b.append("Evaluasi: ${snap.evalOk}/${snap.evalTotal} pair OK · tick sesi: ${snap.totalTicks}\n")
+    b.append("Kandidat: ${snap.candidates} (LONG ${snap.candLong}/SHORT ${snap.candShort}) · Ditolak filter: ${snap.filteredOut}\n")
+    if (snap.filterTop.isNotEmpty())
+        b.append("Top penolakan: " + snap.filterTop.joinToString(" · ") { "${it.first}×${it.second}" } + "\n")
+    b.append("Level tak valid: ${snap.invalidLevels} · Diblokir posisi: ${snap.blockedPosition} · Cap penuh: ${snap.rejectedCap} · Duplikat ditahan: ${snap.dupHeld}\n")
+    b.append("Tersimpan: ${snap.stored} · Notifikasi dipanggil: ${snap.notifCalls}\n")
+    b.append("Riwayat kirim: ${cnt(notifSent)} terkirim · ${cnt(notifHeld)} ditahan · ${cnt(notifFailed)} gagal\n")
+    if (snap.sessionStrategy.isNotEmpty() || snap.sessionPairs.isNotEmpty())
+        b.append("Sesi: ${snap.sessionStrategy.ifEmpty { "—" }} · ${snap.sessionTimeframe.ifEmpty { "—" }} · ${snap.sessionPairs.size} pair" +
+            (if (snap.cfgDiverged) " · DIVERGEN dari konfigurasi live" else "") + "\n")
+    if (snap.openPositions > 0)
+        b.append("Posisi terbuka: ${snap.openPositions}\n")
+    if (snap.pairErrors.isNotEmpty())
+        b.append("Gagal: " + snap.pairErrors.take(8).joinToString(" · ") { "${it.first}: ${it.second}" } + "\n")
+    if (snap.pairVerdicts.isNotEmpty())
+        b.append("Per pair: " + snap.pairVerdicts.take(12).joinToString(" · ") { v ->
+            v.sym + "=" + v.outcome + if (v.detail.isNotEmpty()) "(${v.detail.take(40)})" else ""
+        } + "\n")
+    if (snap.lastPhase.isNotEmpty()) b.append("Tahap: ${snap.lastPhase}\n")
+    if (snap.lastError.isNotEmpty()) b.append("Error: ${snap.lastError}\n")
+    b.append("Alasan: " + noSignalReason(
+        snap.running, snap.evalTotal, snap.evalOk, snap.candidates, snap.stored,
+        snap.failCount, snap.openPositions, snap.pairs.size, snap.lastTickAt, nowMs, snap.blockedPosition))
+    return b.toString()
+}
+
+// ---------- TAHAP 2.1: warna status satu-sumber (angka ARGB, murni, teruji) ----------
+// Aturan: arti sama = warna sama di seluruh layar; warna tak pernah berdiri
+// sendiri (selalu ada teks/ikon). Bukan logika trading — hanya presentasi.
+
+/** Warna titik status Engine dari label engineStatusLabel(). */
+fun statusColorFor(label: String): Int = when (label) {
+    "BERJALAN", "BERJALAN TANPA SINYAL" -> 0xFF10B981.toInt() // emerald: proses hidup
+    "DATA BELUM SIAP" -> 0xFFFBBF24.toInt() // amber: peringatan/belum siap
+    "TIDAK MERESPON", "ERROR" -> 0xFFF87171.toInt() // merah: risiko/gagal
+    else -> 0xFF94A3B8.toInt() // abu-abu: berhenti/netral/tak dikenal
+}
+
+/** Warna label kesehatan data dari pairDataHealth() ("SEHAT"/"PARSIAL(...)"/...). */
+fun healthColorFor(health: String): Int = when {
+    health.startsWith("SEHAT") -> 0xFF10B981.toInt() // emerald
+    health.startsWith("PARSIAL") -> 0xFF2DD4BF.toInt() // teal: data ada, sebagian
+    health.startsWith("KURANG") -> 0xFFFBBF24.toInt() // amber: di bawah minimum
+    health.startsWith("GAGAL") -> 0xFFF87171.toInt() // merah: kosong
+    else -> 0xFF94A3B8.toInt() // abu-abu: tak ada data ("—"/tak dikenal)
+}
+
+/** Warna accent bar arah sinyal (visual saja; teks LONG/SHORT tetap utama). */
+fun dirColorFor(dir: String): Int = when (dir) {
+    "LONG" -> 0xFF10B981.toInt() // emerald
+    "SHORT" -> 0xFFF87171.toInt() // merah
+    else -> 0xFF253244.toInt() // netral: baris info/diagnostik/arsip
 }

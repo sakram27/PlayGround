@@ -28,4 +28,7 @@
     <color name="disabled">#334155</color>
     <color name="disabled_ink">#94A3B8</color>
     <color name="white">#FFFFFF</color>
+    <!-- TAHAP 2.1 emas: aksen SANGAT terbatas, hanya identitas brand (bukan
+         status, bukan angka). Status tetap emerald/merah/amber + teks. -->
+    <color name="gold">#D4AF37</color>
 </resources>

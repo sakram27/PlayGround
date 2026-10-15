@@ -13,9 +13,21 @@ class SignalsActivity : BaseActivity(0) {
     // Dibuka langsung (bukan tab): tombol kembali toolbar aktif agar bisa pulang.
     override val showBack = true
     private var mode = 0
+    /** UI-1: diagnostik lengkap Positions default ringkas; dibuka via "Lihat detail". */
+    private var diagExpanded = false
+
+    companion object {
+        /** FLAGSHIP: buka langsung ke tab tertentu (0 Signals · 1 Positions · 2 History · 3 Drift). */
+        fun openTab(a: android.app.Activity, tab: Int) {
+            try {
+                a.startActivity(android.content.Intent(a, SignalsActivity::class.java).putExtra("tab", tab))
+            } catch (e: Exception) { /* abaikan; pemanggil menampilkan snack sendiri */ }
+        }
+    }
 
     override fun build() {
         setBar("Signals", "Sinyal · posisi paper · riwayat")
+        try { mode = intent.getIntExtra("tab", 0).coerceIn(0, 3) } catch (e: Exception) { mode = 0 }
         val tabs = findViewById<TabLayout>(R.id.tabs)
         tabs.removeAllTabs()
         tabs.addTab(tabs.newTab().setText("Signals"))
@@ -24,7 +36,8 @@ class SignalsActivity : BaseActivity(0) {
         tabs.addTab(tabs.newTab().setText("Drift"))
         tabs.getTabAt(mode)?.select()
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(t: TabLayout.Tab) { mode = t.position; paint() }
+            // FLAGSHIP: transisi pudar singkat antar tab (hormati setelan sistem).
+            override fun onTabSelected(t: TabLayout.Tab) { val m = t.position; fadeSwap(list()) { mode = m; paint() } }
             override fun onTabUnselected(t: TabLayout.Tab) {}
             override fun onTabReselected(t: TabLayout.Tab) {}
         })
@@ -62,6 +75,12 @@ class SignalsActivity : BaseActivity(0) {
                     SigItem(it.dir, "${it.pair}  ${it.tf}", "${App.fmtDate(it.t)} · via ${it.src} · SL ${App.fmt(it.sl, 4)} TP ${App.fmt(it.tp, 4)}${signalRowExtra(it)}", App.fmt(it.price, 4), it.pair)
                 })
                 val targets = ArrayList(vis.map { it.id })
+                // TAHAP 2.4 header tab: jumlah + sumber (baris info, bukan sinyal).
+                if (vis.isNotEmpty()) {
+                    items.add(0, SigItem("◉", "Sinyal Engine · ${vis.size} ditampilkan",
+                        "Sumber: Engine live (bukan backtest) · maks 150 terbaru", ""))
+                    targets.add(0, "")
+                }
                 if (App.legacySignals.isNotEmpty()) {
                     items.add(SigItem("···", "${App.legacySignals.size} data lama belum terklasifikasi",
                         "Tidak dihitung sebagai sinyal Engine.", ""))
@@ -73,7 +92,15 @@ class SignalsActivity : BaseActivity(0) {
                     else openSignalDetail(id)
                 })
                 if (items.isEmpty()) findViewById<TextView>(R.id.empty).apply {
-                    visibility = View.VISIBLE; text = "Belum ada sinyal Engine — tekan Start Engine."
+                    // UI-1: empty state kontekstual dari angka aktual.
+                    visibility = View.VISIBLE
+                    text = try {
+                        val s0 = EngineDiag.snapshot(App.engRunning, App.strategy, App.timeframe,
+                            App.engPairs.toList(), BotEngine.positions.size, 0L)
+                        val now0 = System.currentTimeMillis()
+                        emptySignalText(App.engRunning, s0.evalTotal, s0.evalOk, s0.candidates,
+                            s0.blockedPosition, s0.openPositions, s0.pairs.size, s0.lastTickAt, now0, s0.stored, s0.failCount)
+                    } catch (e: Exception) { "Belum ada sinyal Engine — tekan Start Engine." }
                 }
             }
             1 -> {
@@ -102,13 +129,37 @@ class SignalsActivity : BaseActivity(0) {
                 val items = ArrayList<SigItem>()
                 // Target sejajar baris: null untuk baris grup/info (bukan sinyal).
                 val targets = ArrayList<com.aether.signal.premium.ai.Sig?>()
+                // Aksi khusus baris UI-1 (posisi → aksi): "copy"/"toggle".
+                val rowActions = HashMap<Int, String>()
                 items.add(SigItem("···", heroText, "Paper trading — bukan order sungguhan", ""))
                 targets.add(null)
-                for (line in engineDiagText().split("\n")) {
-                    val t = line.trim()
-                    if (t.isEmpty()) continue
-                    items.add(SigItem("···", t, "", ""))
-                    targets.add(null)
+                // UI-1: ringkasan selalu terlihat (status + alasan + penghitung),
+                // detail lengkap di balik toggle. Satu sumber: currentDiag().
+                val (snap1, diagText, histN) = currentDiag()
+                val now1 = System.currentTimeMillis()
+                val reason1 = noSignalReason(App.engRunning, snap1.evalTotal, snap1.evalOk,
+                    snap1.candidates, snap1.stored, snap1.failCount, snap1.openPositions,
+                    snap1.pairs.size, snap1.lastTickAt, now1, snap1.blockedPosition)
+                items.add(SigItem("◉", engineStatusSummary(snap1, now1), "Alasan: $reason1", ""))
+                targets.add(null)
+                items.add(SigItem("···",
+                    "Kandidat ${snap1.candidates} (LONG ${snap1.candLong}/SHORT ${snap1.candShort}) · tersimpan ${snap1.stored} · notif ${snap1.notifCalls}",
+                    "Ditolak ${snap1.filteredOut} · blokir ${snap1.blockedPosition} · cap ${snap1.rejectedCap} · dup ${snap1.dupHeld}", ""))
+                targets.add(null)
+                items.add(SigItem("⧉", "Salin diagnostik", "Salin snapshot aktual ke clipboard", ""))
+                rowActions[items.size - 1] = "copy"
+                targets.add(null)
+                val detailLines = diagText.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+                items.add(SigItem(if (diagExpanded) "▴" else "▾",
+                    if (diagExpanded) "Sembunyikan detail" else "Lihat detail (${detailLines.size} baris)",
+                    "Diagnostik lengkap tick terakhir — tanpa nilai palsu", ""))
+                rowActions[items.size - 1] = "toggle"
+                targets.add(null)
+                if (diagExpanded) {
+                    for (t in detailLines) {
+                        items.add(SigItem("···", t, "", ""))
+                        targets.add(null)
+                    }
                 }
                 if (BotEngine.positions.isNotEmpty()) {
                     items.add(SigItem("···", "Terbuka · ${BotEngine.positions.size}", "", ""))
@@ -130,9 +181,16 @@ class SignalsActivity : BaseActivity(0) {
                     }
                 }
                 list().adapter = SigAdapter(items, onClick = { pos ->
-                    val s = targets.getOrNull(pos)
-                    if (s == null) snack(this, "Baris grup / info / arsip tanpa sinyal tersimpan.")
-                    else openSignalDetail(s.id)
+                    when (rowActions[pos]) {
+                        "copy" -> copyDiag(snap1, histN)
+                        // TAHAP 2.6 transisi pudar singkat (hormati setelan sistem).
+                        "toggle" -> { diagExpanded = !diagExpanded; fadeSwap(list()) { paint() } }
+                        else -> {
+                            val s = targets.getOrNull(pos)
+                            if (s == null) snack(this, "Baris grup / info / arsip tanpa sinyal tersimpan.")
+                            else openSignalDetail(s.id)
+                        }
+                    }
                 }, wrapMain = true)
                 if (BotEngine.positions.isEmpty() && BotEngine.closed.isEmpty()) {
                     // Header ringkasan selalu ada di atas, jadi baris info ini
@@ -225,29 +283,43 @@ class SignalsActivity : BaseActivity(0) {
         list().adapter = SigAdapter(lines)
     }
 
-    /** Panel diagnostik Engine sebagai teks (V35: dipakai sebagai baris header
-     *  di dalam RecyclerView Positions agar ikut tergulir — bukan TextView
-     *  fixed di luar scroll). Isi = angka aktual tick terakhir + notifikasi. */
-    private fun engineDiagText(): String {
-        try {
-            val now = System.currentTimeMillis()
-            val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
-            val oldest = BotEngine.positions.minOfOrNull { it.entryT }?.let { now - it } ?: 0L
-            val snap = EngineDiag.snapshot(
-                running = App.engRunning, strategy = App.strategy, timeframe = App.timeframe,
-                pairs = App.engPairs.toList(), openPositions = BotEngine.positions.size,
-                oldestOpenAgeMs = oldest)
-            val hist = try { NotifBus.history() } catch (e: Exception) { emptyList() }
-            return formatEngineDiag(
+    /** Jepretan + teks + hitungan riwayat notifikasi untuk tab Positions (satu sumber).
+     *  Isi = angka aktual tick terakhir + notifikasi. */
+    private fun currentDiag(): Triple<EngineDiagSnapshot, String, Triple<Int, Int, Int>> {
+        val now = System.currentTimeMillis()
+        val tfMin = try { parseTimeframe(App.timeframe) } catch (e: Exception) { 15 }
+        val oldest = BotEngine.positions.minOfOrNull { it.entryT }?.let { now - it } ?: 0L
+        val snap = EngineDiag.snapshot(
+            running = App.engRunning, strategy = App.strategy, timeframe = App.timeframe,
+            pairs = App.engPairs.toList(), openPositions = BotEngine.positions.size,
+            oldestOpenAgeMs = oldest)
+        val hist = try { NotifBus.history() } catch (e: Exception) { emptyList() }
+        val sent = hist.count { it.status == "DIKIRIM" }
+        val held = hist.count { it.status == "DITAHAN" }
+        val failed = hist.count { it.status == "GAGAL" || it.status == "GAGAL_IZIN" }
+        val text = try {
+            formatEngineDiag(
                 snap, App.strategy, App.timeframe, App.provider,
                 !NotifBus.needsRuntimePermission(), NotifBus.systemEnabled(),
                 try { NotifBus.quietHours().enabled } catch (e: Exception) { false },
-                hist.count { it.status == "DIKIRIM" },
-                hist.count { it.status == "DITAHAN" },
-                hist.count { it.status == "GAGAL" || it.status == "GAGAL_IZIN" },
-                tfMin, now)
+                sent, held, failed, tfMin, now)
         } catch (e: Exception) {
-            return ""
+            ""
+        }
+        return Triple(snap, text, Triple(sent, held, failed))
+    }
+
+    /** UI-1: salin snapshot diagnostik aktual ke clipboard + konfirmasi ringan. Tanpa rahasia. */
+    private fun copyDiag(snap: EngineDiagSnapshot, histN: Triple<Int, Int, Int>) {
+        try {
+            val now = System.currentTimeMillis()
+            val text = buildDiagCopyText(snap, App.strategy, App.timeframe, App.provider, now,
+                histN.first, histN.second, histN.third)
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("aether-diagnostik", text))
+            snack(this, "Diagnostik disalin (${text.length} karakter).")
+        } catch (e: Exception) {
+            snack(this, "Gagal menyalin: ${e.message}")
         }
     }
 

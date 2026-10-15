@@ -2,6 +2,7 @@ package com.aether.signal.premium.ui
 
 import android.app.Activity
 import android.content.Context
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.snackbar.Snackbar
@@ -28,6 +29,27 @@ fun runBg(fn: () -> Unit) {
     Thread {
         try { fn() } catch (e: Exception) { e.printStackTrace() }
     }.start()
+}
+
+// TAHAP 2.6 pudar singkat untuk perubahan konten toggle. Menghormati setelan
+// animasi sistem (skala 0 = tanpa animasi). Bukan aktivitas palsu: hanya
+// transisi expand/collapse yang diminta pengguna.
+fun fadeSwap(v: View, dur: Long = 180L, fn: () -> Unit) {
+    try {
+        val scale = try {
+            android.provider.Settings.Global.getFloat(
+                v.context.contentResolver,
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        } catch (e: Exception) { 1f }
+        if (scale == 0f) { try { fn() } catch (_: Exception) { }; return }
+        try {
+            v.animate().alpha(0f).setDuration(dur / 2).withEndAction {
+                try { fn() } catch (_: Exception) { }
+                try { v.animate().alpha(1f).setDuration(dur / 2).start() }
+                catch (_: Exception) { try { v.alpha = 1f } catch (_: Exception) { } }
+            }.start()
+        } catch (e: Exception) { try { fn() } catch (_: Exception) { } }
+    } catch (e: Exception) { try { fn() } catch (_: Exception) { } }
 }
 
 // Tombol Engine dua-warna: hijau = aksi Start (engine berhenti), merah = aksi

@@ -127,4 +127,41 @@
         <item name="hintTextColor">@color/mut</item>
         <item name="android:textColorHint">@color/mut</item>
     </style>
+
+    <!-- TAHAP 2.1 hierarki tipografi bersama. Label kecil kapital + spasi huruf
+         agar terbaca; monospace HANYA untuk angka finansial (harga, %, ekuitas). -->
+    <style name="TxLabel">
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+    <style name="TxSection">
+        <item name="android:textSize">@dimen/text_section</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+    <style name="TxHero">
+        <item name="android:textSize">@dimen/text_hero</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <style name="TxBody">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+    <style name="TxMut">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <style name="TxCaption">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/dim</item>
+    </style>
+    <style name="TxMono">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
 </resources>

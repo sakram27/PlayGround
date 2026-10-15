@@ -8,6 +8,7 @@
     <color name="dim">#64748B</color>
     <color name="disabled">#334155</color>
     <color name="disabled_ink">#94A3B8</color>
+    <color name="gold">#D4AF37</color>
     <color name="graphite_800">#101722</color>
     <color name="graphite_900">#080B12</color>
     <color name="green">#10B981</color>
@@ -23,6 +24,23 @@
     <color name="violet">#A78BFA</color>
     <color name="violet_ink">#0E1220</color>
     <color name="white">#FFFFFF</color>
+    <dimen name="dot_status">10dp</dimen>
+    <dimen name="gap_row">8dp</dimen>
+    <dimen name="gap_section">10dp</dimen>
+    <dimen name="gap_small">6dp</dimen>
+    <dimen name="gap_tiny">4dp</dimen>
+    <dimen name="pad_card">14dp</dimen>
+    <dimen name="pad_screen">12dp</dimen>
+    <dimen name="radius_card">10dp</dimen>
+    <dimen name="radius_pill">20dp</dimen>
+    <dimen name="text_body">13sp</dimen>
+    <dimen name="text_caption">11sp</dimen>
+    <dimen name="text_hero">26sp</dimen>
+    <dimen name="text_label">10sp</dimen>
+    <dimen name="text_section">15sp</dimen>
+    <dimen name="text_small">12sp</dimen>
+    <dimen name="text_title">17sp</dimen>
+    <dimen name="touch_min">48dp</dimen>
     <string name="app_name">Aether Signal</string>
     <style name="AppActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@color/green_soft</item>
@@ -141,5 +159,39 @@
     </style>
     <style name="SheetTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/AppSheet</item>
+    </style>
+    <style name="TxBody">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/txt</item>
+    </style>
+    <style name="TxCaption">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/dim</item>
+    </style>
+    <style name="TxHero">
+        <item name="android:textSize">@dimen/text_hero</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <style name="TxLabel">
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+    <style name="TxMono">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <style name="TxMut">
+        <item name="android:textSize">@dimen/text_small</item>
+        <item name="android:textColor">@color/mut</item>
+    </style>
+    <style name="TxSection">
+        <item name="android:textSize">@dimen/text_section</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
     </style>
 </resources>

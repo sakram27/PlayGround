@@ -4,9 +4,11 @@
 #
 # Taksonomi pengujian (jujur, jangan dicampur):
 #   - JVM (script ini): ForensicFixTest, GuardTest, CapTest, ProofTest,
-#     F01ImpactTest, ParamMatrixTest. Murni Kotlin/JVM, tanpa AndroidX,
-#     tanpa R generated, tanpa jaringan (kecuali ScannerLiveTest bila
-#     dijalankan eksplisit — lihat bawah).
+#     F01ImpactTest, ParamMatrixTest, FullMatrixTest, SignalAuditFullTest.
+#     Murni Kotlin/JVM, tanpa AndroidX, tanpa R generated, tanpa jaringan
+#     (kecuali ScannerLiveTest bila dijalankan eksplisit — lihat bawah).
+#     FullMatrixTest/SignalAuditFullTest memakai data SINTETIS BERLABEL
+#     (bukan bukti pasar nyata) — lihat header tiap berkas.
 #   - Belum via JVM: AuditTest, EngineLifecycleTest — butuh graph Android
 #     penuh (R generated + AndroidX AAR: lifecycle/material/charts).
 #     Dijalankan via `gradle :app:assembleDebug` (kompilasi) dan/atau
@@ -45,19 +47,20 @@ kotlinc \
   $U/SignalDetailLogic.kt $U/RichSignal.kt $U/EngineDiag.kt $U/TrailingLogic.kt \
   $U/JournalLogic.kt $U/AblationRegime.kt $U/DriftLogic.kt $U/BacktestExplain.kt \
   $U/NotifyLogic.kt \
-  tools-harness/ForensicFixTest.kt tools-harness/GuardTest.kt \
-  tools-harness/CapTest.kt tools-harness/ProofTest.kt \
-  tools-harness/F01ImpactTest.kt tools-harness/ParamMatrixTest.kt \
-  -cp "$JSON:$AJAR" -d "$OUT"
+   tools-harness/ForensicFixTest.kt tools-harness/GuardTest.kt \
+   tools-harness/CapTest.kt tools-harness/ProofTest.kt \
+   tools-harness/F01ImpactTest.kt tools-harness/ParamMatrixTest.kt \
+   tools-harness/FullMatrixTest.kt tools-harness/SignalAuditFullTest.kt \
+   -cp "$JSON:$AJAR" -d "$OUT"
 
 CP="$OUT:$JSON:$STDLIB"
 PASS=0
-for T in ForensicFixTestKt GuardTestKt CapTestKt ProofTestKt F01ImpactTestKt ParamMatrixTestKt; do
+for T in ForensicFixTestKt GuardTestKt CapTestKt ProofTestKt F01ImpactTestKt ParamMatrixTestKt FullMatrixTestKt SignalAuditFullTestKt; do
   echo "== $T =="
   if java -cp "$CP" "$T" 2>&1 | tail -2; then PASS=$((PASS + 1)); fi
 done
-echo "SUITES GREEN: $PASS/6"
-[ "$PASS" = "6" ]
+echo "SUITES GREEN: $PASS/8"
+[ "$PASS" = "8" ]
 
 if [ "${1:-}" = "--live" ]; then
   echo "== ScannerLiveTestKt (HTTP nyata, read-only) =="

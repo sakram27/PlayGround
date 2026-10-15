@@ -11,8 +11,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="UNIVERSE &amp; TIMEFRAME" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="UNIVERSE &amp; TIMEFRAME" style="@style/TxLabel" />
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/segCat" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:layout_marginTop="8dp"
@@ -25,8 +24,7 @@
                         android:text="Forex" style="@style/BtnGhost" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="PROVIDER DATA" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
+                    android:text="PROVIDER DATA" style="@style/TxLabel"
                     android:layout_marginTop="10dp" />
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/fldProv" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -42,8 +40,7 @@
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" android:text="—" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="TIMEFRAME" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
+                    android:text="TIMEFRAME" style="@style/TxLabel"
                     android:layout_marginTop="10dp" />
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/fldTf" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -81,8 +78,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="WATCHLIST KUSTOM" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="WATCHLIST KUSTOM" style="@style/TxLabel" />
                 <TextView android:id="@+id/customCount" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="12sp" android:layout_marginTop="6dp" />
@@ -140,8 +136,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="WATCHLIST" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="WATCHLIST" style="@style/TxLabel" />
                 <ProgressBar android:id="@+id/loading" android:layout_width="wrap_content"
                     android:layout_height="wrap_content" android:layout_gravity="center"
                     android:layout_margin="12dp" android:visibility="gone" />

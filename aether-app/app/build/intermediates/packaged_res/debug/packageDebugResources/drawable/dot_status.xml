@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TAHAP 2.1 titik status: lingkaran kecil, diwarnai saat runtime via
+     backgroundTint memakai statusColorFor()/healthColorFor() (sumber tunggal).
+     Teks label selalu menyertai (jangan andalkan warna saja). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/mut" />
+</shape>

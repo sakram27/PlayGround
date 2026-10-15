@@ -12,7 +12,9 @@ import com.aether.signal.premium.R
 // Ikon pair: lihat PairIcons (satu-satunya sumber pemetaan).
 
 
-data class WatchItem(val sym: String, val price: String, val chg: Double?, val sig: String, val err: String?, val spark: List<Double> = emptyList(), val stale: Boolean = false, val updatedAt: Long = 0L)
+data class WatchItem(val sym: String, val price: String, val chg: Double?, val sig: String, val err: String?, val spark: List<Double> = emptyList(), val stale: Boolean = false, val updatedAt: Long = 0L,
+    // TAHAP 2.3 label kesehatan data (prefix pairDataHealth: SEHAT/PARSIAL/KURANG/GAGAL; "" = tak ada data).
+    val health: String = "")
 
 class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit) : RecyclerView.Adapter<WatchAdapter.H>() {
     private var ctx: android.content.Context? = null
@@ -47,6 +49,8 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
         val price: TextView = v.findViewById(R.id.price)
         val spark: SparkView = v.findViewById(R.id.spark)
         val chg: TextView = v.findViewById(R.id.chg)
+        // TAHAP 2.3 opsional: baris lama tanpa pill kesehatan tetap jalan.
+        val health: TextView? = try { v.findViewById(R.id.health) } catch (e: Exception) { null }
     }
     override fun onCreateViewHolder(p: ViewGroup, t: Int): H {
         ctx = p.context
@@ -57,6 +61,7 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
     override fun onBindViewHolder(h: H, i: Int) {
         val r = items[i]
         try { h.icon.setImageDrawable(PairIcons.iconFor(ctx ?: h.itemView.context, r.sym)) } catch (e: Exception) { /* ikon jangan matikan baris */ }
+        try { h.icon.contentDescription = r.sym } catch (e: Exception) { /* abaikan */ }
         h.sym.text = r.sym
         // A7: harga cache ditampilkan REDUP + label waktu — bukan harga live.
         // Tanpa cache dan gagal: "—" + ERR (bukan angka nol, A5).
@@ -78,6 +83,17 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
             h.chg.text = r.sig
             h.chg.setTextColor(0xFF94A3B8.toInt())
         }
+        // TAHAP 2.3 pill kesehatan data aktual (sembunyi bila tak ada data).
+        try {
+            val hw = h.health
+            if (hw != null) {
+                if (r.health.isNotEmpty()) {
+                    hw.visibility = View.VISIBLE
+                    hw.text = r.health
+                    hw.setTextColor(healthColorFor(r.health))
+                } else hw.visibility = View.GONE
+            }
+        } catch (e: Exception) { /* label opsional, jangan matikan baris */ }
         h.itemView.setOnClickListener { if (r.err == null || r.price != "—") onClick(r) }
     }
 }
@@ -86,6 +102,7 @@ data class SigItem(val dir: String, val main: String, val sub: String, val right
 
 open class SigAdapter(var items: List<SigItem>, var onClick: ((Int) -> Unit)? = null, var wrapMain: Boolean = false) : RecyclerView.Adapter<SigAdapter.H>() {
     class H(v: View) : RecyclerView.ViewHolder(v) {
+        val accent: View? = try { v.findViewById(R.id.accent) } catch (e: Exception) { null }
         val icon: ImageView = v.findViewById(R.id.icon)
         val dir: TextView = v.findViewById(R.id.dir)
         val main: TextView = v.findViewById(R.id.main)
@@ -96,12 +113,15 @@ open class SigAdapter(var items: List<SigItem>, var onClick: ((Int) -> Unit)? = 
     override fun getItemCount() = items.size
     override fun onBindViewHolder(h: H, i: Int) {
         val r = items[i]
+        // FLAGSHIP: accent bar arah (visual saja; teks LONG/SHORT tetap penjelas utama).
+        try { h.accent?.setBackgroundColor(dirColorFor(r.dir)) } catch (e: Exception) { /* abaikan */ }
         if (r.sym.isNotEmpty()) {
             try {
                 h.icon.visibility = View.VISIBLE
                 h.icon.setImageDrawable(PairIcons.iconFor(h.itemView.context, r.sym))
             } catch (e: Exception) { h.icon.visibility = View.GONE }
         } else h.icon.visibility = View.GONE
+        try { h.icon.contentDescription = r.sym.ifEmpty { null } } catch (e: Exception) { /* abaikan */ }
         h.dir.text = r.dir
         h.dir.setTextColor((if (r.dir == "LONG") 0xFF10B981 else 0xFFF87171).toInt())
         h.main.text = r.main

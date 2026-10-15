@@ -12,23 +12,32 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="ENGINE" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="ENGINE" style="@style/TxLabel" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    android:orientation="horizontal" android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
                     <Button android:id="@+id/btnEngine" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Start Engine" style="@style/BtnPrimary" />
+                    <!-- TAHAP 2.1 titik status (warna via statusColorFor; teks di engStatus). -->
+                    <View android:id="@+id/engDot" android:layout_width="@dimen/dot_status"
+                        android:layout_height="@dimen/dot_status"
+                        android:background="@drawable/dot_status"
+                        android:layout_marginStart="8dp"
+                        android:importantForAccessibility="no" />
                     <TextView android:id="@+id/engStatus" android:layout_width="0dp"
                         android:layout_height="wrap_content" android:layout_weight="1"
                         android:text="Berhenti." android:textColor="@color/mut"
                         android:textSize="12sp" android:gravity="center" />
                 </LinearLayout>
+                <!-- UI-1: alasan tidak adanya sinyal (satu baris, dari diagnostik aktual). -->
+                <TextView android:id="@+id/engReason" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/dim"
+                    android:textSize="11sp" android:layout_marginTop="6dp" />
                 <!-- V28: daftar pair Engine eksplisit — bukan tebakan. Diubah via
                      "Ubah" (centang manual) atau "Salin dari Backtest". -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="PAIR ENGINE" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold"
+                    android:text="PAIR ENGINE" style="@style/TxLabel"
                     android:layout_marginTop="8dp" />
                 <TextView android:id="@+id/engPairs" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:text="—"
@@ -47,14 +56,32 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- TAHAP 2.2 urutan: kondisi pasar tepat di bawah Engine. -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card" android:layout_marginBottom="10dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="STRATEGI AKTIF" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="KONDISI PASAR (INFORMATIF)" style="@style/TxLabel" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Dari cache indikator engine (EMA200 + ADX). Bukan kepastian; tak mengubah strategi."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+                <TextView android:id="@+id/regimeList" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="STRATEGI AKTIF" style="@style/TxLabel" />
                 <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/txt"
                     android:textSize="14sp" android:textStyle="bold"
@@ -69,18 +96,15 @@
                     android:background="@color/line" android:layout_marginTop="10dp"
                     android:layout_marginBottom="10dp" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="NET PNL RIWAYAT" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="NET PNL RIWAYAT" style="@style/TxLabel" />
                 <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="—"
-                    android:textColor="@color/txt" android:textSize="26sp"
-                    android:fontFamily="monospace" android:textStyle="bold" />
+                    android:layout_height="wrap_content" android:text="—" style="@style/TxHero" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:layout_marginTop="8dp">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="SINYAL" android:textColor="@color/dim" android:textSize="9sp"
+                            android:text="SINYAL" android:textColor="@color/dim" android:textSize="10sp"
                             android:textStyle="bold" />
                         <TextView android:id="@+id/kSig" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:text="—"
@@ -90,7 +114,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="TRADES" android:textColor="@color/dim" android:textSize="9sp"
+                            android:text="TRADES" android:textColor="@color/dim" android:textSize="10sp"
                             android:textStyle="bold" />
                         <TextView android:id="@+id/kTr" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:text="—"
@@ -100,7 +124,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="WIN" android:textColor="@color/dim" android:textSize="9sp"
+                            android:text="WIN" android:textColor="@color/dim" android:textSize="10sp"
                             android:textStyle="bold" />
                         <TextView android:id="@+id/kWin" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:text="—"
@@ -110,7 +134,7 @@
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="POSISI" android:textColor="@color/dim" android:textSize="9sp"
+                            android:text="POSISI" android:textColor="@color/dim" android:textSize="10sp"
                             android:textStyle="bold" />
                         <TextView android:id="@+id/kPos" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:text="—"
@@ -129,8 +153,7 @@
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="horizontal" android:gravity="center_vertical">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Sinyal terbaru" android:textColor="@color/txt"
-                        android:textSize="17sp" android:textStyle="bold" />
+                        android:layout_weight="1" android:text="Sinyal terbaru" style="@style/TxSection" />
                     <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="Semua →"
                         style="@style/BtnInfo" />
@@ -141,25 +164,6 @@
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/sigList"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="KONDISI PASAR (INFORMATIF)" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Dari cache indikator engine (EMA200 + ADX). Bukan kepastian; tak mengubah strategi."
-                    android:textColor="@color/dim" android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-                <TextView android:id="@+id/regimeList" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:fontFamily="monospace"
-                    android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

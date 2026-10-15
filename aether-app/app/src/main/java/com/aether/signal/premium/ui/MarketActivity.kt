@@ -55,7 +55,23 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private fun resolveCustom(sym: String, pr: String): String =
         if (pr == "yahoo") sym.trim().uppercase() else sym.uppercase().replace(Regex("[^A-Z0-9]"), "")
 
-    private fun toItem(r: MktRow) = WatchItem(r.sym, r.price, r.chg, r.sig, r.err, r.spark, r.stale, r.updatedAt)
+    /** FLAGSHIP: header watchlist memuat timeframe aktual (pilihan pasar). */
+    private fun paintWatchHead() {
+        try { findViewById<TextView>(R.id.watchHead).text = "WATCHLIST · ${tf.uppercase()}" }
+        catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun toItem(r: MktRow) = WatchItem(r.sym, r.price, r.chg, r.sig, r.err, r.spark, r.stale, r.updatedAt, healthOf(r.sym))
+
+    /** TAHAP 2.3 label kesehatan dari RegimeDiag Engine aktual (bukan aturan baru).
+     *  Hanya bila provider+timeframe cocok dengan pilihan saat ini; "" = tak ada data. */
+    private fun healthOf(sym: String): String {
+        return try {
+            val d = App.regimeDiag[sym] ?: return ""
+            if (d.provider != prov || d.timeframe != App.timeframe) return ""
+            pairDataHealth(d.requested, d.received, d.valid, d.minRequired).substringBefore("(")
+        } catch (e: Exception) { "" }
+    }
 
     override fun build() {
         setBar("Markets", "Watchlist profesional")
@@ -103,6 +119,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             tf = MARKET_TIMEFRAMES[pos]
             tfView.setText(MARKET_TF_LABELS[pos], false)
             setStatus("Timeframe ${MARKET_TF_LABELS[pos]} · memuat ulang…")
+            paintWatchHead()
             load()
         }
         findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.search)
