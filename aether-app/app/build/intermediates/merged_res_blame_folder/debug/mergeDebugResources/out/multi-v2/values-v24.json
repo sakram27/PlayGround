@@ -4,7 +4,7 @@
             "outputFile": "com.aether.signal.premium.app-mergeDebugResources-30:/values-v24/values-v24.xml",
             "map": [
                 {
-                    "source": "/home/runner/.gradle/caches/9.8.0/transforms/9197a4df48e37876c5cfc3f67203b299/transformed/material-1.12.0/res/values-v24/values-v24.xml",
+                    "source": "/home/runner/.gradle/caches/9.8.1/transforms/02c302cb71b7849d864d9731dfaeef20/transformed/material-1.12.0/res/values-v24/values-v24.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,9,12,15",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -23,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "/home/runner/.gradle/caches/9.8.0/transforms/85ea098b104bb80bdb1d0f825342b1d7/transformed/appcompat-1.7.0/res/values-v24/values-v24.xml",
+                    "source": "/home/runner/.gradle/caches/9.8.1/transforms/01dad2876a976e5dc4974c9516b1ae26/transformed/appcompat-1.7.0/res/values-v24/values-v24.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",

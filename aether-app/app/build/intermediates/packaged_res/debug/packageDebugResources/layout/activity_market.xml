@@ -130,24 +130,25 @@
                     android:layout_marginTop="6dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="WATCHLIST" style="@style/TxLabel" />
-                <ProgressBar android:id="@+id/loading" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:layout_gravity="center"
-                    android:layout_margin="12dp" android:visibility="gone" />
-                <TextView android:id="@+id/empty" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:gravity="center" android:visibility="gone" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/list"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <!-- FLAGSHIP v2: watchlist full-bleed — baris langsung di latar,
+             tanpa kartu; kepadatan terminal, bukan kartu generik. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:layout_marginBottom="10dp"
+            android:paddingTop="4dp">
+            <TextView android:id="@+id/watchHead" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="WATCHLIST" style="@style/TxLabel"
+                android:paddingStart="12dp" android:paddingEnd="12dp" />
+            <ProgressBar android:id="@+id/loading" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_gravity="center"
+                android:layout_margin="12dp" android:visibility="gone" />
+            <TextView android:id="@+id/empty" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:gravity="center" android:visibility="gone" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/list"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" android:layout_marginTop="4dp"
+                android:background="@color/graphite_800" />
+        </LinearLayout>
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card">

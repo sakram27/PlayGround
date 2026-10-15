@@ -4,40 +4,15 @@
     android:fillViewport="true">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical" android:padding="12dp">
+        <!-- FLAGSHIP v2: STRATEGI sebagai hero pertama (alur workstation:
+             pilih strategi → konfigurasi → eksekusi). ID/wiring tetap. -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card" android:layout_marginBottom="10dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="RUANG KERJA" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/btnBacktest" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Backtest Console →" style="@style/BtnInfo" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnAi" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="AI Analysis →" style="@style/BtnInfo" />
-                </LinearLayout>
-                <Button android:id="@+id/btnJournal" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Jurnal Trading →"
-                    style="@style/BtnInfo" android:layout_marginTop="8dp" />
-                <TextView android:id="@+id/lastBt" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/dim"
-                    android:textSize="11sp" android:fontFamily="monospace"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="STRATEGI · 25 BAWAAN" android:textColor="@color/dim"
+                    android:text="01 · STRATEGI · 25 BAWAAN" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Ketuk strategi = jadikan aktif. Tombol Combo = pilih gabungan."
@@ -68,11 +43,38 @@
         </com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent" android:layout_height="wrap_content"
+            style="@style/Card" android:layout_marginBottom="10dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="RUANG KERJA" android:textColor="@color/dim"
+                    android:textSize="10sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="8dp">
+                    <Button android:id="@+id/btnBacktest" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="Backtest Console →" style="@style/BtnInfo" />
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <Button android:id="@+id/btnAi" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="AI Analysis →" style="@style/BtnInfo" />
+                </LinearLayout>
+                <Button android:id="@+id/btnJournal" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Jurnal Trading →"
+                    style="@style/BtnInfo" android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/lastBt" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/dim"
+                    android:textSize="11sp" android:fontFamily="monospace"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
             style="@style/Card">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="HYPEROPT · 27 KOMBINASI" android:textColor="@color/dim"
+                    android:text="02 · HYPEROPT · 27 KOMBINASI" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Grid-search SL × TP × risiko. Terbaik ≠ aktif — terapkan manual."
@@ -95,7 +97,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="RISET LANJUT (GRATIS)" android:textColor="@color/dim"
+                    android:text="03 · RISET LANJUT (GRATIS)" android:textColor="@color/dim"
                     android:textSize="10sp" android:textStyle="bold" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Analisis profesional tanpa langganan, tanpa server. Semua berjalan di perangkat."

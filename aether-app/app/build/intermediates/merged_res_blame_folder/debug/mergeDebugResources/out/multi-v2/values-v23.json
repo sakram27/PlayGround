@@ -4,7 +4,7 @@
             "outputFile": "com.aether.signal.premium.app-mergeDebugResources-30:/values-v23/values-v23.xml",
             "map": [
                 {
-                    "source": "/home/runner/.gradle/caches/9.8.0/transforms/9197a4df48e37876c5cfc3f67203b299/transformed/material-1.12.0/res/values-v23/values-v23.xml",
+                    "source": "/home/runner/.gradle/caches/9.8.1/transforms/02c302cb71b7849d864d9731dfaeef20/transformed/material-1.12.0/res/values-v23/values-v23.xml",
                     "from": {
                         "startLines": "2,5,9,13,16,19,22,25,28,32",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4",
@@ -23,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "/home/runner/.gradle/caches/9.8.0/transforms/85ea098b104bb80bdb1d0f825342b1d7/transformed/appcompat-1.7.0/res/values-v23/values-v23.xml",
+                    "source": "/home/runner/.gradle/caches/9.8.1/transforms/01dad2876a976e5dc4974c9516b1ae26/transformed/appcompat-1.7.0/res/values-v23/values-v23.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,20,34,35,36,39,43,44,45,46",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -34,7 +34,7 @@
                     }
                 },
                 {
-                    "source": "/home/runner/.gradle/caches/9.8.0/transforms/917155fd6e67479710a6c05d8458aa2c/transformed/cardview-1.0.0/res/values-v23/values-v23.xml",
+                    "source": "/home/runner/.gradle/caches/9.8.1/transforms/22fdc0518506640ced92d8fa034552b1/transformed/cardview-1.0.0/res/values-v23/values-v23.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

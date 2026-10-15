@@ -126,6 +126,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             .addTextChangedListener { query = (it?.toString() ?: ""); paint() }
         findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list).vertical(this)
         findViewById<MaterialButton>(R.id.btnAllSig).setOnClickListener { openSignals() }
+        paintWatchHead()
         paintSignals()
         paintProvStatus()
         findViewById<MaterialButton>(R.id.btnRetry).setOnClickListener {

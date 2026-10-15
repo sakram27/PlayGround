@@ -1,602 +1,666 @@
 [
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_babydoge.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_babydoge.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_in.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_in.png"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/drawable_dot_status.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/drawable/dot_status.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ondo.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ondo.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_coin_generic.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_coin_generic.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_bg_pill.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/bg_pill.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_nz.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_nz.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_graph.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_graph.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_shib.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_shib.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bnb.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bnb.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_search.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_search.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sand.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sand.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ena.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ena.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usd.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usd.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_notif_history.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_notif_history.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_ablation.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_ablation.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_avax.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_avax.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_sheet_checklist.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/sheet_checklist.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/menu_bottom_nav.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/menu/bottom_nav.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_graph.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_graph.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ena.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ena.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_watch.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_watch.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_etc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_etc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_au.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_au.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_signal_detail.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_signal_detail.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_hbar.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_hbar.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_comp.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_comp.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sol.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sol.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_op.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_op.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_signal_detail.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_signal_detail.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_tr.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_tr.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_mana.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_mana.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_doge.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_doge.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eth.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eth.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_cost.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_cost.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_collection.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_collection.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_calendar.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_calendar.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_cake.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_cake.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_notif_history.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_notif_history.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/menu_bottom_nav.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/menu/bottom_nav.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_consensus.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_consensus.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdc.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_my.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_my.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_dashboard.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_dashboard.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_log.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_log.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_luna.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_luna.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_lab.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_vet.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_vet.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_btc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_btc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bnb.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bnb.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_coin_generic.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_coin_generic.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_backtest.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_backtest.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_shib.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_shib.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_gala.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_gala.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_signals.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_signals.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usd.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usd.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sats.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sats.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_doge.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_doge.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_rune.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_rune.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_floki.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_floki.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_bg_pill.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/bg_pill.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_silver.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_silver.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_algo.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_algo.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_0g.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_0g.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_log.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_log.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fdusd.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fdusd.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_sheet_multi.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/sheet_multi.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/menu_topbar.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/menu/topbar.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ltc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ltc.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_us.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_us.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fet.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fet.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_check_mark_on.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/check_mark_on.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_jp.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_jp.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_inj.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_inj.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_home.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_home.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_lab.xml"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ondo.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ondo.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_in.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_in.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_btc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_btc.png"
-    },
-    {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pyth.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pyth.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_jup.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_jup.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_item_watch.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/item_watch.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sand.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sand.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/mipmap-xhdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_arb.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_arb.jpg"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_consensus.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_consensus.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_tr.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_tr.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_za.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_za.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_etc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_etc.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_backtest.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_backtest.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_avax.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_avax.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_sheet_checklist.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/sheet_checklist.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_replay.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_replay.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_kr.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_kr.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bch.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bch.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_stx.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_stx.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_eu.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_eu.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_checkpair.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_checkpair.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_sig.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_sig.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ch.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ch.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_wbtc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_wbtc.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_market.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_market.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_collection.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_collection.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dot.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dot.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_near.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_near.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_lunc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_lunc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_gb.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_gb.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sol.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sol.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_sg.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_sg.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_settings.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_settings.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/xml/files.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_atom.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_atom.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_ablation.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_ablation.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pol.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pol.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_tia.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_tia.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/color_nav_tint.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/color/nav_tint.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ca.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ca.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ada.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ada.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fil.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fil.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pepe.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pepe.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_xlm.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_xlm.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_uni.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_uni.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sei.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sei.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_babydoge.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_babydoge.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_sheet_pair.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/sheet_pair.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_link.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_link.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdt.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdt.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_replay.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_replay.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_gold.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_gold.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_my.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_my.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_id.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_id.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sui.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sui.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_matic.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_matic.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_xrp.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_xrp.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_aave.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_aave.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_chz.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_chz.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dai.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dai.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_notif.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_notif.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_calendar.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_calendar.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_journal.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_journal.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_walkfwd.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_walkfwd.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/color_nav_tint.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/color/nav_tint.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_cn.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_cn.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_op.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_op.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_dashboard.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_dashboard.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bat.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bat.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bonk.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bonk.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_lab.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_lab.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ar.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ar.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_mkr.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_mkr.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_trx.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_trx.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ordi.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ordi.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_qnt.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_qnt.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_check_mark_off.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/check_mark_off.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bat.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bat.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_check_mark.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/check_mark.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_ai.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_ai.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eur.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eur.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/xml/files.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_comp.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_comp.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1inch.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1inch.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_lrc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_lrc.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_floki.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_floki.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_checkpair.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_checkpair.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_notif_history.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_notif_history.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_markets.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_markets.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fdusd.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fdusd.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_render.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_render.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pyth.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pyth.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_icp.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_icp.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_xlm.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_xlm.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_signals.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_signals.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_silver.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_silver.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_shell.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/shell.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eur.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eur.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_snx.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_snx.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_journal.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_journal.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1000cat.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1000cat.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_icp.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_icp.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_matic.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_matic.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_check_mark_off.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/check_mark_off.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_kv.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_kv.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_settings.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_settings.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_item_custompair.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/item_custompair.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_journal.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_journal.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_wif.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_wif.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_check_mark.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/check_mark.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_signal_detail.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_signal_detail.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/menu_topbar.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/menu/topbar.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_lab.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_lab.xml"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_xval.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_xval.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_xrp.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_xrp.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_marker_ohlc.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/marker_ohlc.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_backtest.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_backtest.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_near.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_near.jpg"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_us.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_us.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_ablation.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_ablation.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_luna.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_luna.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1000cat.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1000cat.jpg"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_chz.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_chz.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_flow.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_flow.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_rune.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_rune.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_axs.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_axs.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sats.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sats.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_custompair.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_custompair.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_wif.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_wif.jpg"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_mana.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_mana.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_settings.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_settings.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_2z.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_2z.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_lrc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_lrc.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_0g.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_0g.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_algo.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_algo.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_jp.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_jp.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_gala.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_gala.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_market.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_market.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_cn.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_cn.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_sheet_multi.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/sheet_multi.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ar.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ar.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_arb.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_arb.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_flow.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_flow.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_notif.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_notif.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_2z.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_2z.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_sg.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_sg.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_settings.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_settings.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_home.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_home.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ada.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ada.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_markets.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_markets.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_signals.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_signals.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_snx.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_snx.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_ai.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_ai.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_dashboard.xml.flat",
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_dashboard.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ca.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ca.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bonk.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bonk.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_collection.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_collection.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_settings.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_settings.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_stx.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_stx.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_search.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_search.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1inch.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1inch.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sei.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sei.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_axs.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_axs.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_replay.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_replay.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1000cheems.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1000cheems.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_render.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_render.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_id.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_id.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_bch.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_bch.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_aave.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_aave.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ltc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ltc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_uni.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_uni.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ordi.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_ordi.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/mipmap-hdpi/ic_launcher.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_eu.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_eu.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_atom.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_atom.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_cake.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_cake.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_marker_ohlc.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/marker_ohlc.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_xval.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_xval.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pepe.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pepe.jpg"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_vet.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_vet.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_jup.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_jup.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fet.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fet.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_za.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_za.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_cost.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_cost.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_walkfwd.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_walkfwd.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_consensus.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_consensus.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_usdt.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_usdt.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_grad_primary.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/grad_primary.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_grad_primary.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/grad_primary.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_qnt.jpg.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_qnt.jpg"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_graph.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_graph.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_kr.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_kr.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_wbtc.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_wbtc.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_trx.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_trx.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_mkr.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_mkr.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_ch.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_ch.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/activity_lab.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_link.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_link.png"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_walkfwd.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/activity_walkfwd.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_market.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_market.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_watch.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_watch.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pol.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pol.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_au.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_au.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_lunc.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_lunc.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_tia.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_tia.jpg"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dot.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dot.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_sui.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_sui.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_ai.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_ai.xml"
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_sig.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/item_sig.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/mipmap-mdpi/ic_launcher.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_fil.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_fil.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_dai.png.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_dai.png"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_kv.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_kv.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/drawable_ic_signals.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/drawable/ic_signals.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_item_sig.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/item_sig.xml"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_xval.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_xval.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_hbar.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_hbar.png"
     },
     {
-        "merged": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-debug-32:/layout_activity_cost.xml.flat",
-        "source": "/home/runner/.gradle/daemon/9.8.0/com.aether.signal.premium.app-main-34:/layout/activity_cost.xml"
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_gb.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_gb.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_check_mark_on.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/check_mark_on.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_ic_gold.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/ic_gold.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_eth.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_eth.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_sheet_pair.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/sheet_pair.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_1000cheems.jpg.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_1000cheems.jpg"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_nz.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_nz.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_inj.png.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_inj.png"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/layout_shell.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/layout/shell.xml"
+    },
+    {
+        "merged": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-debug-32:/drawable_dot_status.xml.flat",
+        "source": "/home/runner/.gradle/daemon/9.8.1/com.aether.signal.premium.app-main-34:/drawable/dot_status.xml"
     }
 ]

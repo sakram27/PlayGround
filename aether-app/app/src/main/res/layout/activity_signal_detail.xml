@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- FLAGSHIP v2 detail sinyal: hero band (arah+pair raksasa) → harga & risiko
+     (SL/TP dua kolom) → analisis → data & aksi. ID lama dipertahankan. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true" android:background="@color/graphite_900">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:padding="12dp">
+        android:orientation="vertical">
 
         <TextView android:id="@+id/dMissing" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:textColor="@color/mut"
@@ -14,149 +16,154 @@
         <LinearLayout android:id="@+id/dContent" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:orientation="vertical">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                style="@style/Card" android:layout_marginBottom="10dp">
+            <!-- HERO: identitas sinyal -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@color/graphite_800"
+                android:padding="16dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="SINYAL" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:orientation="horizontal" android:gravity="center_vertical"
-                        android:layout_marginTop="6dp">
-                        <TextView android:id="@+id/dPair" android:layout_width="0dp"
-                            android:layout_height="wrap_content" android:layout_weight="1"
-                            android:text="—" android:textColor="@color/txt"
-                            android:textSize="22sp" android:textStyle="bold"
-                            android:fontFamily="monospace" />
-                        <TextView android:id="@+id/dDir" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:text="—"
-                            android:textSize="12sp" android:textStyle="bold"
-                            android:background="@drawable/bg_pill" android:padding="8dp" />
-                    </LinearLayout>
-                    <TextView android:id="@+id/dStatus" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/green"
-                        android:textSize="13sp" android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dSrc" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="2dp" />
-                    <TextView android:id="@+id/dTf" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:fontFamily="monospace" />
-                    <TextView android:id="@+id/dTime" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:fontFamily="monospace" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                style="@style/Card" android:layout_marginBottom="10dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="HARGA &amp; RISIKO" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:id="@+id/dPriceLabel" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Harga entry"
-                        android:textColor="@color/dim" android:textSize="11sp"
-                        android:layout_marginTop="8dp" />
-                    <TextView android:id="@+id/dPrice" android:layout_width="match_parent"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:id="@+id/dDir" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="—"
-                        android:textColor="@color/txt" android:textSize="20sp"
-                        android:textStyle="bold" android:fontFamily="monospace" />
-                    <TextView android:id="@+id/dEntryExtra" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="2dp"
-                        android:text="Entry tambahan: Belum tersedia." />
-                    <TextView android:id="@+id/dSl" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/red"
-                        android:textSize="14sp" android:fontFamily="monospace"
-                        android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dTp1" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/green"
-                        android:textSize="14sp" android:fontFamily="monospace"
-                        android:layout_marginTop="2dp" />
-                    <TextView android:id="@+id/dTpMulti" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="2dp"
-                        android:text="TP2 / TP3: Tidak tersedia (strategi hanya menyimpan satu target)." />
-                    <TextView android:id="@+id/dDist" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:fontFamily="monospace"
-                        android:layout_marginTop="8dp" />
-                    <TextView android:id="@+id/dRr" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:layout_marginTop="4dp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="HARGA PASAR TERKINI (BUKAN ENTRY)" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold"
-                        android:layout_marginTop="10dp" />
-                    <TextView android:id="@+id/dLive" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="14sp" android:fontFamily="monospace"
-                        android:layout_marginTop="2dp" />
-                    <TextView android:id="@+id/dLiveTime" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="11sp" />
+                        android:textSize="14sp" android:textStyle="bold"
+                        android:background="@drawable/bg_pill"
+                        android:paddingStart="14dp" android:paddingEnd="14dp"
+                        android:paddingTop="8dp" android:paddingBottom="8dp" />
+                    <TextView android:id="@+id/dStatus" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/green" android:textSize="13sp"
+                        android:gravity="end" android:layout_marginStart="8dp" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <TextView android:id="@+id/dPair" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="32sp"
+                    android:textStyle="bold" android:fontFamily="monospace"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/dSrc" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/dTf" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/dTime" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:fontFamily="monospace" />
+            </LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                style="@style/Card" android:layout_marginBottom="10dp">
+            <!-- HARGA & RISIKO -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="HARGA &amp; RISIKO" style="@style/TxLabel" />
+                <TextView android:id="@+id/dPriceLabel" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Harga entry"
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/dPrice" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/txt" android:textSize="30sp"
+                    android:textStyle="bold" android:fontFamily="monospace" />
+                <TextView android:id="@+id/dEntryExtra" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="2dp"
+                    android:text="Entry tambahan: Belum tersedia." />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="ANALISIS PENDUKUNG" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:id="@+id/dStrategy" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dReasons" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dRationale" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dFilters" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
+                    android:orientation="horizontal" android:layout_marginTop="10dp">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical"
+                        android:background="@color/red_soft" android:padding="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="STOP LOSS" android:textColor="@color/red"
+                            android:textSize="10sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/dSl" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:textColor="@color/red"
+                            android:textSize="15sp" android:fontFamily="monospace"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+                    <Space android:layout_width="8dp" android:layout_height="1dp" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical"
+                        android:background="@color/green_soft" android:padding="10dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="TAKE PROFIT" android:textColor="@color/green"
+                            android:textSize="10sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/dTp1" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:textColor="@color/green"
+                            android:textSize="15sp" android:fontFamily="monospace"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <TextView android:id="@+id/dTpMulti" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp"
+                    android:text="TP2 / TP3: Tidak tersedia (strategi hanya menyimpan satu target)." />
+                <TextView android:id="@+id/dDist" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:fontFamily="monospace"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/dRr" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/line" android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="HARGA PASAR TERKINI (BUKAN ENTRY)" style="@style/TxLabel" />
+                <TextView android:id="@+id/dLive" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="18sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <TextView android:id="@+id/dLiveTime" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="11sp" />
+            </LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                style="@style/Card">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="STATUS DATA" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold" />
-                    <TextView android:id="@+id/dEntryStatus" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/txt"
-                        android:textSize="12sp" android:layout_marginTop="6dp" />
-                    <TextView android:id="@+id/dAge" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="12sp" android:layout_marginTop="4dp" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="JEJAK VERIFIKASI" android:textColor="@color/dim"
-                        android:textSize="10sp" android:textStyle="bold"
-                        android:layout_marginTop="8dp" />
-                    <TextView android:id="@+id/dVerify" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/mut"
-                        android:textSize="11sp" android:fontFamily="monospace"
-                        android:layout_marginTop="4dp" />
-                    <Button android:id="@+id/btnShare" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:text="Bagikan sinyal"
-                        style="@style/BtnCyan" android:layout_marginTop="8dp" />
-                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="Aether Signal adalah aplikasi sinyal, bukan eksekusi order otomatis. Nilai di atas adalah yang tercatat saat sinyal dibuat."
-                        android:textColor="@color/dim" android:textSize="11sp"
-                        android:layout_marginTop="6dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            <!-- ANALISIS -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@color/graphite_800"
+                android:padding="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="ANALISIS PENDUKUNG" style="@style/TxLabel" />
+                <TextView android:id="@+id/dStrategy" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="13sp" android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+                <TextView android:id="@+id/dReasons" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/dRationale" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/dFilters" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <!-- DATA & AKSI -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="STATUS DATA" style="@style/TxLabel" />
+                <TextView android:id="@+id/dEntryStatus" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/txt"
+                    android:textSize="12sp" android:layout_marginTop="6dp" />
+                <TextView android:id="@+id/dAge" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="12sp" android:layout_marginTop="4dp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="JEJAK VERIFIKASI" style="@style/TxLabel"
+                    android:layout_marginTop="10dp" />
+                <TextView android:id="@+id/dVerify" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/mut"
+                    android:textSize="11sp" android:fontFamily="monospace"
+                    android:layout_marginTop="4dp" />
+                <Button android:id="@+id/btnShare" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Bagikan sinyal"
+                    style="@style/BtnCyan" android:layout_marginTop="12dp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Aether Signal adalah aplikasi sinyal, bukan eksekusi order otomatis. Nilai di atas adalah yang tercatat saat sinyal dibuat."
+                    android:textColor="@color/dim" android:textSize="11sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
 
         </LinearLayout>
     </LinearLayout>

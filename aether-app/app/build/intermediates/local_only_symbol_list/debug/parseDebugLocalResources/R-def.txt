@@ -154,6 +154,7 @@ drawable ic_silver
 id ablCount
 id ablList
 id ablStatus
+id accent
 id act_settings
 id actions
 id alwaysStatus
@@ -164,6 +165,7 @@ id backtestScroll
 id battStatus
 id blocks
 id bottomnav
+id brandLine
 id btnAblRun
 id btnAblation
 id btnAddPair
@@ -195,6 +197,7 @@ id btnCsRun
 id btnCsv
 id btnCsvClear
 id btnDateClear
+id btnDiag
 id btnDiagToggle
 id btnEngPairs
 id btnEngSync
@@ -327,6 +330,7 @@ id effCfg
 id empty
 id engDiag
 id engDot
+id engHeroStatus
 id engPairs
 id engReason
 id engStatus
@@ -367,6 +371,14 @@ id histStatusFailed
 id histStatusGroup
 id histStatusHeld
 id histStatusSent
+id hubBacktest
+id hubJournal
+id hubLab
+id hubMarkets
+id hubNotif
+id hubReplay
+id hubSettings
+id hubSignals
 id icon
 id inCapital
 id inCostFee
@@ -521,6 +533,7 @@ id tradePage
 id tradePrev
 id trailSummary
 id v
+id watchHead
 id wfFolds
 id wfList
 id wfPooled

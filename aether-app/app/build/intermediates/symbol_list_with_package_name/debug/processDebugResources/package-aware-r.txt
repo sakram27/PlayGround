@@ -3261,6 +3261,7 @@ id ablCount
 id ablList
 id ablStatus
 id accelerate
+id accent
 id accessibility_action_clickable_span
 id accessibility_custom_action_0
 id accessibility_custom_action_1
@@ -3353,6 +3354,7 @@ id bounce
 id bounceBoth
 id bounceEnd
 id bounceStart
+id brandLine
 id btnAblRun
 id btnAblation
 id btnAddPair
@@ -3384,6 +3386,7 @@ id btnCsRun
 id btnCsv
 id btnCsvClear
 id btnDateClear
+id btnDiag
 id btnDiagToggle
 id btnEngPairs
 id btnEngSync
@@ -3594,6 +3597,7 @@ id end
 id endToStart
 id engDiag
 id engDot
+id engHeroStatus
 id engPairs
 id engReason
 id engStatus
@@ -3672,6 +3676,14 @@ id home
 id homeAsUp
 id honorRequest
 id horizontal_only
+id hubBacktest
+id hubJournal
+id hubLab
+id hubMarkets
+id hubNotif
+id hubReplay
+id hubSettings
+id hubSignals
 id icon
 id icon_group
 id ifRoom
@@ -4101,6 +4113,7 @@ id view_tree_saved_state_registry_owner
 id view_tree_view_model_store_owner
 id visible
 id visible_removing_fragment_view_tag
+id watchHead
 id west
 id wfFolds
 id wfList

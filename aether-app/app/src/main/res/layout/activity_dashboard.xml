@@ -1,260 +1,251 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FLAGSHIP Dashboard: strip brand → engine hero → market → performa → aktivitas → hub terminal. -->
+<!-- FLAGSHIP v2: komposisi terminal — band full-bleed berlapis, hero dominan,
+     vitals strip, hub grid. ID & tipe view LAMA dipertahankan (wiring utuh). -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true" android:background="@color/graphite_900">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:padding="12dp">
+        android:orientation="vertical">
 
-        <!-- A. STRIP BRAND: identitas + konteks data aktual. -->
+        <!-- BAND 1: brand + ENGINE HERO (fokus utama, full-bleed). -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginBottom="10dp"
-            android:paddingStart="2dp" android:paddingEnd="2dp">
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="AETHER" android:textColor="@color/gold"
-                    android:textSize="20sp" android:textStyle="bold"
-                    android:letterSpacing="0.14" android:maxLines="1" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="INSTITUTIONAL TERMINAL" style="@style/TxLabel"
-                    android:layout_marginTop="2dp" />
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="AETHER" android:textColor="@color/gold"
+                        android:textSize="24sp" android:textStyle="bold"
+                        android:letterSpacing="0.14" android:maxLines="1" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="INSTITUTIONAL TERMINAL" style="@style/TxLabel"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+                <TextView android:id="@+id/brandLine" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="—"
+                    android:textColor="@color/mut" android:textSize="11sp"
+                    android:fontFamily="monospace" android:gravity="end" />
             </LinearLayout>
-            <TextView android:id="@+id/brandLine" android:layout_width="wrap_content"
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginTop="14dp">
+                <View android:id="@+id/engDot" android:layout_width="@dimen/dot_status"
+                    android:layout_height="@dimen/dot_status"
+                    android:background="@drawable/dot_status"
+                    android:layout_marginEnd="10dp"
+                    android:importantForAccessibility="no" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="ENGINE"
+                    android:textColor="@color/txt" android:textSize="15sp"
+                    android:textStyle="bold" android:letterSpacing="0.08" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="PAPER" android:textColor="@color/mut"
+                    android:textSize="10sp" android:textStyle="bold"
+                    android:background="@drawable/bg_pill" android:padding="6dp" />
+            </LinearLayout>
+            <TextView android:id="@+id/engHeroStatus" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="—"
-                android:textColor="@color/mut" android:textSize="11sp"
-                android:fontFamily="monospace" android:gravity="end" />
+                android:textColor="@color/txt" android:textSize="30sp"
+                android:textStyle="bold" android:layout_marginTop="6dp" />
+            <TextView android:id="@+id/engReason" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/dim"
+                android:textSize="13sp" android:layout_marginTop="4dp" />
+            <TextView android:id="@+id/engStatus" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Berhenti."
+                android:textColor="@color/mut" android:textSize="12sp"
+                android:fontFamily="monospace" android:layout_marginTop="8dp" />
+            <Button android:id="@+id/btnEngine" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="12dp"
+                android:text="Start Engine" style="@style/BtnPrimary" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <Button android:id="@+id/btnEngPairs" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="Ubah Pair" style="@style/BtnSmall" />
+                <Space android:layout_width="8dp" android:layout_height="1dp" />
+                <Button android:id="@+id/btnDiag" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="Diagnostik →" style="@style/BtnSmall" />
+            </LinearLayout>
+            <TextView android:id="@+id/engPairs" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="—"
+                android:textColor="@color/txt" android:textSize="12sp"
+                android:layout_marginTop="10dp" />
+            <Button android:id="@+id/btnEngSync" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:text="Salin dari Backtest" style="@style/BtnCyan" />
         </LinearLayout>
 
-        <!-- B. ENGINE HERO: fokus utama. -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
+        <!-- BAND 2: vitals strip — statistik tanpa kartu. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:gravity="center_vertical">
-                    <View android:id="@+id/engDot" android:layout_width="@dimen/dot_status"
-                        android:layout_height="@dimen/dot_status"
-                        android:background="@drawable/dot_status"
-                        android:layout_marginEnd="8dp"
-                        android:importantForAccessibility="no" />
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="ENGINE"
-                        android:textColor="@color/txt" android:textSize="17sp"
-                        android:textStyle="bold" android:letterSpacing="0.08" />
+                android:orientation="horizontal">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="PAPER" android:textColor="@color/mut"
-                        android:textSize="10sp" android:textStyle="bold"
-                        android:background="@drawable/bg_pill" android:padding="6dp" />
+                        android:text="SINYAL · LIVE" style="@style/TxLabel" />
+                    <TextView android:id="@+id/kSig" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="—"
+                        android:textColor="@color/txt" android:textSize="22sp"
+                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
                 </LinearLayout>
-                <TextView android:id="@+id/engHeroStatus" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="—"
-                    android:textColor="@color/txt" android:textSize="19sp"
-                    android:textStyle="bold" android:layout_marginTop="8dp" />
-                <TextView android:id="@+id/engReason" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/dim"
-                    android:textSize="12sp" android:layout_marginTop="4dp" />
-                <TextView android:id="@+id/engStatus" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Berhenti."
-                    android:textColor="@color/mut" android:textSize="12sp"
-                    android:fontFamily="monospace" android:layout_marginTop="6dp" />
-                <Button android:id="@+id/btnEngine" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:layout_marginTop="10dp"
-                    android:text="Start Engine" style="@style/BtnPrimary" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/btnEngPairs" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Ubah Pair" style="@style/BtnSmall" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnDiag" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Diagnostik →" style="@style/BtnSmall" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:background="@color/line" android:layout_marginStart="4dp"
+                    android:layout_marginEnd="8dp" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="TRADES · BT" style="@style/TxLabel" />
+                    <TextView android:id="@+id/kTr" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="—"
+                        android:textColor="@color/txt" android:textSize="22sp"
+                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
                 </LinearLayout>
-                <TextView android:id="@+id/engPairs" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="—"
-                    android:textColor="@color/txt" android:textSize="12sp"
-                    android:layout_marginTop="8dp" />
-                <Button android:id="@+id/btnEngSync" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:layout_marginTop="8dp"
-                    android:text="Salin dari Backtest" style="@style/BtnCyan" />
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:background="@color/line" android:layout_marginStart="4dp"
+                    android:layout_marginEnd="8dp" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="WIN · BT" style="@style/TxLabel" />
+                    <TextView android:id="@+id/kWin" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="—"
+                        android:textColor="@color/txt" android:textSize="22sp"
+                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                </LinearLayout>
+                <View android:layout_width="1dp" android:layout_height="match_parent"
+                    android:background="@color/line" android:layout_marginStart="4dp"
+                    android:layout_marginEnd="8dp" />
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="POSISI" style="@style/TxLabel" />
+                    <TextView android:id="@+id/kPos" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="—"
+                        android:textColor="@color/txt" android:textSize="22sp"
+                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/line" android:layout_marginTop="14dp"
+                android:layout_marginBottom="14dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="NET PNL RIWAYAT" style="@style/TxLabel" />
+            <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="—" style="@style/TxHero" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Riwayat backtest tersimpan · bukan janji profit"
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="2dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="STRATEGI AKTIF" style="@style/TxLabel"
+                android:layout_marginTop="12dp" />
+            <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/txt"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginTop="6dp" />
+            <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/dim"
+                android:textSize="11sp" android:layout_marginTop="4dp" />
+            <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Buka Lab →"
+                style="@style/BtnInfo" android:layout_marginTop="6dp" />
+        </LinearLayout>
 
-        <!-- C. MARKET OVERVIEW ringkas (data aktual engine). -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="MARKET OVERVIEW" style="@style/TxLabel" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Dari cache indikator engine (EMA200 + ADX). Bukan kepastian; tak mengubah strategi."
-                    android:textColor="@color/dim" android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-                <TextView android:id="@+id/regimeList" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:fontFamily="monospace"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <!-- BAND 3: market overview (band inset). -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="MARKET OVERVIEW" style="@style/TxLabel" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Dari cache indikator engine (EMA200 + ADX). Bukan kepastian; tak mengubah strategi."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="2dp" />
+            <TextView android:id="@+id/regimeList" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:fontFamily="monospace"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
 
-        <!-- D. PERFORMANCE: sumber tiap metrik eksplisit, tak dicampur. -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
+        <!-- BAND 4: aktivitas terbaru. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="STRATEGI AKTIF" style="@style/TxLabel" />
-                <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/txt"
-                    android:textSize="14sp" android:textStyle="bold"
-                    android:layout_marginTop="6dp" />
-                <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/dim"
-                    android:textSize="11sp" android:layout_marginTop="4dp" />
-                <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="Buka Lab →"
-                    style="@style/BtnInfo" android:layout_marginTop="6dp" />
-                <View android:layout_width="match_parent" android:layout_height="1dp"
-                    android:background="@color/line" android:layout_marginTop="10dp"
-                    android:layout_marginBottom="10dp" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="NET PNL RIWAYAT" style="@style/TxLabel" />
-                <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="—" style="@style/TxHero" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Riwayat backtest tersimpan · bukan janji profit"
-                    android:textColor="@color/dim" android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="10dp">
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="SINYAL · LIVE" style="@style/TxLabel" />
-                        <TextView android:id="@+id/kSig" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:text="—"
-                            android:textColor="@color/txt" android:textSize="16sp"
-                            android:fontFamily="monospace" android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="TRADES · BT" style="@style/TxLabel" />
-                        <TextView android:id="@+id/kTr" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:text="—"
-                            android:textColor="@color/txt" android:textSize="16sp"
-                            android:fontFamily="monospace" android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="WIN · BT" style="@style/TxLabel" />
-                        <TextView android:id="@+id/kWin" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:text="—"
-                            android:textColor="@color/txt" android:textSize="16sp"
-                            android:fontFamily="monospace" android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="POSISI · PAPER" style="@style/TxLabel" />
-                        <TextView android:id="@+id/kPos" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:text="—"
-                            android:textColor="@color/txt" android:textSize="16sp"
-                            android:fontFamily="monospace" android:layout_marginTop="2dp" />
-                    </LinearLayout>
-                </LinearLayout>
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="Aktivitas Terakhir"
+                    style="@style/TxSection" />
+                <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Semua →"
+                    style="@style/BtnInfo" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            <TextView android:id="@+id/sigEmpty" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:layout_marginTop="6dp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/sigList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
+        </LinearLayout>
 
-        <!-- E. RECENT ACTIVITY. -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card" android:layout_marginBottom="10dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:gravity="center_vertical">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1" android:text="Aktivitas Terakhir"
-                        style="@style/TxSection" />
-                    <Button android:id="@+id/btnAllSig" android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" android:text="Semua →"
-                        style="@style/BtnInfo" />
-                </LinearLayout>
-                <TextView android:id="@+id/sigEmpty" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/sigList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- F. HUB TERMINAL: pengelompokan konseptual; semua rute pre-eksisting. -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="TERMINAL" style="@style/TxLabel" />
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="LIVE" android:textColor="@color/mut"
-                    android:textSize="11sp" android:textStyle="bold"
-                    android:layout_marginTop="8dp" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="6dp">
-                    <Button android:id="@+id/hubSignals" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Signals" style="@style/BtnSmall" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/hubMarkets" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Markets" style="@style/BtnSmall" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/hubNotif" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Notifikasi" style="@style/BtnSmall" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/hubSettings" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Pengaturan" style="@style/BtnSmall" />
-                </LinearLayout>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="RESEARCH" android:textColor="@color/mut"
-                    android:textSize="11sp" android:textStyle="bold"
-                    android:layout_marginTop="10dp" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="6dp">
-                    <Button android:id="@+id/hubBacktest" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Backtest" style="@style/BtnSmall" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/hubLab" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Lab" style="@style/BtnSmall" />
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/hubReplay" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Replay" style="@style/BtnSmall" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/hubJournal" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Jurnal" style="@style/BtnSmall" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <!-- BAND 5: hub terminal grid. -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="TERMINAL" style="@style/TxLabel" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="LIVE" android:textColor="@color/mut"
+                android:textSize="11sp" android:textStyle="bold"
+                android:layout_marginTop="10dp" />
+            <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:columnCount="2" android:rowCount="2" android:layout_marginTop="6dp"
+                android:useDefaultMargins="false">
+                <Button android:id="@+id/hubSignals" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Signals"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubMarkets" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Markets"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubNotif" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Notifikasi"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubSettings" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Pengaturan"
+                    style="@style/BtnSmall" />
+            </GridLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="RESEARCH" android:textColor="@color/mut"
+                android:textSize="11sp" android:textStyle="bold"
+                android:layout_marginTop="12dp" />
+            <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:columnCount="2" android:rowCount="2" android:layout_marginTop="6dp"
+                android:useDefaultMargins="false">
+                <Button android:id="@+id/hubBacktest" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Backtest"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubLab" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Lab"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubReplay" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Replay"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubJournal" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Jurnal"
+                    style="@style/BtnSmall" />
+            </GridLayout>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

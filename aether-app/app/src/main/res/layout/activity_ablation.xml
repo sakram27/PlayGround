@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- FLAGSHIP v2: band eksekusi + hasil datar. ID lama utuh. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true" android:background="@color/graphite_900">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:padding="12dp">
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            style="@style/Card">
+        android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="ANALISIS DAMPAK FILTER" style="@style/TxLabel" />
+            <TextView android:id="@+id/ablStatus" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="13sp" android:layout_marginTop="6dp" />
+            <Button android:id="@+id/btnAblRun" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Jalankan"
+                style="@style/BtnPrimary" android:layout_marginTop="10dp" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="ANALISIS DAMPAK FILTER" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
-                <TextView android:id="@+id/ablStatus" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <Button android:id="@+id/btnAblRun" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Jalankan"
-                    style="@style/BtnCyan" android:layout_marginTop="8dp" />
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="8dp">
-                    <Button android:id="@+id/btnSortTrades" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Δ Transaksi" style="@style/BtnSmall" android:textSize="11sp" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnSortNet" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Δ Net" style="@style/BtnSmall" android:textSize="11sp" />
-                    <Space android:layout_width="8dp" android:layout_height="1dp" />
-                    <Button android:id="@+id/btnSortDd" android:layout_width="0dp"
-                        android:layout_height="wrap_content" android:layout_weight="1"
-                        android:text="Δ DD" style="@style/BtnSmall" android:textSize="11sp" /></LinearLayout>
-                <TextView android:id="@+id/ablCount" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/mut"
-                    android:textSize="12sp" android:layout_marginTop="6dp" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/ablList"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Filter lebih banyak transaksi belum tentu lebih baik. Konfigurasi aktif tidak diubah."
-                    android:textColor="@color/dim" android:textSize="11sp"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <Button android:id="@+id/btnSortTrades" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="Δ Transaksi" style="@style/BtnSmall" android:textSize="11sp" />
+                <Space android:layout_width="8dp" android:layout_height="1dp" />
+                <Button android:id="@+id/btnSortNet" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="Δ Net" style="@style/BtnSmall" android:textSize="11sp" />
+                <Space android:layout_width="8dp" android:layout_height="1dp" />
+                <Button android:id="@+id/btnSortDd" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="Δ DD" style="@style/BtnSmall" android:textSize="11sp" /></LinearLayout>
+            <TextView android:id="@+id/ablCount" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:layout_marginTop="8dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/ablList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Filter lebih banyak transaksi belum tentu lebih baik. Konfigurasi aktif tidak diubah."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

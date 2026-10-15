@@ -225,7 +225,10 @@ class SignalsActivity : BaseActivity(0) {
                     // Transaksi backtest → arsip di store backtest (bukan daftar Engine).
                     val t = visH.getOrNull(pos)
                     val s = t?.let { tr ->
-                        App.backtestSignals.find { it.src == "backtest" && it.id == "b${tr.entryTime}${tr.asset}" }
+                        // ID arsip = engineSignalId('b', entryTime, asset, direction);
+                        // cocokkan persis termasuk arah (tanpa arah tak pernah cocok).
+                        App.backtestSignals.find { it.src == "backtest" && it.id == "b${tr.entryTime}${tr.asset}${tr.direction}" }
+                            ?: App.backtestSignals.find { it.src == "backtest" && it.id.startsWith("b${tr.entryTime}${tr.asset}") }
                     }
                     if (s == null) snack(this, "Tidak ada sinyal arsip untuk transaksi ini.")
                     else openSignalDetail(s.id)
