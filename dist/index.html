@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aether Signal — Laporan Audit APK 7.13</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f19;color:#f1f5f9;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:32px 20px 64px}
+.hero{border:1px solid #253047;background:#111827;border-radius:16px;padding:28px}
+.hero h1{margin:0 0 4px;font-size:30px;letter-spacing:.02em}
+.hero h1 span{color:#d4af37}
+.badge{display:inline-block;background:#0a2e22;color:#00f5a0;border-radius:999px;padding:4px 12px;font:700 12px/1.4 monospace;margin-right:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:20px 0}
+.card{background:#111827;border:1px solid #253047;border-radius:12px;padding:14px 16px}
+.card h3{margin:0 0 6px;font-size:12px;letter-spacing:.08em;color:#94a3b8}
+.card p,.card td{font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #253047;vertical-align:top}
+th{color:#94a3b8;font-weight:600;width:42%}
+h2{margin:36px 0 8px;font-size:20px}
+.mut{color:#94a3b8}.dim{color:#64748b}.green{color:#00f5a0}.amber{color:#f59e0b}
+code{background:#0a2e22;padding:1px 6px;border-radius:6px;font-size:13px}
+ul{padding-left:20px}li{margin:6px 0}
+footer{margin-top:40px;color:#64748b;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div><span class="badge">ENGINE: APK SAJA</span><span class="badge">NATIVE XML</span></div>
+    <h1><span>AETHER</span> SIGNAL</h1>
+    <p class="mut">Laporan audit statis — <b>app-debug-tes.apk</b> · diverifikasi dengan apktool + androguard · tanpa klaim uji runtime.</p>
+    <p id="ready">Status: <span class="green">Halaman audit termuat</span> · <span class="dim">body visible — siap capture</span></p>
+  </div>
+
+  <h2>A. Identitas APK (terverifikasi)</h2>
+  <div class="card"><table>
+    <tr><th>Nama / package</th><td>Aether Signal / <code>com.aether.signal.premium</code></td></tr>
+    <tr><th>Version</th><td>7.13 (code 37)</td></tr>
+    <tr><th>Ukuran</th><td>8,4 MB unduhan · 15.353.517 byte / 1039 file di dalam ZIP</td></tr>
+    <tr><th>SHA-256</th><td><code>f502edcf…16ac0a1</code></td></tr>
+    <tr><th>SDK</th><td>min 26 · target 36 · compile 36 · AGP 8.7.3</td></tr>
+    <tr><th>Launcher</th><td><code>ui.DashboardActivity</code> (exported=true)</td></tr>
+    <tr><th>Flag</th><td>debuggable=true · allowBackup=true · extractNativeLibs=false</td></tr>
+    <tr><th>Native lib / assets</th><td>tidak ada folder <code>lib/</code> · tidak ada <code>assets/</code> — murni Kotlin/Java</td></tr>
+    <tr><th>DEX</th><td>6 file, terbesar classes.dex 10,4 MB</td></tr>
+    <tr><th>Permission (8)</th><td>INTERNET, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, FOREGROUND_SERVICE(+SPECIAL_USE), RECEIVE_BOOT_COMPLETED, VIBRATE</td></tr>
+  </table></div>
+
+  <h2>B. Struktur layar &amp; teknologi</h2>
+  <div class="grid">
+    <div class="card"><h3>ACTIVITY (18)</h3><p>Dashboard, Market, Graph, Signals, SignalDetail, Lab, Backtest, Ai, Settings, NotifHistory, Replay, Journal, Ablation, Consensus, WalkForward, Collection, Cost, XValidate + MonitorService + BootReceiver.</p></div>
+    <div class="card"><h3>NAVIGASI</h3><p>Bottom nav 4 item: Home · Markets · Lab · Settings. Shell = MaterialToolbar + BottomNavigationView + FrameLayout.</p></div>
+    <div class="card"><h3>TEKNOLOGI</h3><p>Native Views/XML (Compose 0, Flutter 0). MPAndroidChart (CandleStickChart). Material 1.12.0, coroutines 1.6.4. REST: Binance, Bybit, Yahoo. WSS: 0 (polling).</p></div>
+  </div>
+  <div class="card"><table>
+    <tr><th>Dashboard</th><td>Status hero 30sp, tombol Pair + Diagnostik, metrik Sinyal/Trades/Winrate/Posisi, Net PnL 32sp, Pair Backtest + Aktivitas — sesuai prioritas.</td></tr>
+    <tr><th>Markets</th><td>Filter Crypto/Forex, provider + timeframe, search, chip Semua/Watchlist/Naik/Turun, <code>countLine</code>, <code>btnManageToggle</code> (panel tersembunyi — baik). Sheet Kelola: chip limit + kustom 1–200 + Terapkan + reset.</td></tr>
+    <tr><th>Chart</th><td>CombinedChart 440dip + overlay loading/retry, timeframe M5/M15/H1/H4/D1, hint sentuh/zoom/geser. Warna &amp; keaslian data butuh uji runtime.</td></tr>
+    <tr><th>Settings</th><td>Sudah tersusun: Engine &amp; Monitoring, Data Provider, Notifications, Battery &amp; Performance, About &amp; AI Model. <span class="green">Tidak ada tombol silang “Buka Markets/Lab/Backtest/Diagnostik”</span> — hanya “Buka pengaturan baterai” sistem.</td></tr>
+    <tr><th>Tema</th><td>graphite_900 #0b0f19, graphite_800 #111827, green #00f5a0, gold #d4af37, cyan #2dd4bf, red #ef4444 — dark navy premium terverifikasi.</td></tr>
+  </table></div>
+
+  <h2>C. Batasan audit APK saja</h2>
+  <div class="card"><ul>
+    <li>Static decode (apktool) memberi XML + smali perkiraan — <b>bukan source asli</b>. Edit smali berisiko merusak engine/backtest.</li>
+    <li>Visual (kepadatan kartu, sparkline, grid chart), perilaku watchlist 10/20/30/50/Custom, dan kebenaran rumus backtest <b>hanya bisa dipastikan lewat uji runtime</b>.</li>
+    <li>Tidak ada klaim order broker otomatis — konsisten dengan permission yang terdaftar.</li>
+    <li>APK ini <code>debuggable=true</code>: cocok untuk uji, jangan rilis publik dalam kondisi ini.</li>
+  </ul></div>
+
+  <h2>D. Rencana lanjutan (tanpa ubah fungsi trading)</h2>
+  <div class="card"><ul>
+    <li>Rebuild dari hasil decode → naikkan versionCode → uji instal bersih &amp; update (jaga package name).</li>
+    <li>Urut: Home → Markets → Chart → Lab/Backtest (UI saja) → Settings → hardening rilis (debuggable=false, allowBackup, apksigner verify).</li>
+    <li>Setiap perbaikan: jelaskan akar masalah → ubah minimal → uji → rebuild → verifikasi — tanpa tautan unduhan palsu.</li>
+  </ul></div>
+
+  <footer>Audit tahap 1 · sumber: app-debug-tes.apk · decode apktool 2.11.1 · halaman statis ini adalah bukti render untuk validasi pipeline.</footer>
+</div>
+</body>
+</html>
