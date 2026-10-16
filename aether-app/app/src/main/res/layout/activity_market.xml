@@ -135,6 +135,11 @@
             <TextView android:id="@+id/watchHead" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="WATCHLIST" style="@style/TxLabel"
                 android:paddingStart="16dp" android:paddingEnd="16dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Watchlist pasar — terpisah dari Pair Engine (Home → Pair)."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:paddingStart="16dp" android:paddingEnd="16dp"
+                android:layout_marginTop="2dp" />
             <ProgressBar android:id="@+id/loading" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:layout_gravity="center"
                 android:layout_margin="12dp" android:visibility="gone" />

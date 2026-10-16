@@ -63,10 +63,11 @@
                 android:layout_height="wrap_content" android:layout_marginTop="12dp"
                 android:text="Start Engine" style="@style/BtnPrimary" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginTop="8dp">
-                <Button android:id="@+id/btnEngPairs" android:layout_width="0dp"
+                android:orientation="horizontal" android:layout_marginTop="8dp"
+                android:gravity="center_vertical">
+                <Button android:id="@+id/btnPair" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="Ubah Pair" style="@style/BtnSmall" />
+                    android:text="Pair" style="@style/BtnPrimary" />
                 <Space android:layout_width="8dp" android:layout_height="1dp" />
                 <Button android:id="@+id/btnDiag" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_weight="1"
@@ -76,9 +77,6 @@
                 android:layout_height="wrap_content" android:text="—"
                 android:textColor="@color/txt" android:textSize="12sp"
                 android:layout_marginTop="10dp" />
-            <Button android:id="@+id/btnEngSync" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:layout_marginTop="8dp"
-                android:text="Salin dari Backtest" style="@style/BtnSmall" />
         </LinearLayout>
 
         <!-- 3. STRATEGI AKTIF. -->

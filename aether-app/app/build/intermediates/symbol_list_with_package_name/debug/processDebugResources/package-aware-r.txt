@@ -2095,6 +2095,7 @@ color mtrl_textinput_focused_box_stroke_color
 color mtrl_textinput_hovered_box_stroke_color
 color mut
 color nav_tint
+color neon
 color notification_action_color_filter
 color notification_icon_bg_color
 color primary_dark_material_dark
@@ -2113,6 +2114,10 @@ color secondary_text_default_material_dark
 color secondary_text_default_material_light
 color secondary_text_disabled_material_dark
 color secondary_text_disabled_material_light
+color set_bg
+color set_card
+color set_card2
+color set_line
 color slate
 color switch_thumb_disabled_material_dark
 color switch_thumb_disabled_material_light
@@ -3260,6 +3265,7 @@ id TOP_START
 id ablCount
 id ablList
 id ablStatus
+id aboutVersion
 id accelerate
 id accent
 id accessibility_action_clickable_span
@@ -3388,8 +3394,6 @@ id btnCsvClear
 id btnDateClear
 id btnDiag
 id btnDiagToggle
-id btnEngPairs
-id btnEngSync
 id btnEngine
 id btnExport
 id btnExtra
@@ -3441,6 +3445,7 @@ id btnShare
 id btnSortDd
 id btnSortNet
 id btnSortTrades
+id btnSync
 id btnTest
 id btnTfA
 id btnTfB
@@ -4045,6 +4050,7 @@ id swQuiet
 id swSaver
 id swTrailBt
 id sym
+id syncInfo
 id tabMode
 id tabs
 id tag_accessibility_actions
@@ -4121,6 +4127,7 @@ id view_tree_view_model_store_owner
 id visible
 id visible_removing_fragment_view_tag
 id watchHead
+id watchInfo
 id west
 id wfFolds
 id wfList
@@ -4362,6 +4369,7 @@ layout select_dialog_singlechoice_material
 layout sheet_checklist
 layout sheet_multi
 layout sheet_pair
+layout sheet_pair_mgmt
 layout shell
 layout support_simple_spinner_dropdown_item
 menu bottom_nav

@@ -50,17 +50,9 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             try { startActivity(android.content.Intent(this, JournalActivity::class.java)) }
             catch (e: Exception) { snack(this, "Gagal membuka jurnal: ${e.message}") }
         }
-        // V28: kelola daftar pair Engine secara eksplisit (lihat resolveEnginePairs).
-        findViewById<MaterialButton>(R.id.btnEngPairs).setOnClickListener { openEngPairSheet() }
-        findViewById<MaterialButton>(R.id.btnEngSync).setOnClickListener {
-            val src = if (App.mode == "multi") "multi (${App.multiSel.size} pair)" else "single (${App.pair})"
-            confirm(this, "Salin dari Backtest",
-                "Ganti daftar pair Engine dengan konfigurasi backtest $src?\nDaftar Engine saat ini: ${App.engPairs.joinToString(", ")}") {
-                val used = App.syncEngPairsFromBacktest()
-                paintPairs(); paintRegime()
-                snack(this, "Pair Engine: ${used.joinToString(", ")}")
-            }
-        }
+        // Pair Management: satu pintu (engine + info watchlist + salin backtest).
+        // Tidak mengubah daftar otomatis — hanya setelah Terapkan/persetujuan.
+        findViewById<MaterialButton>(R.id.btnPair).setOnClickListener { openPairSheet() }
         paintSignals()
         paintCfg()
         paintPairs()
@@ -142,8 +134,11 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             else "${App.engPairs.size} pair: ${App.engPairs.joinToString(", ")}"
     }
 
-    /** V28: ubah pair Engine manual (centang) — disimpan eksplisit via saveEngPairs. */
-    private fun openEngPairSheet() {
+    /** Pair Management: Pair Engine + info Watchlist + Salin dari Backtest
+     *  dalam satu sheet terstruktur. Membaca App.engPairs / customPairs /
+     *  watchLimit / konfigurasi backtest yang sebenarnya; menyimpan hanya
+     *  setelah Terapkan (engine) atau konfirmasi (salin). */
+    private fun openPairSheet() {
         snack(this, "Memuat daftar pair…")
         runBg {
             // Sumber tunggal dengan Market: snapshot scan terakhir bila
@@ -177,7 +172,7 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             runOnUiThread {
                 val staged = LinkedHashSet(App.engPairs)
                 val sh = BottomSheetDialog(this, R.style.SheetTheme)
-                val root = layoutInflater.inflate(R.layout.sheet_multi, null)
+                val root = layoutInflater.inflate(R.layout.sheet_pair_mgmt, null)
                 val search = root.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.search)
                 val list = root.findViewById<ListView>(R.id.list)
                 list.fixScrollConflict()
@@ -214,6 +209,24 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
                     App.engPairs = LinkedHashSet(staged); App.saveEngPairs()
                     sh.dismiss(); paintPairs(); paintRegime()
                     snack(this, "Pair Engine: ${App.engPairs.joinToString(", ")}")
+                }
+                // Watchlist pasar: info baca-saja (dikelola di tab Markets).
+                root.findViewById<TextView>(R.id.watchInfo).text =
+                    "${App.customPairs.size} kustom · maks tampil ${App.watchLimit} bawaan" +
+                        if (App.customPairs.isNotEmpty()) "\n${App.customPairs.joinToString(", ")}" else ""
+                // Salin dari Backtest: logika + konfirmasi sama seperti sebelumnya,
+                // hanya lokasinya di dalam Pair Management.
+                val btSrc = if (App.mode == "multi") "multi (${App.multiSel.size} pair)" else "single (${App.pair})"
+                root.findViewById<TextView>(R.id.syncInfo).text =
+                    "Sumber backtest: $btSrc. Mengganti Pair Engine setelah persetujuan."
+                root.findViewById<View>(R.id.btnSync).setOnClickListener {
+                    confirm(this, "Salin dari Backtest",
+                        "Ganti daftar pair Engine dengan konfigurasi backtest $btSrc?\nDaftar Engine saat ini: ${App.engPairs.joinToString(", ")}") {
+                        val used = App.syncEngPairsFromBacktest()
+                        staged.clear(); staged.addAll(used); render()
+                        paintPairs(); paintRegime()
+                        snack(this, "Pair Engine: ${used.joinToString(", ")}")
+                    }
                 }
                 sh.setContentView(root)
                 sh.show()

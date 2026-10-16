@@ -31,4 +31,10 @@
     <!-- TAHAP 2.1 emas: aksen SANGAT terbatas, hanya identitas brand (bukan
          status, bukan angka). Status tetap emerald/merah/amber + teks. -->
     <color name="gold">#D4AF37</color>
+    <!-- Palet Settings (5 kelompok): navy gelap, hanya dipakai activity_settings. -->
+    <color name="set_bg">#0B0F19</color>
+    <color name="set_card">#111827</color>
+    <color name="set_card2">#172033</color>
+    <color name="set_line">#253047</color>
+    <color name="neon">#00F5A0</color>
 </resources>

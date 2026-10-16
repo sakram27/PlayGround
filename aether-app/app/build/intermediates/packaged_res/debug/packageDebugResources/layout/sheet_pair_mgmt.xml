@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pair Management: bagian Pair Engine + info Watchlist + Salin dari Backtest.
+     Dibuka dari Home (tombol Pair). Tidak mengubah daftar otomatis. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="PAIR ENGINE" style="@style/TxLabel" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Daftar pair yang dievaluasi engine. Berbeda dari watchlist pasar."
+            android:textColor="@color/dim" android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" style="@style/Field" android:hint="Search pair…">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/search" android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="8dp">
+            <Button android:id="@+id/btnAll" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="All" style="@style/BtnSlate" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/btnClear" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Clear" style="@style/BtnSlate" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/btnTop5" android:layout_width="0dp"
+                android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Top 5" style="@style/BtnSlate" />
+        </LinearLayout>
+        <ListView android:id="@+id/list" android:layout_width="match_parent"
+            android:layout_height="280dp" android:layout_marginTop="8dp"
+            android:choiceMode="multipleChoice" android:fastScrollEnabled="true"
+            android:divider="@color/line" android:dividerHeight="1dp" />
+        <TextView android:id="@+id/count" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="@color/mut"
+            android:textSize="12sp" android:layout_marginTop="8dp" />
+        <Button android:id="@+id/btnApply" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Terapkan Pair Engine"
+            style="@style/BtnPrimary" android:layout_marginTop="8dp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="@color/line" android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="WATCHLIST PASAR" style="@style/TxLabel" />
+        <TextView android:id="@+id/watchInfo" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="@color/mut"
+            android:textSize="12sp" android:layout_marginTop="4dp"
+            android:text="Memuat…" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Watchlist dikelola di tab Markets dan terpisah dari Pair Engine."
+            android:textColor="@color/dim" android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="@color/line" android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="SALIN DARI BACKTEST" style="@style/TxLabel" />
+        <TextView android:id="@+id/syncInfo" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="@color/mut"
+            android:textSize="12sp" android:layout_marginTop="4dp"
+            android:text="Mengambil daftar pair dari konfigurasi backtest." />
+        <Button android:id="@+id/btnSync" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Salin dari Backtest"
+            style="@style/BtnCyan" android:layout_marginTop="8dp" />
+    </LinearLayout>
+</ScrollView>

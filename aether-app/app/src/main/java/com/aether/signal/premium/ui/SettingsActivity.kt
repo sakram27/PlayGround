@@ -48,6 +48,19 @@ class SettingsActivity : BaseActivity(R.id.nav_settings) {
         paintNotif()
         paintQuiet()
         paintAlways()
+        paintAbout()
+    }
+
+    /** About & AI Model: versi aktual dari paket + fakta interpreter lokal. */
+    private fun paintAbout() {
+        try {
+            val pi = packageManager.getPackageInfo(packageName, 0)
+            findViewById<TextView>(R.id.aboutVersion).text =
+                "Aether Signal ${pi.versionName} (${pi.versionCode}) · $packageName"
+        } catch (e: Exception) {
+            findViewById<TextView>(R.id.aboutVersion).text =
+                "Aether Signal · $packageName"
+        }
     }
 
     /** P8: Health Center — status nyata per provider + tombol uji per baris. */

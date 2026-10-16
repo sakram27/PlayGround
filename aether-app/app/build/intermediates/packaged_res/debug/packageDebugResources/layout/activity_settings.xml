@@ -1,30 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FLAGSHIP v2 Settings: band OPERASI / DATA / SISTEM (ganti 8 kartu generik).
-     Semua ID & tipe view LAMA dipertahankan. -->
+<!-- Settings: 5 kelompok preferensi (Engine & Monitoring, Data Provider,
+     Notifications, Battery & Performance, About & AI Model). Tanpa tombol
+     navigasi "Buka ...". Semua ID lama dipertahankan. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:fillViewport="true" android:background="@color/graphite_900">
+    android:fillViewport="true" android:background="@color/set_bg">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical" android:padding="16dp">
 
-        <!-- BAND OPERASI -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Settings" android:textColor="@color/txt"
+            android:textSize="22sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Preferensi &amp; konfigurasi aplikasi"
+            android:textColor="@color/mut" android:textSize="12sp"
+            android:layout_marginTop="2dp" android:layout_marginBottom="14dp" />
+
+        <!-- 1. ENGINE & MONITORING -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@color/graphite_800"
-            android:padding="16dp">
+            android:orientation="vertical" android:background="@color/set_card"
+            android:padding="14dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="OPERASI" style="@style/TxLabel" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="NOTIFIKASI SINYAL" android:textColor="@color/txt"
-                android:textSize="17sp" android:textStyle="bold"
-                android:layout_marginTop="4dp" />
+                android:text="ENGINE &amp; MONITORING" style="@style/TxLabel" />
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/swAlways" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Selalu Siaga"
+                android:textColor="@color/txt" android:layout_marginTop="8dp"
+                android:minHeight="48dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Hanya dari kejadian live mesin (entry/SL/TP). Tanpa suara? Atur di bawah."
-                android:textColor="@color/mut" android:textSize="12sp"
+                android:text="Pantauan latar tiap 60 detik."
+                android:textColor="@color/dim" android:textSize="11sp" />
+            <TextView android:id="@+id/alwaysStatus" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:fontFamily="monospace"
                 android:layout_marginTop="4dp" />
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/set_line" android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp" />
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/swSaver" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Mode hemat baterai"
+                android:textColor="@color/txt" android:minHeight="48dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Kurangi frekuensi cek saat baterai rendah."
+                android:textColor="@color/dim" android:textSize="11sp" />
+            <TextView android:id="@+id/saverStatus" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- 2. DATA PROVIDER -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/set_card"
+            android:padding="14dp" android:layout_marginTop="14dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="DATA PROVIDER" style="@style/TxLabel" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" style="@style/Field" android:hint="Provider default">
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                    android:id="@+id/spProv" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <Button android:id="@+id/btnSave" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Simpan provider"
+                style="@style/BtnPrimary" android:layout_marginTop="8dp" />
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/set_line" android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="KONEKSI" android:textColor="@color/txt"
+                android:textSize="13sp" android:textStyle="bold" />
+            <Button android:id="@+id/btnTest" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Tes Koneksi"
+                style="@style/BtnCyan" android:layout_marginTop="8dp" />
+            <TextView android:id="@+id/status" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:layout_marginTop="6dp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/connList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="KESEHATAN PROVIDER" android:textColor="@color/txt"
+                android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginTop="12dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Status dari pemeriksaan nyata. Kosong = belum diuji."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="2dp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/healthList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/set_line" android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="CADANGAN KONFIGURASI" android:textColor="@color/txt"
+                android:textSize="13sp" android:textStyle="bold" />
+            <Button android:id="@+id/btnExport" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Export JSON"
+                style="@style/BtnCyan" android:layout_marginTop="8dp" />
+            <Space android:layout_width="match_parent" android:layout_height="10dp" />
+            <Button android:id="@+id/btnImport" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Import JSON (pulihkan)"
+                style="@style/BtnSlate" android:layout_marginTop="0dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Export: sinyal, riwayat, konfigurasi. Import menimpa konfigurasi."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- 3. NOTIFICATIONS -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/set_card"
+            android:padding="14dp" android:layout_marginTop="14dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="NOTIFICATIONS" style="@style/TxLabel" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Jenis sinyal" android:textColor="@color/txt"
+                android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginTop="10dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swNotifEntry" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Sinyal entry"
-                android:textColor="@color/txt" android:layout_marginTop="6dp"
+                android:textColor="@color/txt" android:layout_marginTop="4dp"
                 android:minHeight="48dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swNotifSl" android:layout_width="match_parent"
@@ -36,19 +135,31 @@
                 android:textColor="@color/txt" android:minHeight="48dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swNotifTrail" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Trailing stop (aktif/bergerak/kena)"
+                android:layout_height="wrap_content" android:text="Trailing stop"
                 android:textColor="@color/txt" android:minHeight="48dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Umpan balik" android:textColor="@color/txt"
+                android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginTop="10dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swNotifSound" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Suara"
-                android:textColor="@color/txt" android:minHeight="48dp" />
+                android:textColor="@color/txt" android:layout_marginTop="4dp"
+                android:minHeight="48dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swNotifVibrate" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Getaran"
                 android:textColor="@color/txt" android:minHeight="48dp" />
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/swDigest" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Digest per jam"
+                android:textColor="@color/txt" android:minHeight="48dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Digest: entry digabung per jam. SL/TP tetap langsung."
+                android:textColor="@color/dim" android:textSize="11sp" />
             <TextView android:id="@+id/notifStatus" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:layout_marginTop="6dp" />
+                android:textSize="12sp" android:layout_marginTop="8dp" />
             <Button android:id="@+id/btnNotifPerm" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Aktifkan izin notifikasi"
                 style="@style/BtnInfo" android:layout_marginTop="6dp" />
@@ -58,29 +169,20 @@
             <Button android:id="@+id/btnNotifHistory" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Riwayat notifikasi"
                 style="@style/BtnInfo" android:layout_marginTop="6dp" />
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/swDigest" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Digest per jam (gabung entry)"
-                android:textColor="@color/txt" android:layout_marginTop="6dp"
-                android:minHeight="48dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Digest: sinyal entry digabung jadi satu ringkasan per jam (satu bunyi). SL/TP tetap langsung. Riwayat individual tetap tersimpan. Jam tenang tetap berlaku."
-                android:textColor="@color/dim" android:textSize="11sp"
-                android:layout_marginTop="2dp" />
             <View android:layout_width="match_parent" android:layout_height="1dp"
-                android:background="@color/line" android:layout_marginTop="14dp"
-                android:layout_marginBottom="14dp" />
+                android:background="@color/set_line" android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="JAM TENANG" android:textColor="@color/txt"
-                android:textSize="17sp" android:textStyle="bold" />
+                android:textSize="13sp" android:textStyle="bold" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Tahan notifikasi Aether pada jam &amp; hari tertentu. Sinyal tetap dihitung dan tetap tersimpan; hanya notifikasinya yang tidak ditampilkan. Jam tenang hanya berlaku untuk Aether, bukan aplikasi lain atau pengingat sistem Android."
-                android:textColor="@color/mut" android:textSize="12sp"
-                android:layout_marginTop="4dp" />
+                android:text="Tahan notifikasi Aether pada jam &amp; hari tertentu."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="2dp" />
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/swQuiet" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Aktifkan jam tenang"
-                android:textColor="@color/txt" android:layout_marginTop="6dp"
+                android:textColor="@color/txt" android:layout_marginTop="4dp"
                 android:minHeight="48dp" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:layout_marginTop="4dp">
@@ -113,137 +215,56 @@
                 android:textSize="12sp" android:layout_marginTop="6dp" />
         </LinearLayout>
 
-        <!-- BAND DATA -->
+        <!-- 4. BATTERY & PERFORMANCE -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:padding="16dp">
+            android:orientation="vertical" android:background="@color/set_card"
+            android:padding="14dp" android:layout_marginTop="14dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="DATA" style="@style/TxLabel" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="DATA &amp; PROVIDER" android:textColor="@color/txt"
-                android:textSize="17sp" android:textStyle="bold"
-                android:layout_marginTop="4dp" />
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" style="@style/Field" android:hint="Provider default">
-                <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                    android:id="@+id/spProv" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:inputType="none" />
-            </com.google.android.material.textfield.TextInputLayout>
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginTop="8dp">
-                <Button android:id="@+id/btnSave" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="Simpan" style="@style/BtnPrimary" />
-                <Space android:layout_width="8dp" android:layout_height="1dp" />
-                <Button android:id="@+id/btnExport" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="Export JSON" style="@style/BtnCyan" />
-            </LinearLayout>
-            <Button android:id="@+id/btnImport" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Import JSON (pulihkan)"
-                style="@style/BtnCyan" android:layout_marginTop="8dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Export mencakup sinyal, riwayat, dan konfigurasi (provider, strategi, filter, watchlist kustom). Import menimpa konfigurasi saat ini."
-                android:textColor="@color/dim" android:textSize="11sp"
-                android:layout_marginTop="6dp" />
-            <View android:layout_width="match_parent" android:layout_height="1dp"
-                android:background="@color/line" android:layout_marginTop="14dp"
-                android:layout_marginBottom="14dp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="KONEKSI" android:textColor="@color/txt"
-                android:textSize="17sp" android:textStyle="bold" />
-            <Button android:id="@+id/btnTest" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Tes Koneksi"
-                style="@style/BtnCyan" android:layout_marginTop="8dp" />
-            <TextView android:id="@+id/status" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:layout_marginTop="6dp" />
-            <androidx.recyclerview.widget.RecyclerView android:id="@+id/connList"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="KESEHATAN PROVIDER" style="@style/TxLabel"
-                android:layout_marginTop="12dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Status dari pemeriksaan nyata, bukan tebakan. Kosong = belum pernah diuji."
-                android:textColor="@color/dim" android:textSize="11sp"
-                android:layout_marginTop="4dp" />
-            <androidx.recyclerview.widget.RecyclerView android:id="@+id/healthList"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" android:layout_marginTop="6dp" />
-        </LinearLayout>
-
-        <!-- BAND SISTEM -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@color/graphite_800"
-            android:padding="16dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="SISTEM" style="@style/TxLabel" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="SELALU SIAGA" android:textColor="@color/txt"
-                android:textSize="17sp" android:textStyle="bold"
-                android:layout_marginTop="4dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Pantau pasar di latar belakang tiap 60 detik memakai provider aktif. Android dapat membatasi layanan saat hemat baterai."
-                android:textColor="@color/mut" android:textSize="12sp"
-                android:layout_marginTop="4dp" />
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/swAlways" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Selalu Siaga"
-                android:textColor="@color/txt" android:layout_marginTop="6dp"
-                android:minHeight="48dp" />
-            <TextView android:id="@+id/alwaysStatus" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:fontFamily="monospace"
-                android:layout_marginTop="6dp" />
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/swSaver" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Mode hemat baterai"
-                android:textColor="@color/txt" android:layout_marginTop="6dp"
-                android:minHeight="48dp" />
-            <TextView android:id="@+id/saverStatus" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:layout_marginTop="4dp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="OPTIMASI BATERAI" style="@style/TxLabel"
-                android:layout_marginTop="12dp" />
+                android:text="BATTERY &amp; PERFORMANCE" style="@style/TxLabel" />
             <TextView android:id="@+id/battStatus" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:layout_marginTop="4dp" />
+                android:textSize="12sp" android:layout_marginTop="8dp" />
             <Button android:id="@+id/btnBatt" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Minta pengecualian baterai"
-                style="@style/BtnGhost" android:layout_marginTop="6dp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="PERANGKAT &amp; JARINGAN" style="@style/TxLabel"
-                android:layout_marginTop="12dp" />
+                style="@style/BtnGhost" android:layout_marginTop="8dp" />
             <TextView android:id="@+id/oemGuide" android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="HP Xiaomi/Oppo/Vivo/dll dapat menghentikan aplikasi di latar. Bila pantauan sering mati: kunci Aether di Recent Apps, izinkan Autostart, dan matikan pembatasan latar belakang khusus merek HP Anda."
                 android:textColor="@color/mut" android:textSize="12sp"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="8dp" />
             <TextView android:id="@+id/netStatus" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:textColor="@color/mut"
                 android:textSize="12sp" android:fontFamily="monospace"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="8dp" />
             <Button android:id="@+id/btnBattSys" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="Buka pengaturan baterai"
-                style="@style/BtnGhost" android:layout_marginTop="6dp" />
-            <View android:layout_width="match_parent" android:layout_height="1dp"
-                android:background="@color/line" android:layout_marginTop="14dp"
-                android:layout_marginBottom="14dp" />
+                style="@style/BtnGhost" android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- 5. ABOUT & AI MODEL -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/set_card"
+            android:padding="14dp" android:layout_marginTop="14dp"
+            android:layout_marginBottom="8dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="AI ANALYSIS" style="@style/TxLabel" />
+                android:text="ABOUT &amp; AI MODEL" style="@style/TxLabel" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Interpreter lokal atas data engine (tanpa API key, tanpa endpoint eksternal)."
-                android:textColor="@color/mut" android:textSize="12sp"
-                android:layout_marginTop="6dp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="TENTANG" style="@style/TxLabel"
-                android:layout_marginTop="12dp" />
+                android:text="Model AI: interpreter lokal rule-based."
+                android:textColor="@color/txt" android:textSize="13sp"
+                android:layout_marginTop="8dp" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Aether Signal 7.13 (debug) · com.aether.signal.premium · Android Native Kotlin + Material · Sinyal edukasi, bukan nasihat keuangan."
+                android:text="Provider AI: tidak ada (tanpa API key, tanpa endpoint eksternal)."
                 android:textColor="@color/mut" android:textSize="12sp"
-                android:layout_marginTop="6dp" />
+                android:layout_marginTop="2dp" />
+            <TextView android:id="@+id/aboutVersion" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:fontFamily="monospace"
+                android:layout_marginTop="8dp"
+                android:text="Aether Signal · memuat versi…" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Sinyal edukasi, bukan nasihat keuangan."
+                android:textColor="@color/dim" android:textSize="11sp"
+                android:layout_marginTop="4dp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

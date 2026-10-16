@@ -18,8 +18,13 @@ color inset
 color line
 color mut
 color nav_tint
+color neon
 color red
 color red_soft
+color set_bg
+color set_card
+color set_card2
+color set_line
 color slate
 color txt
 color violet
@@ -154,6 +159,7 @@ drawable ic_silver
 id ablCount
 id ablList
 id ablStatus
+id aboutVersion
 id accent
 id act_settings
 id actions
@@ -199,8 +205,6 @@ id btnCsvClear
 id btnDateClear
 id btnDiag
 id btnDiagToggle
-id btnEngPairs
-id btnEngSync
 id btnEngine
 id btnExport
 id btnExtra
@@ -252,6 +256,7 @@ id btnShare
 id btnSortDd
 id btnSortNet
 id btnSortTrades
+id btnSync
 id btnTest
 id btnTfA
 id btnTfB
@@ -527,6 +532,7 @@ id swQuiet
 id swSaver
 id swTrailBt
 id sym
+id syncInfo
 id tabs
 id techHead
 id techList
@@ -541,6 +547,7 @@ id tradePrev
 id trailSummary
 id v
 id watchHead
+id watchInfo
 id wfFolds
 id wfList
 id wfPooled
@@ -581,6 +588,7 @@ layout marker_ohlc
 layout sheet_checklist
 layout sheet_multi
 layout sheet_pair
+layout sheet_pair_mgmt
 layout shell
 menu bottom_nav
 menu topbar

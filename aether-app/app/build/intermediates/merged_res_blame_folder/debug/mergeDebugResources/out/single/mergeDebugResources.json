@@ -320,6 +320,10 @@
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_jp.png"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_sheet_pair_mgmt.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/sheet_pair_mgmt.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_chz.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_chz.png"
     },
