@@ -3467,6 +3467,7 @@ id centerCrop
 id centerInside
 id center_horizontal
 id center_vertical
+id cfgCombo
 id cfgLast
 id cfgMain
 id chain
@@ -3900,6 +3901,9 @@ id rectangles
 id regimeList
 id report_drawn
 id reverseSawtooth
+id rgBadge
+id rgSub
+id rgSym
 id right
 id rightToLeft
 id right_icon
@@ -4008,6 +4012,9 @@ id square
 id src_atop
 id src_in
 id src_over
+id stBadge
+id stMain
+id stSub
 id standard
 id start
 id startHorizontal
@@ -4287,7 +4294,9 @@ layout item_checkpair
 layout item_custompair
 layout item_kv
 layout item_log
+layout item_regime
 layout item_sig
+layout item_strat
 layout item_watch
 layout m3_alert_dialog
 layout m3_alert_dialog_actions
@@ -4541,6 +4550,7 @@ style AppActiveIndicator
 style AppBottomNav
 style AppSheet
 style AppTheme
+style BadgeText
 style Base_AlertDialog_AppCompat
 style Base_AlertDialog_AppCompat_Light
 style Base_Animation_AppCompat_Dialog
@@ -4867,6 +4877,7 @@ style Platform_V21_AppCompat_Light
 style Platform_V25_AppCompat
 style Platform_V25_AppCompat_Light
 style Platform_Widget_AppCompat_Spinner
+style PriceLarge
 style RtlOverlay_DialogWindowTitle_AppCompat
 style RtlOverlay_Widget_AppCompat_ActionBar_TitleItem
 style RtlOverlay_Widget_AppCompat_DialogTitle_Icon
@@ -4947,6 +4958,7 @@ style ShapeAppearanceOverlay_MaterialComponents_MaterialCalendar_Window_Fullscre
 style ShapeAppearanceOverlay_MaterialComponents_MaterialCalendar_Year
 style ShapeAppearanceOverlay_MaterialComponents_TextInputLayout_FilledBox
 style SheetTheme
+style StatNumber
 style TextAppearance_AppCompat
 style TextAppearance_AppCompat_Body1
 style TextAppearance_AppCompat_Body2

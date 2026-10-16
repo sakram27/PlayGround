@@ -98,7 +98,56 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
     }
 }
 
+/** Baris strategi Lab: nama utama + kode sekunder + badge AKTIF. */
+data class StratRow(val name: String, val code: String, val active: Boolean)
+
+/** Baris sinyal generik (dipakai banyak layar; jangan ubah bentuknya). */
 data class SigItem(val dir: String, val main: String, val sub: String, val right: String, val sym: String = "")
+
+class StratAdapter(
+    var items: List<StratRow>,
+    val onPick: (Int) -> Unit
+) : RecyclerView.Adapter<StratAdapter.H>() {
+    class H(v: View) : RecyclerView.ViewHolder(v) {
+        val main: TextView = v.findViewById(R.id.stMain)
+        val sub: TextView = v.findViewById(R.id.stSub)
+        val badge: TextView = v.findViewById(R.id.stBadge)
+    }
+    override fun onCreateViewHolder(p: ViewGroup, t: Int) =
+        H(LayoutInflater.from(p.context).inflate(R.layout.item_strat, p, false))
+    override fun getItemCount() = items.size
+    override fun onBindViewHolder(h: H, i: Int) {
+        val r = items[i]
+        h.main.text = r.name
+        h.sub.text = r.code
+        h.badge.visibility = if (r.active) View.VISIBLE else View.GONE
+        h.itemView.setOnClickListener {
+            val pos = h.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) onPick(pos)
+        }
+    }
+}
+
+/** Baris regime pasar: simbol + badge tren + info umur/sumber. Data aktual saja.
+ *  (RegimeRow didefinisikan di AblationRegime.kt agar teruji JVM.) */
+
+class RegimeAdapter(var items: List<RegimeRow>) : RecyclerView.Adapter<RegimeAdapter.H>() {
+    class H(v: View) : RecyclerView.ViewHolder(v) {
+        val sym: TextView = v.findViewById(R.id.rgSym)
+        val badge: TextView = v.findViewById(R.id.rgBadge)
+        val sub: TextView = v.findViewById(R.id.rgSub)
+    }
+    override fun onCreateViewHolder(p: ViewGroup, t: Int) =
+        H(LayoutInflater.from(p.context).inflate(R.layout.item_regime, p, false))
+    override fun getItemCount() = items.size
+    override fun onBindViewHolder(h: H, i: Int) {
+        val r = items[i]
+        h.sym.text = r.sym
+        h.badge.text = r.badge
+        try { h.badge.setTextColor(regimeBadgeColor(r.badge)) } catch (e: Exception) { /* abaikan */ }
+        h.sub.text = r.sub
+    }
+}
 
 open class SigAdapter(var items: List<SigItem>, var onClick: ((Int) -> Unit)? = null, var wrapMain: Boolean = false) : RecyclerView.Adapter<SigAdapter.H>() {
     class H(v: View) : RecyclerView.ViewHolder(v) {

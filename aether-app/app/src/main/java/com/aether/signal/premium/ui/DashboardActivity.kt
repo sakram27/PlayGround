@@ -248,32 +248,44 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         } catch (e: Exception) { "Belum ada sinyal Engine — tekan Start Engine." }
     }
 
-    /** V16 F7 + V27: label regime dari cache engine + alasan terukur bila tak ada.
-     *  Status dibedakan: menunggu / gagal ambil / data kurang / indikator gagal /
-     *  label valid (+umur). Tak ada angka karangan — semua dari RegimeDiag tick. */
+    /** Market overview sebagai daftar badge (sumber sama dengan regimeLine:
+     *  RegimeDiag + regime per pair, maks 12). */
     private fun paintRegime() {
         try {
-            val tv = findViewById<android.widget.TextView>(R.id.regimeList)
+            val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.regimeList)
+            list.vertical(this)
             if (App.engPairs.isEmpty()) {
-                tv.text = "Pilih pair engine dulu."
+                list.adapter = SigAdapter(listOf(
+                    SigItem("···", "Pilih pair engine dulu.", "", "")))
                 return
             }
             val now = System.currentTimeMillis()
             // Maks 12 baris: menampung 9 pair + cadangan (sebelumnya 8
             // memotong pair ke-9 dari panel KONDISI PASAR).
-            tv.text = App.engPairs.take(12).joinToString("\n") { sym ->
-                regimeLine(sym, App.regimeDiag[sym], App.regime[sym], App.engRunning, now)
-            }
+            list.adapter = RegimeAdapter(App.engPairs.take(12).map { sym ->
+                regimeRow(sym, App.regimeDiag[sym], App.regime[sym], App.engRunning, now)
+            })
         } catch (e: Exception) { /* abaikan */ }
     }
 
-    private fun paintCfg() {        val c = App.appliedCfg()
+    private fun paintCfg() {
+        val c = App.appliedCfg()
+        // Label eksplisit per baris (nilai sumber apa adanya, tanpa koreksi
+        // otomatis): utama = strategi tersimpan; tambahan = combo tersimpan;
+        // mode = mode tersimpan. Tak ada penggabungan teks ambigu.
         findViewById<android.widget.TextView>(R.id.cfgMain).text =
-            if (c == null) "NOT APPLIED — jalankan backtest atau Start engine."
-            else "${c.strategyMode}: ${c.strategy}${if (c.combo.isNotEmpty()) " + " + c.combo.joinToString("+") else ""} · ${c.timeframe} · RR ${c.rr} · ${c.tpModeLabel}"
-        val lb = App.lastBt()
+            if (c == null) "Utama: — (NOT APPLIED — jalankan backtest atau Start engine.)"
+            else "Utama: ${c.strategy}"
+        findViewById<android.widget.TextView>(R.id.cfgCombo).text =
+            if (c == null) "Tambahan: — · Mode: —"
+            else if (c.combo.isEmpty()) "Tambahan: — · Mode: Tunggal"
+            else "Tambahan: ${c.combo.joinToString(", ")} · Mode: ${c.comboMode.ifEmpty { c.strategyMode }}"
         findViewById<android.widget.TextView>(R.id.cfgLast).text =
-            if (lb == null) "Backtest terakhir: belum ada."
-            else "Backtest: ${lb.mode} · ${lb.pairs.joinToString(",")} · ${lb.trades} trade · ${lb.status}"
+            if (c == null) "Backtest terakhir: belum ada."
+            else "${c.timeframe} · RR ${c.rr} · ${c.tpModeLabel}" + run {
+                val lb = App.lastBt()
+                if (lb == null) "\nBacktest terakhir: belum ada."
+                else "\nBacktest terakhir: ${lb.mode} · ${lb.pairs.joinToString(",")} · ${lb.trades} trade · ${lb.status}"
+            }
     }
 }

@@ -164,4 +164,23 @@
         <item name="android:textColor">@color/txt</item>
         <item name="android:fontFamily">monospace</item>
     </style>
+    <!-- Design system: angka statistik (22sp tabular, bukan hero). -->
+    <style name="StatNumber">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <!-- Design system: harga pair (20sp tabular tebal, rata kanan di layout). -->
+    <style name="PriceLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+    <!-- Design system: teks badge status (pill bg + tint di kode, teks selalu ada). -->
+    <style name="BadgeText">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
 </resources>

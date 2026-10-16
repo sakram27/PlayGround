@@ -575,6 +575,103 @@ fun main() {
         saok("n-sesi-tunggal", !tSingle.contains("Strategi utama:"), "")
     }
 
+    // ===== T-SR: telemetri SR identik strategyFn + alasan eksplisit (SINTETIS) =====
+    run {
+        // 1) Sweep penuh: result telemetri == strategyFn pada input identik.
+        var srN = 0; var srBad = 0
+        for ((cs, cc) in listOf(Triple(up, cup, "up"), Triple(dn, cdn, "dn"), Triple(chop, cch, "chop"))) {
+            for (k in cs.indices) {
+                val prod = strategyFn("support_resistance", cs, k, cc, emptyMap()).first
+                val tel = srTelemetry(cs, k).result
+                srN++; if (prod != tel) { srBad++; if (srBad <= 3) println("SR-MISMATCH $cc k=$k prod=$prod tel=$tel") }
+            }
+        }
+        saok("t-sr-identik-sweep", srBad == 0, "$srN bar, 3 rezim")
+        // 2) Fixture LONG: 20 flat + pantulan.
+        val fL = ArrayList<Candle>(); var tL = SAT0
+        repeat(20) { fL.add(saC(100.0, 100.1, 99.9, 100.0, tL)); tL += SATF }
+        fL.add(saC(100.0, 100.6, 99.95, 100.5, tL))
+        val cL = buildCache(fL)
+        val tLr = srTelemetry(fL, 20)
+        saok("t-sr-long", tLr.result == "LONG" && tLr.reason == "SUPPORT_BOUNCE" && tLr.dir == "BULLISH" &&
+            strategyFn("support_resistance", fL, 20, cL, emptyMap()).first == "LONG",
+            "distS=${tLr.distSupportPct}")
+        // 3) Fixture SHORT: 20 flat + rejection.
+        val fS = ArrayList<Candle>(); var tS = SAT0
+        repeat(20) { fS.add(saC(100.0, 100.1, 99.9, 100.0, tS)); tS += SATF }
+        fS.add(saC(100.0, 100.15, 99.4, 99.5, tS))
+        val cS = buildCache(fS)
+        val tSr = srTelemetry(fS, 20)
+        saok("t-sr-short", tSr.result == "SHORT" && tSr.reason == "RESISTANCE_REJECT" && tSr.dir == "BEARISH" &&
+            strategyFn("support_resistance", fS, 20, cS, emptyMap()).first == "SHORT", "")
+        // 4) Batas toleransi: tepat 0,100% ke luar (NONE+JARAK), 0,09% ke dalam (LONG).
+        val fB = ArrayList<Candle>(); var tB = SAT0
+        repeat(20) { fB.add(saC(100.0, 100.1, 99.9, 100.0, tB)); tB += SATF }
+        fB.add(saC(100.2, 100.7, 100.1, 100.6, tB)) // |100.1-100|/100 ≈ 0,1000000000000014% → tak < tol
+        val cB = buildCache(fB)
+        val tBo = srTelemetry(fB, 20)
+        saok("t-sr-batas-luar", tBo.result == "NONE" && tBo.reason == "JARAK_DI_LUAR_TOLERANSI" &&
+            strategyFn("support_resistance", fB, 20, cB, emptyMap()).first == "NONE", "distS=${tBo.distSupportPct}")
+        val fBi = ArrayList<Candle>(); var tBi = SAT0
+        repeat(20) { fBi.add(saC(100.0, 100.1, 99.9, 100.0, tBi)); tBi += SATF }
+        fBi.add(saC(100.0, 100.7, 99.99, 100.6, tBi)) // 0,09% < 0,1% + bullish
+        val cBi = buildCache(fBi)
+        val tBii = srTelemetry(fBi, 20)
+        saok("t-sr-batas-dalam", tBii.result == "LONG" &&
+            strategyFn("support_resistance", fBi, 20, cBi, emptyMap()).first == "LONG", "distS=${tBii.distSupportPct}")
+        // 5) Arah gagal: dekat support tapi bearish.
+        val fD = ArrayList<Candle>(); var tD = SAT0
+        repeat(20) { fD.add(saC(100.0, 100.1, 99.9, 100.0, tD)); tD += SATF }
+        fD.add(saC(100.5, 100.6, 99.95, 100.1, tD)) // dekat support (0,05%), bearish; jauh resistance
+        val cD = buildCache(fD)
+        val tDr = srTelemetry(fD, 20)
+        saok("t-sr-arah-gagal", tDr.result == "NONE" && tDr.reason == "ARAH_SUPPORT_GAGAL" &&
+            strategyFn("support_resistance", fD, 20, cD, emptyMap()).first == "NONE", "")
+        // 6) Data kurang: i<20 + indeks di luar rentang.
+        val tDk = srTelemetry(fD, 19)
+        saok("t-sr-data-kurang", tDk.result == "NONE" && tDk.reason == "DATA_KURANG" &&
+            tDk.distSupportPct == null && strategyFn("support_resistance", fD, 19, cD, emptyMap()).first == "NONE", "")
+        val tOo = srTelemetry(fD, 999)
+        saok("t-sr-oob", tOo.result == "NONE" && tOo.reason == "DATA_KURANG", "")
+        // 7) Nilai tak valid: NaN + level nol.
+        val fN = ArrayList<Candle>(); var tN = SAT0
+        repeat(20) { fN.add(saC(100.0, 100.1, 99.9, 100.0, tN)); tN += SATF }
+        fN.add(saC(Double.NaN, 100.6, 99.9, 100.5, tN))
+        val cN = buildCache(fN)
+        val tNr = srTelemetry(fN, 20)
+        saok("t-sr-nan", tNr.result == "NONE" && tNr.reason == "DATA_INVALID" &&
+            strategyFn("support_resistance", fN, 20, cN, emptyMap()).first == "NONE", "")
+        val fZ = ArrayList<Candle>(); var tZ = SAT0
+        repeat(20) { fZ.add(saC(0.0, 0.0, 0.0, 0.0, tZ)); tZ += SATF }
+        fZ.add(saC(0.0, 0.0, 0.0, 0.0, tZ))
+        val tZr = srTelemetry(fZ, 20)
+        saok("t-sr-nol", tZr.result == "NONE" &&
+            strategyFn("support_resistance", fZ, 20, buildCache(fZ), emptyMap()).first == "NONE",
+            "reason=${tZr.reason}")
+        // 8) Baris verbose memuat semua field wajib.
+        val line = srTelemetryLine("BTCUSDT", fL, 20)
+        saok("t-sr-baris", line.contains("BTCUSDT") && line.contains("SR=LONG") &&
+            line.contains("distS=") && line.contains("distR=") && line.contains("tol=0.10%") &&
+            line.contains("arah=BULLISH") && line.contains("alasan=SUPPORT_BOUNCE") &&
+            line.contains("BAR=${fL[20].t}"), line)
+        // 9) Detail kompak muat 120 char + format lama default tak berubah.
+        val pSr = BacktestParams(strategy = "support_resistance",
+            combo = Combo("AND", listOf("support_resistance", "mtf_confirm")))
+        val dNew = noCandidateDetail(pSr, fL, 20, cL, includeSrTelemetry = true)
+        val dOld = noCandidateDetail(pSr, fL, 20, cL)
+        saok("t-sr-kompak", dNew.length <= 120 && dNew.contains("MODE=AND") &&
+            dNew.contains("SRt:") && dNew.contains("BAR=${fL[20].t}"), dNew)
+        saok("t-sr-default-tetap", dOld == "MODE=AND | SR=LONG | MTF=NONE | BAR=${fL[20].t}", dOld)
+        // 10) Tunggal SR juga bertelemetri; non-SR tak berubah.
+        val pS1 = BacktestParams(strategy = "support_resistance")
+        val dS1 = noCandidateDetail(pS1, fL, 20, cL, includeSrTelemetry = true)
+        saok("t-sr-tunggal", dS1.contains("MODE=SINGLE") && dS1.contains("SRt:"), dS1)
+        val pNs = BacktestParams(strategy = "x", combo = Combo("OR", listOf("ema_trend", "rsi")))
+        saok("t-sr-nonsr-tetap",
+            noCandidateDetail(pNs, up, 400, cup, includeSrTelemetry = true) ==
+                noCandidateDetail(pNs, up, 400, cup), "")
+    }
+
     println("SIGNAL-AUDIT-FULL done pass=$sapass fail=$safail")
     if (safail > 0) kotlin.system.exitProcess(1)
 }

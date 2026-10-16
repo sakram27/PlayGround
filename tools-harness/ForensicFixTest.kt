@@ -1,6 +1,10 @@
 import com.aether.signal.premium.engine.*
 import com.aether.signal.premium.ui.App
 import com.aether.signal.premium.ui.multiRunStatus
+import com.aether.signal.premium.ui.regimeBadgeColor
+import com.aether.signal.premium.ui.regimeRow
+import com.aether.signal.premium.ui.Regime
+import com.aether.signal.premium.ui.RegimeDiag
 
 var fpass = 0
 var ffail = 0
@@ -85,6 +89,34 @@ fun main() {
     fok("dt-balik", !App.isDateRangeValid(2000L, 1000L))
     fok("dt-2thn", exceedsTwoYears(1754000000000L, 1754000000000L + 800L * 86400000L)
         && !exceedsTwoYears(1754000000000L, 1754000000000L + 700L * 86400000L))
+
+    // ===== Badge regime (design system): warna + cabang sama dengan regimeLine =====
+    fok("rg-warna-naik", regimeBadgeColor("Tren naik") == 0xFF10B981.toInt())
+    fok("rg-warna-turun", regimeBadgeColor("Tren turun") == 0xFFF87171.toInt())
+    fok("rg-warna-sideways", regimeBadgeColor("Sideways") == 0xFF94A3B8.toInt())
+    run {
+        val now = 1_700_000_000_000L
+        val r0 = regimeRow("BTCUSDT", null, null, false, now)
+        fok("rg-tunggu-mati", r0.badge == "Belum jalan" && r0.sub.contains("Start Engine"), "$r0")
+        val r1 = regimeRow("BTCUSDT", null, null, true, now)
+        fok("rg-tunggu-jalan", r1.badge == "Menunggu", "$r1")
+        val r2 = regimeRow("BTCUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "timeout", false, "none"),
+            null, true, now)
+        fok("rg-gagal", r2.badge == "Gagal" && r2.sub.contains("timeout"), "$r2")
+        val r3 = regimeRow("BTCUSDT",
+            RegimeDiag(300, 100, 100, 220, "binance", "15m", now, "", false, "none"),
+            null, true, now)
+        fok("rg-kurang", r3.badge == "Kurang data" && r3.sub.contains("100"), "$r3")
+        val r4 = regimeRow("BTCUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now, "", true, "none"),
+            Regime("Tren naik", false, now), true, now)
+        fok("rg-naik", r4.badge == "Tren naik" && regimeBadgeColor(r4.badge) == 0xFF10B981.toInt(), "$r4")
+        val r5 = regimeRow("ETHUSDT",
+            RegimeDiag(300, 300, 300, 220, "binance", "15m", now - 45 * 60000, "", true, "disk"),
+            Regime("Sideways", true, now - 45 * 60000), true, now)
+        fok("rg-basi", r5.badge == "Sideways" && r5.sub.contains("45 mnt") && r5.sub.contains("disk"), "$r5")
+    }
 
     println("FORENSIC-FIX done pass=$fpass fail=$ffail")
     if (ffail > 0) kotlin.system.exitProcess(1)

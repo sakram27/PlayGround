@@ -1,7 +1,5 @@
 package com.aether.signal.premium.ui
 
-import android.view.View
-import android.widget.ListView
 import android.widget.TextView
 import androidx.core.widget.addTextChangedListener
 import com.aether.signal.premium.R
@@ -49,13 +47,16 @@ class LabActivity : BaseActivity(R.id.nav_lab) {
 
     private fun paintStrat() {
         visible = current()
-        val lv = findViewById<ListView>(R.id.stratList)
-        lv.fixScrollConflict()
-        bindSingleChoice(lv, visible.map { "${it.name} (${it.id})" },
-            visible.indexOfFirst { it.id == App.strategy }.coerceAtLeast(0)) { pos ->
+        // Daftar dua-baris: nama utama + kode sekunder + badge AKTIF.
+        // Perilaku sama: ketuk = jadikan aktif (tidak mengubah saat dibuka).
+        val rv = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.stratList)
+        rv.vertical(this)
+        val activeId = App.strategy
+        rv.adapter = StratAdapter(visible.map { StratRow(it.name, it.id, it.id == activeId) }) { pos ->
             val m = visible[pos]
             App.strategy = m.id; App.saveStrategy()
             snack(this, "${m.id} dipakai di Backtest.")
+            paintStrat()
         }
     }
 

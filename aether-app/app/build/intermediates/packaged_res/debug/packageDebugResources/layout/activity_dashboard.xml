@@ -1,37 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FLAGSHIP v2: komposisi terminal — band full-bleed berlapis, hero dominan,
-     vitals strip, hub grid. ID & tipe view LAMA dipertahankan (wiring utuh). -->
+<!-- Home terminal: header → engine → strategi → performa → market → aktivitas → shortcut.
+     Semua ID lama dipertahankan (wiring utuh); cfgCombo = baris baru strategi. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:fillViewport="true" android:background="@color/graphite_900">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- BAND 1: brand + ENGINE HERO (fokus utama, full-bleed). -->
+        <!-- 1. HEADER: brand + metadata provider/timeframe (menu overflow di toolbar). -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:background="@color/graphite_800"
+            android:padding="16dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="AETHER" android:textColor="@color/gold"
+                    android:textSize="24sp" android:textStyle="bold"
+                    android:letterSpacing="0.14" android:maxLines="1" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="INSTITUTIONAL TERMINAL" style="@style/TxLabel"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+            <TextView android:id="@+id/brandLine" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="—"
+                android:textColor="@color/mut" android:textSize="11sp"
+                android:fontFamily="monospace" android:gravity="end" />
+        </LinearLayout>
+
+        <!-- 2. ENGINE. -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:background="@color/graphite_800"
             android:padding="16dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:gravity="center_vertical">
-                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:orientation="vertical">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="AETHER" android:textColor="@color/gold"
-                        android:textSize="24sp" android:textStyle="bold"
-                        android:letterSpacing="0.14" android:maxLines="1" />
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="INSTITUTIONAL TERMINAL" style="@style/TxLabel"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-                <TextView android:id="@+id/brandLine" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="—"
-                    android:textColor="@color/mut" android:textSize="11sp"
-                    android:fontFamily="monospace" android:gravity="end" />
-            </LinearLayout>
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:gravity="center_vertical"
-                android:layout_marginTop="14dp">
                 <View android:id="@+id/engDot" android:layout_width="@dimen/dot_status"
                     android:layout_height="@dimen/dot_status"
                     android:background="@drawable/dot_status"
@@ -48,7 +50,7 @@
             </LinearLayout>
             <TextView android:id="@+id/engHeroStatus" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:text="—"
-                android:textColor="@color/txt" android:textSize="30sp"
+                android:textColor="@color/txt" android:textSize="26sp"
                 android:textStyle="bold" android:layout_marginTop="6dp" />
             <TextView android:id="@+id/engReason" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:textColor="@color/dim"
@@ -76,12 +78,33 @@
                 android:layout_marginTop="10dp" />
             <Button android:id="@+id/btnEngSync" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="8dp"
-                android:text="Salin dari Backtest" style="@style/BtnCyan" />
+                android:text="Salin dari Backtest" style="@style/BtnSmall" />
         </LinearLayout>
 
-        <!-- BAND 2: vitals strip — statistik tanpa kartu. -->
+        <!-- 3. STRATEGI AKTIF. -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:padding="16dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="STRATEGI AKTIF" style="@style/TxLabel" />
+            <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/txt"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginTop="6dp" />
+            <TextView android:id="@+id/cfgCombo" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/txt"
+                android:textSize="12sp" android:layout_marginTop="2dp" />
+            <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/dim"
+                android:textSize="11sp" android:layout_marginTop="4dp" />
+            <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="Buka Lab →"
+                style="@style/BtnInfo" android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- 4. RINGKASAN PERFORMA (live vs backtest terpisah). -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal">
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
@@ -90,8 +113,7 @@
                         android:text="SINYAL · LIVE" style="@style/TxLabel" />
                     <TextView android:id="@+id/kSig" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="—"
-                        android:textColor="@color/txt" android:textSize="22sp"
-                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                        style="@style/StatNumber" android:layout_marginTop="2dp" />
                 </LinearLayout>
                 <View android:layout_width="1dp" android:layout_height="match_parent"
                     android:background="@color/line" android:layout_marginStart="4dp"
@@ -102,8 +124,7 @@
                         android:text="TRADES · BT" style="@style/TxLabel" />
                     <TextView android:id="@+id/kTr" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="—"
-                        android:textColor="@color/txt" android:textSize="22sp"
-                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                        style="@style/StatNumber" android:layout_marginTop="2dp" />
                 </LinearLayout>
                 <View android:layout_width="1dp" android:layout_height="match_parent"
                     android:background="@color/line" android:layout_marginStart="4dp"
@@ -114,8 +135,7 @@
                         android:text="WIN · BT" style="@style/TxLabel" />
                     <TextView android:id="@+id/kWin" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="—"
-                        android:textColor="@color/txt" android:textSize="22sp"
-                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                        style="@style/StatNumber" android:layout_marginTop="2dp" />
                 </LinearLayout>
                 <View android:layout_width="1dp" android:layout_height="match_parent"
                     android:background="@color/line" android:layout_marginStart="4dp"
@@ -123,11 +143,10 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="POSISI" style="@style/TxLabel" />
+                        android:text="POSISI · PAPER" style="@style/TxLabel" />
                     <TextView android:id="@+id/kPos" android:layout_width="wrap_content"
                         android:layout_height="wrap_content" android:text="—"
-                        android:textColor="@color/txt" android:textSize="22sp"
-                        android:fontFamily="monospace" android:layout_marginTop="2dp" />
+                        style="@style/StatNumber" android:layout_marginTop="2dp" />
                 </LinearLayout>
             </LinearLayout>
             <View android:layout_width="match_parent" android:layout_height="1dp"
@@ -138,43 +157,29 @@
             <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
                 android:layout_height="wrap_content" android:text="—" style="@style/TxHero" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="Riwayat backtest tersimpan · bukan janji profit"
+                android:text="Sumber: riwayat backtest tersimpan · bukan janji profit"
                 android:textColor="@color/dim" android:textSize="11sp"
                 android:layout_marginTop="2dp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="STRATEGI AKTIF" style="@style/TxLabel"
-                android:layout_marginTop="12dp" />
-            <TextView android:id="@+id/cfgMain" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/txt"
-                android:textSize="14sp" android:textStyle="bold"
-                android:layout_marginTop="6dp" />
-            <TextView android:id="@+id/cfgLast" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/dim"
-                android:textSize="11sp" android:layout_marginTop="4dp" />
-            <Button android:id="@+id/btnLab" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:text="Buka Lab →"
-                style="@style/BtnInfo" android:layout_marginTop="6dp" />
         </LinearLayout>
 
-        <!-- BAND 3: market overview (band inset). -->
+        <!-- 5. MARKET OVERVIEW. -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@color/graphite_800"
-            android:padding="16dp">
+            android:orientation="vertical" android:padding="16dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="MARKET OVERVIEW" style="@style/TxLabel" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="Dari cache indikator engine (EMA200 + ADX). Bukan kepastian; tak mengubah strategi."
                 android:textColor="@color/dim" android:textSize="11sp"
                 android:layout_marginTop="2dp" />
-            <TextView android:id="@+id/regimeList" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textColor="@color/mut"
-                android:textSize="12sp" android:fontFamily="monospace"
-                android:layout_marginTop="8dp" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/regimeList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
         </LinearLayout>
 
-        <!-- BAND 4: aktivitas terbaru. -->
+        <!-- 6. AKTIVITAS TERAKHIR. -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:padding="16dp">
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:gravity="center_vertical">
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
@@ -192,10 +197,9 @@
                 android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
         </LinearLayout>
 
-        <!-- BAND 5: hub terminal grid. -->
+        <!-- 7. TERMINAL (LIVE + RESEARCH). -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:background="@color/graphite_800"
-            android:padding="16dp">
+            android:orientation="vertical" android:padding="16dp">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="TERMINAL" style="@style/TxLabel" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"

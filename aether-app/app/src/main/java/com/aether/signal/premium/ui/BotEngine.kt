@@ -472,8 +472,10 @@ object BotEngine {
                     if (!dec.passed) {
                         // Diagnostik nol-kandidat: mode + arah per kaki + waktu bar
                         // dari hasil evaluasi aktual (tanpa fetch tambahan, tanpa
-                        // ubah keputusan). Akhiran kesehatan data dipertahankan.
-                        val det = noCandidateDetail(p, candles, i, cache) +
+                        // ubah keputusan) + telemetri SR kompak (jarak/toleransi/
+                        // arah/alasan, muat 120 char). Akhiran kesehatan data
+                        // dipertahankan.
+                        val det = noCandidateDetail(p, candles, i, cache, includeSrTelemetry = true) +
                             (if (dataHealth != "SEHAT") " · data $dataHealth" else "")
                         EngineDiag.noteVerdict(sym, "NO_CANDIDATE", det)
                         continue

@@ -224,7 +224,7 @@ fun comboLegDirs(params: BacktestParams, candles: List<Candle>, idx: Int, cache:
 }
 
 /** Detail vonis NO_CANDIDATE: MODE + arah per kaki + waktu bar. Maks 120 char. */
-fun noCandidateDetail(params: BacktestParams, candles: List<Candle>, idx: Int, cache: Cache): String {
+fun noCandidateDetail(params: BacktestParams, candles: List<Candle>, idx: Int, cache: Cache, includeSrTelemetry: Boolean = false): String {
     val combo = params.combo
     val mode = if (combo == null || combo.strategies.isEmpty()) "SINGLE" else combo.mode.ifEmpty { "OR" }
     val barT = candles.getOrNull(idx)?.t ?: 0L
@@ -235,7 +235,120 @@ fun noCandidateDetail(params: BacktestParams, candles: List<Candle>, idx: Int, c
         sb.append(seg)
     }
     sb.append(" | BAR=$barT")
+    // Telemetri SR kompak (diagnostik saja): hanya bila SR dievaluasi, hanya
+    // bila muat dalam 120 char agar BAR tak terpotong. Keputusan tak berubah.
+    if (includeSrTelemetry &&
+        (params.strategy == "support_resistance" ||
+            params.combo?.strategies?.contains("support_resistance") == true)) {
+        val seg = " | " + srTelemetryCompact(candles, idx)
+        if (sb.length + seg.length <= 120) sb.append(seg)
+    }
     return sb.toString().take(120)
+}
+
+// ---------- Telemetri SR (diagnostik murni, Pek. A) ----------
+// MENCERMINKAN strategyFn "support_resistance" (Strategies.kt:135-147) secara
+// ekspresi-per-ekspresi: jendela 20 bar (i-20..i-1), jarak |l-ll|/ll dan
+// |h-hh|/hh lawan ambang tol, syarat arah candle, prioritas LONG dulu.
+// result SELALU sama dengan strategyFn pada input identik (dibuktikan uji
+// sweep); yang ditambah hanya jarak terukur + arah + alasan eksplisit.
+// Tidak membaca candle masa depan (hanya indeks <= idx), tidak fetch data,
+// tidak mengubah urutan evaluasi engine.
+
+/** Ambang S/R produksi (0,1%) — satu-satunya sumber nilai untuk telemetri. */
+const val SR_TOL = 0.001
+
+/** Hasil telemetri satu bar: keputusan + bukti ukur + alasan. */
+data class SrTelemetry(
+    val result: String, // LONG | SHORT | NONE — identik strategyFn
+    val distSupportPct: Double?, // |l-ll|/ll*100, null bila tak bermakna
+    val distResistancePct: Double?, // |h-hh|/hh*100, null bila tak bermakna
+    val tolPct: Double = SR_TOL * 100,
+    val dir: String, // BULLISH | BEARISH | FLAT | INVALID
+    val reason: String // DATA_KURANG | DATA_INVALID | JARAK_DI_LUAR_TOLERANSI |
+    // ARAH_SUPPORT_GAGAL | ARAH_RESISTANCE_GAGAL | ARAH_GAGAL_KEDUANYA |
+    // SUPPORT_BOUNCE | RESISTANCE_REJECT
+)
+
+fun srDirectionOf(c: Candle): String = when {
+    !c.o.isFinite() || !c.c.isFinite() -> "INVALID"
+    c.c > c.o -> "BULLISH"
+    c.c < c.o -> "BEARISH"
+    else -> "FLAT"
+}
+
+fun srTelemetry(candles: List<Candle>, idx: Int, tol: Double = SR_TOL): SrTelemetry {
+    if (idx < 0 || idx >= candles.size) return SrTelemetry("NONE", null, null, tol * 100, "INVALID", "DATA_KURANG")
+    val c = candles[idx]
+    val dir = srDirectionOf(c)
+    if (idx < 20) return SrTelemetry("NONE", null, null, tol * 100, dir, "DATA_KURANG")
+    var hh = Double.NEGATIVE_INFINITY; var ll = Double.POSITIVE_INFINITY
+    for (j in idx - 20 until idx) { hh = maxOf(hh, candles[j].h); ll = minOf(ll, candles[j].l) }
+    // Ekspresi mentah persis produksi (Double: pembagian nol → Inf/NaN, tak throw).
+    val nearS = Math.abs(c.l - ll) / ll < tol
+    val nearR = Math.abs(c.h - hh) / hh < tol
+    val bull = c.c > c.o
+    val bear = c.c < c.o
+    val result = when {
+        nearS && bull -> "LONG"
+        nearR && bear -> "SHORT"
+        else -> "NONE"
+    }
+    // Jarak tampil: hanya bila bermakna (finite & tak-negatif); selain itu "-".
+    fun pct(raw: Double): Double? = if (raw.isFinite() && raw >= 0) raw else null
+    val dS = pct(Math.abs(c.l - ll) / ll * 100)
+    val dR = pct(Math.abs(c.h - hh) / hh * 100)
+    val ohlcOk = c.o.isFinite() && c.h.isFinite() && c.l.isFinite() && c.c.isFinite()
+    val lvlOk = hh.isFinite() && ll.isFinite() && hh > 0 && ll > 0
+    val reason = when {
+        result == "LONG" -> "SUPPORT_BOUNCE"
+        result == "SHORT" -> "RESISTANCE_REJECT"
+        !ohlcOk || !lvlOk -> "DATA_INVALID"
+        !nearS && !nearR -> "JARAK_DI_LUAR_TOLERANSI"
+        nearS && nearR -> "ARAH_GAGAL_KEDUANYA"
+        nearS -> "ARAH_SUPPORT_GAGAL"
+        else -> "ARAH_RESISTANCE_GAGAL"
+    }
+    return SrTelemetry(result, dS, dR, tol * 100, dir, reason)
+}
+
+fun srReasonCompact(reason: String): String = when (reason) {
+    "DATA_KURANG" -> "DATA-K"
+    "DATA_INVALID" -> "DATA-X"
+    "JARAK_DI_LUAR_TOLERANSI" -> "JARAK"
+    "ARAH_SUPPORT_GAGAL" -> "ARAH-S"
+    "ARAH_RESISTANCE_GAGAL" -> "ARAH-R"
+    "ARAH_GAGAL_KEDUANYA" -> "ARAH-2"
+    "SUPPORT_BOUNCE" -> "BOUNCE"
+    "RESISTANCE_REJECT" -> "REJECT"
+    else -> reason.take(8)
+}
+
+fun srDirCompact(dir: String): String = when (dir) {
+    "BULLISH" -> "BULL"
+    "BEARISH" -> "BEAR"
+    "INVALID" -> "INV"
+    else -> dir
+}
+
+/** Segmen kompak untuk detail vonis 120-char. */
+fun srTelemetryCompact(candles: List<Candle>, idx: Int, tol: Double = SR_TOL): String {
+    val t = srTelemetry(candles, idx, tol)
+    fun p(v: Double?): String =
+        if (v == null) "-" else String.format(java.util.Locale.US, "%.2f", v) + "%"
+    return "SRt:dS=${p(t.distSupportPct)},dR=${p(t.distResistancePct)}," +
+        "${srDirCompact(t.dir)},${srReasonCompact(t.reason)}"
+}
+
+/** Baris verbose per pair (laporan/harness, tanpa batas 120 char). */
+fun srTelemetryLine(sym: String, candles: List<Candle>, idx: Int, tol: Double = SR_TOL): String {
+    val t = srTelemetry(candles, idx, tol)
+    val barT = candles.getOrNull(idx)?.t ?: 0L
+    fun p(v: Double?): String =
+        if (v == null) "-" else String.format(java.util.Locale.US, "%.2f", v) + "%"
+    val tolS = String.format(java.util.Locale.US, "%.2f", t.tolPct) + "%"
+    return "$sym | SR=${t.result} | distS=${p(t.distSupportPct)} | distR=${p(t.distResistancePct)} | " +
+        "tol=$tolS | arah=${t.dir} | alasan=${t.reason} | BAR=$barT"
 }
 
 fun fmt2(v: Double): String = String.format(java.util.Locale.US, "%.2f", v)

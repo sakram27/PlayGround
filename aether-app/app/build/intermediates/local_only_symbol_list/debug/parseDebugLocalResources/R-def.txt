@@ -268,6 +268,7 @@ id btnWhyFilter
 id btnXVal
 id btnXvRun
 id btnXvTf
+id cfgCombo
 id cfgLast
 id cfgMain
 id chart
@@ -448,6 +449,9 @@ id quickMeta
 id quietPresetStatus
 id quietStatus
 id regimeList
+id rgBadge
+id rgSub
+id rgSym
 id right
 id riskPresetStatus
 id riskPreview
@@ -502,6 +506,9 @@ id spProv
 id spStrategy
 id spTf
 id spark
+id stBadge
+id stMain
+id stSub
 id status
 id stratList
 id sub
@@ -566,7 +573,9 @@ layout item_checkpair
 layout item_custompair
 layout item_kv
 layout item_log
+layout item_regime
 layout item_sig
+layout item_strat
 layout item_watch
 layout marker_ohlc
 layout sheet_checklist
@@ -581,6 +590,7 @@ style AppActiveIndicator
 style AppBottomNav
 style AppSheet
 style AppTheme
+style BadgeText
 style BtnBase
 style BtnBaseLine
 style BtnCyan
@@ -594,7 +604,9 @@ style BtnSmallDanger
 style BtnViolet
 style Card
 style Field
+style PriceLarge
 style SheetTheme
+style StatNumber
 style TxBody
 style TxCaption
 style TxHero

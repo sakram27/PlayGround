@@ -64,6 +64,10 @@
         "source": "com.aether.signal.premium.app-main-34:/layout/activity_signal_detail.xml"
     },
     {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_regime.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/item_regime.xml"
+    },
+    {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_au.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_au.png"
     },
@@ -92,16 +96,16 @@
         "source": "com.aether.signal.premium.app-main-34:/drawable/grad_primary.xml"
     },
     {
-        "merged": "com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
-        "source": "com.aether.signal.premium.app-main-34:/xml/files.xml"
-    },
-    {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_btc.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_btc.png"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_flag_sg.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/flag_sg.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/xml_files.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/xml/files.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/layout_activity_lab.xml.flat",
@@ -114,6 +118,10 @@
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_pyth.png.flat",
         "source": "com.aether.signal.premium.app-main-34:/drawable-nodpi/coin_pyth.png"
+    },
+    {
+        "merged": "com.aether.signal.premium.app-debug-32:/layout_item_strat.xml.flat",
+        "source": "com.aether.signal.premium.app-main-34:/layout/item_strat.xml"
     },
     {
         "merged": "com.aether.signal.premium.app-debug-32:/drawable-nodpi_coin_ordi.png.flat",

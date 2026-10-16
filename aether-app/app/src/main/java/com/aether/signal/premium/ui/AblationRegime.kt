@@ -127,6 +127,39 @@ fun regimeLine(
     return "$sym: ${regimeText(r)}$stale$via"
 }
 
+/** Baris regime pasar terstruktur: simbol + badge tren + info sekunder. */
+data class RegimeRow(val sym: String, val badge: String, val sub: String)
+
+/** Baris regime terstruktur untuk adapter (cabang SAMA dengan regimeLine,
+ *  hanya dipisah menjadi badge + sub agar hierarki visual jelas). */
+fun regimeRow(
+    sym: String, d: RegimeDiag?, r: Regime?,
+    engRunning: Boolean, nowMs: Long
+): RegimeRow {
+    if (d == null) {
+        return if (engRunning) RegimeRow(sym, "Menunggu", "Engine berjalan")
+        else RegimeRow(sym, "Belum jalan", "Tekan Start Engine")
+    }
+    if (d.error.isNotEmpty()) return RegimeRow(sym, "Gagal", d.error)
+    if (d.valid < d.minRequired) return RegimeRow(sym, "Kurang data",
+        "Valid ${d.valid}, butuh ≥${d.minRequired} · ${d.provider} ${d.timeframe}")
+    if (!d.indicatorOk || r == null || r.label.isEmpty())
+        return RegimeRow(sym, "Belum siap", "EMA200/ADX belum siap")
+    val ageMin = ((nowMs - r.at).coerceAtLeast(0) / 60000)
+    var sub = if (ageMin > 30) "${ageMin} mnt" else "baru"
+    if (d.source.isNotEmpty() && d.source != "none") sub += " · ${d.source}"
+    if (r.volatile) sub += " · volatil"
+    return RegimeRow(sym, r.label, sub)
+}
+
 fun regimeText(r: Regime?): String =
     if (r == null) "Data tidak cukup"
     else r.label + if (r.volatile) " · volatil" else ""
+
+/** Warna badge regime dari label aktual (murni). Teks label selalu tampil
+ *  bersama warna — warna bukan satu-satunya pembeda. */
+fun regimeBadgeColor(label: String): Int = when {
+    label.contains("Naik", ignoreCase = true) -> 0xFF10B981.toInt()
+    label.contains("Turun", ignoreCase = true) -> 0xFFF87171.toInt()
+    else -> 0xFF94A3B8.toInt()
+}

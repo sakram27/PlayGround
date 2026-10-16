@@ -34,9 +34,8 @@
             </LinearLayout>
         </LinearLayout>
         <TextView android:id="@+id/price" android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:gravity="end" android:textColor="@color/txt"
-            android:textSize="20sp" android:textStyle="bold" android:fontFamily="monospace"
-            android:maxLines="1" />
+            android:layout_height="wrap_content" android:gravity="end"
+            style="@style/PriceLarge" android:maxLines="1" android:ellipsize="end" />
     </LinearLayout>
     <com.aether.signal.premium.ui.SparkView android:id="@+id/spark"
         android:layout_width="match_parent" android:layout_height="34dp"

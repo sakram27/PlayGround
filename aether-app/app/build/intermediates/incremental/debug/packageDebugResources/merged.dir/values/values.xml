@@ -69,6 +69,11 @@
         <item name="android:textColorSecondary">@color/mut</item>
         <item name="bottomNavigationStyle">@style/AppBottomNav</item>
     </style>
+    <style name="BadgeText">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
     <style name="BtnBase" parent="Widget.Material3.Button">
         <item name="android:minHeight">48dp</item>
         <item name="android:insetTop">0dp</item>
@@ -157,8 +162,19 @@
         <item name="hintTextColor">@color/mut</item>
         <item name="android:textColorHint">@color/mut</item>
     </style>
+    <style name="PriceLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
     <style name="SheetTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/AppSheet</item>
+    </style>
+    <style name="StatNumber">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">@color/txt</item>
+        <item name="android:fontFamily">monospace</item>
     </style>
     <style name="TxBody">
         <item name="android:textSize">@dimen/text_body</item>
