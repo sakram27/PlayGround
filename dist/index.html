@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether Signal — Audit APK v7.13</title>
+<style>
+:root{--bg:#0a1128;--bg2:#0f1b3d;--card:#131f45;--line:#1f2f5e;--txt:#e8edf7;--mut:#8b98b8;--acc:#00e676;--warn:#ffb300;--red:#ff5252}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.55}
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d1740,#0a1128);padding:28px 20px}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:12px;background:radial-gradient(circle at 30% 30%,#00e676,#00695c);display:flex;align-items:center;justify-content:center;font-weight:800;color:#04121a;font-size:22px}
+h1{font-size:24px;letter-spacing:.2px}
+.sub{color:var(--mut);font-size:14px;margin-top:4px}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.badge{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#101c42;color:var(--txt)}
+.badge.ok{border-color:#00e67666;color:var(--acc)}
+.badge.warn{border-color:#ffb30066;color:var(--warn)}
+main{padding:26px 0 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h2{font-size:15px;margin-bottom:10px;color:#fff}
+.card h2 span{color:var(--acc)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #22336a;font-size:13.5px}
+.kv:last-child{border-bottom:0}
+.kv b{font-weight:600}
+.kv code{color:var(--acc);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all;text-align:right}
+.mut{color:var(--mut);font-size:13px}
+ul{padding-left:18px;font-size:13.5px;color:#d5ddf2}
+li{margin:5px 0}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#0a2a1c;color:var(--acc);border:1px solid #00e67644;margin:2px 4px 2px 0}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:16px}
+@media(max-width:760px){.hero{grid-template-columns:1fr}}
+.status{font-size:13px;padding:10px 12px;border-radius:10px;background:#0a2a1c;border:1px solid #00e67655;margin-top:12px}
+footer{color:var(--mut);font-size:12px;padding:22px 0;border-top:1px solid var(--line);text-align:center}
+a{color:var(--acc)}
+nav{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+nav a{font-size:13px;text-decoration:none;border:1px solid var(--line);padding:7px 12px;border-radius:10px;background:#101c42}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap">
+<div class="brand"><div class="logo">A</div><div><h1>Aether Signal</h1><div class="sub">Audit APK dasar — v7.13 (37) • com.aether.signal.premium • 8,78 MB</div></div></div>
+<div class="badges"><span class="badge ok">ENGINE: 18 Activity terverifikasi</span><span class="badge ok">Native Views/XML</span><span class="badge ok">Kotlin</span><span class="badge warn">Build DEBUG — debuggable=true</span></div>
+<nav><a href="#identitas">Identitas</a><a href="#kondisi">Kondisi</a><a href="#kebutuhan">Kebutuhan</a><a href="#rencana">Rencana</a></nav>
+</div>
+</header>
+<main><div class="wrap">
+<div class="hero">
+<div class="card" id="identitas"><h2>A. <span>Identitas APK</span> — terverifikasi statis</h2>
+<div class="kv"><b>Nama aplikasi</b><code>Aether Signal</code></div>
+<div class="kv"><b>Package</b><code>com.aether.signal.premium</code></div>
+<div class="kv"><b>Version name / code</b><code>7.13 / 37</code></div>
+<div class="kv"><b>Ukuran file</b><code>8.778.257 bytes (8,4 MiB)</code></div>
+<div class="kv"><b>SHA256</b><code>f502edcf…eec516ac0a1</code></div>
+<div class="kv"><b>minSdk / target / compile</b><code>26 / 36 / 36 (AGP 8.7.3)</code></div>
+<div class="kv"><b>Main launcher</b><code>ui.DashboardActivity</code></div>
+<div class="kv"><b>Native lib</b><code>0 — universal, tanpa split ABI</code></div>
+<div class="kv"><b>DEX</b><code>6 file, classes.dex 10,2 MB dominan</code></div>
+<div class="status">Package sesuai ekspektasi proyek. Ikon launcher tersedia di mipmap (hdpi–xxxhdpi). Tanda debug: android:debuggable="true", allowBackup="true".</div>
+</div>
+<div class="card"><h2>Status <span>Engine &amp; Data</span></h2>
+<p class="mut">Disimpulkan dari string DEX + manifest, bukan dari runtime.</p>
+<ul>
+<li><b>Chart:</b> MPAndroidChart (CandleEntry, CombinedChart, LineChart)</li>
+<li><b>Provider:</b> Binance, Binance.US, Binance Vision, Bybit v5, Yahoo Finance</li>
+<li><b>Store:</b> SharedPreferences + CandleDiskCache (tanpa Room terdeteksi)</li>
+<li><b>Background:</b> MonitorService (FGS special-use) + BootReceiver</li>
+<li><b>Framework:</b> AndroidX, Material, Coroutines 1.6.4 — tanpa Compose / Flutter / WebView app</li>
+</ul>
+<div style="margin-top:10px"><span class="pill">Home</span><span class="pill">Markets</span><span class="pill">Graph</span><span class="pill">Signals</span><span class="pill">Lab</span><span class="pill">Backtest</span><span class="pill">Settings</span><span class="pill">AI</span></div>
+</div>
+</div>
+<div class="grid">
+<div class="card" id="kondisi"><h2>B. <span>Kondisi aplikasi</span></h2>
+<ul>
+<li>18 Activity: Dashboard, Market, Graph, Signals, SignalDetail, Lab, Backtest, WalkForward, XValidate, Ablation, Consensus, CostAnalysis, Collection, Replay, Journal, Ai, Settings, NotifHistory.</li>
+<li>Navigasi bawah: Home, Lab, Markets, Settings. Layar lain via intent internal.</li>
+<li>Layout Native: activity_dashboard, activity_market, activity_graph, activity_lab, activity_backtest, activity_settings + item_watch, item_sig, item_strat, sheet_manage, sheet_pair.</li>
+<li>Izin minimal &amp; wajar: INTERNET, ACCESS_NETWORK_STATE, FOREGROUND_SERVICE, POST_NOTIFICATIONS, VIBRATE, RECEIVE_BOOT_COMPLETED.</li>
+<li><b>Belum bisa dipastikan dari APK saja:</b> keaslian data chart, rumus backtest, bug jumlah watchlist, akurasi winrate/PnL, kualitas visual dan interaksi.</li>
+</ul></div>
+<div class="card" id="kebutuhan"><h2>C. <span>Kebutuhan pengembangan</span></h2>
+<ul>
+<li>APK saja <b>cukup</b> untuk audit identitas/struktur awal.</li>
+<li>APK saja <b>tidak cukup</b> untuk perbaikan aman (logika engine &amp; UI).</li>
+<li>Unggah source Android Studio berikutnya: <code>settings.gradle, app/build.gradle, AndroidManifest.xml, java/com/aether/signal/premium/{ui,data,engine,ai}, res/layout/activity_*.xml, res/values/*</code>.</li>
+<li>Jangan ubah package name &amp; jangan migrasi ke Compose/WebView tanpa persetujuan.</li>
+</ul></div>
+<div class="card" id="rencana"><h2>D. <span>Rencana lanjutan</span> (dampak / risiko)</h2>
+<ul>
+<li><b>P1:</b> Release build bertanda + non-debuggable; uji instalasi bersih &amp; update dari v37.</li>
+<li><b>P2:</b> Dinamis: verifikasi watchlist 10/20/30/50/Custom + indikator jumlah aktual.</li>
+<li><b>P3:</b> Chart: verifikasi sumber candle per timeframe M5–D1, warna, volume, harga terakhir.</li>
+<li><b>P4:</b> Backtest: pastikan equity curve dari perhitungan aktual, sembunyikan parameter lanjutan.</li>
+<li><b>P5:</b> Settings: susun 5 grup logis; hapus tombol navigasi duplikat bila ada.</li>
+</ul>
+<p class="mut" style="margin-top:8px">Aturan: audit dulu, perbaiki akar penyebab, tanpa mengubah strategi/engine tanpa instruksi.</p>
+</div>
+</div>
+</div></main>
+<footer><div class="wrap">Laporan audit statis 16 Okt 2026 — diverifikasi via Androguard + unzip. Runtime (emulator/perangkat) diperlukan untuk klaim visual &amp; fungsional. • SHA256 f502edcf… • 1039 entri ZIP</div></footer>
+</body>
+</html>
