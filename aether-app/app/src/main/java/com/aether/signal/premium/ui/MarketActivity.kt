@@ -19,6 +19,7 @@ import com.aether.signal.premium.data.validateCustomPair
 import com.aether.signal.premium.engine.*
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 
 class MarketActivity : BaseActivity(R.id.nav_markets) {
@@ -32,6 +33,11 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     private var tf = MARKET_DEFAULT_TF
     private var query = ""
     private var rows: List<MktRow> = emptyList()
+    // Filter tampilan watchlist (display-only): 0=Semua, 1=Naik, 2=Turun.
+    // Tidak mengubah daftar pair tersimpan maupun jumlah dasar.
+    private var mktFilter = 0
+    // Root sheet Kelola watchlist (null bila sheet tertutup).
+    private var manageRoot: View? = null
 
     data class MktRow(val sym: String, val prov: String, var price: String = "—", var chg: Double? = null, var sig: String = "…", var err: String? = null, var spark: List<Double> = emptyList(), var stale: Boolean = false, var updatedAt: Long = 0L)
     private var watchAdapter: WatchAdapter? = null
@@ -134,23 +140,18 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             load()
         }
         paintCustom()
-        findViewById<MaterialButton>(R.id.btnAddPair).setOnClickListener { showAddPair() }
-        findViewById<MaterialButton>(R.id.btnResetWatch).setOnClickListener {
-            App.resetWatchlist()
-            paintCustom()
-            snack(this, "Watchlist dikembalikan ke bawaan (12 pair).")
-            load()
-        }
-        findViewById<MaterialButton>(R.id.btnWatchLimit).setOnClickListener {
-            val v = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inWatchLimit)
-                .text.toString().trim().toIntOrNull()
-            if (v == null || v < 1 || v > MAX_WATCH_PAIRS) {
-                snack(this, "Isi 1–$MAX_WATCH_PAIRS.")
-                return@setOnClickListener
+        findViewById<MaterialButton>(R.id.btnManageWatch).setOnClickListener { openManageSheet() }
+        findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.segMktFilter).apply {
+            check(R.id.segMFAll)
+            addOnButtonCheckedListener { _, id, checked ->
+                if (!checked) return@addOnButtonCheckedListener
+                mktFilter = when (id) {
+                    R.id.segMFUp -> 1
+                    R.id.segMFDown -> 2
+                    else -> 0
+                }
+                paint()
             }
-            App.watchLimit = v; App.saveWatchLimit()
-            paintCustom()
-            load()
         }
         intent.getStringExtra("focus")?.let {
             if (it.isNotEmpty()) {
@@ -303,15 +304,57 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
         }
     }
 
-    // ---------- C: watchlist kustom ----------
+    // ---------- C: watchlist kustom (dikelola via bottom sheet) ----------
     private var customTouch: androidx.recyclerview.widget.ItemTouchHelper? = null
 
+    /** Ringkasan satu baris di halaman utama (sheet memuat detail). */
+    private fun paintWatchSummary() {
+        try {
+            findViewById<TextView>(R.id.watchSummary).text =
+                "Maks ${App.watchLimit} bawaan + ${App.customPairs.size} kustom"
+        } catch (e: Exception) { /* abaikan */ }
+    }
+
+    private fun openManageSheet() {
+        val sh = BottomSheetDialog(this, R.style.SheetTheme)
+        val root = layoutInflater.inflate(R.layout.sheet_manage_watch, null)
+        manageRoot = root
+        root.findViewById<MaterialButton>(R.id.btnAddPair).setOnClickListener { showAddPair() }
+        root.findViewById<MaterialButton>(R.id.btnResetWatch).setOnClickListener {
+            App.resetWatchlist()
+            paintCustom()
+            snack(this, "Watchlist dikembalikan ke bawaan (12 pair).")
+            load()
+        }
+        root.findViewById<MaterialButton>(R.id.btnWatchLimit).setOnClickListener {
+            val v = root.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inWatchLimit)
+                .text.toString().trim().toIntOrNull()
+            if (v == null || v < 1 || v > MAX_WATCH_PAIRS) {
+                snack(this, "Isi 1–$MAX_WATCH_PAIRS.")
+                return@setOnClickListener
+            }
+            App.watchLimit = v; App.saveWatchLimit()
+            paintCustom()
+            load()
+        }
+        sh.setOnDismissListener { manageRoot = null }
+        paintCustom()
+        sh.setContentView(root)
+        sh.show()
+    }
+
     private fun paintCustom() {
-        findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inWatchLimit)
+        paintWatchSummary()
+        val root = manageRoot ?: return
+        paintCustomOn(root)
+    }
+
+    private fun paintCustomOn(root: View) {
+        root.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inWatchLimit)
             .setText(App.watchLimit.toString())
         // Pilihan batas maksimum pair (10/20/30/50/100/150/200, maks 200).
         try {
-            val chips = findViewById<android.widget.LinearLayout>(R.id.limitChips)
+            val chips = root.findViewById<android.widget.LinearLayout>(R.id.limitChips)
             chips.removeAllViews()
             for (n in WATCH_LIMIT_OPTIONS) {
                 val b = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
@@ -327,9 +370,9 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
             }
         } catch (e: Exception) { /* layout lama: abaikan */ }
         // C11: jumlah yang benar-benar ditampilkan = bawaan (dibatasi) + kustom.
-        findViewById<TextView>(R.id.customCount).text =
+        root.findViewById<TextView>(R.id.customCount).text =
             "Menampilkan maks ${App.watchLimit} bawaan + ${App.customPairs.size} kustom"
-        val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.customList)
+        val list = root.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.customList)
         list.vertical(this)
         if (App.customPairs.isEmpty()) {
             list.adapter = SigAdapter(listOf(SigItem("○", "Belum ada pair kustom.", "Tekan ＋ Tambah Pasangan.", "")))
@@ -601,10 +644,22 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
         }
     }
 
+    /** Filter tampilan (bukan filter data): Semua/Naik/Turun dari chg aktual.
+     *  Daftar dasar `rows` tidak berubah; hanya baris yang ditampilkan. */
+    private fun mktVisible(rs: List<MktRow>): List<MktRow> {
+        val q = query.uppercase()
+        return rs.filter { r ->
+            (q.isEmpty() || r.sym.contains(q)) && when (mktFilter) {
+                1 -> (r.chg ?: Double.NaN) > 0
+                2 -> (r.chg ?: Double.NaN) < 0
+                else -> true
+            }
+        }
+    }
+
     private fun paint() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-        val q = query.uppercase()
-        val vis = rows.filter { q.isEmpty() || it.sym.contains(q) }
+        val vis = mktVisible(rows)
         findViewById<TextView>(R.id.empty).apply {
             visibility = if (vis.isEmpty() && rows.isNotEmpty()) View.VISIBLE else View.GONE
             text = "Tidak ada hasil."
@@ -623,8 +678,7 @@ class MarketActivity : BaseActivity(R.id.nav_markets) {
     /** Bangun ulang item dari `rows` pada adapter yang SAMA (scroll terjaga). */
     private fun refreshRows() {
         val list = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-        val q = query.uppercase()
-        val items = rows.filter { q.isEmpty() || it.sym.contains(q) }
+        val items = mktVisible(rows)
             .map { toItem(it) }
         val cur = watchAdapter
         if (cur == null) {

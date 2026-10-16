@@ -8,6 +8,7 @@ import androidx.core.widget.addTextChangedListener
 import com.aether.signal.premium.R
 import com.aether.signal.premium.data.*
 import com.aether.signal.premium.engine.isWinTrade
+import com.aether.signal.premium.engine.pairStatusOf
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 
@@ -40,6 +41,7 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             catch (e: Exception) { snack(this, "Gagal membuka notifikasi: ${e.message}") }
         }
         findViewById<MaterialButton>(R.id.hubSettings).setOnClickListener { navTo("settings") }
+        findViewById<MaterialButton>(R.id.hubTrades).setOnClickListener { SignalsActivity.openTab(this, 2) }
         findViewById<MaterialButton>(R.id.hubBacktest).setOnClickListener { navKeep("backtest") }
         findViewById<MaterialButton>(R.id.hubLab).setOnClickListener { navTo("lab") }
         findViewById<MaterialButton>(R.id.hubReplay).setOnClickListener {
@@ -65,6 +67,8 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         paintCfg()
         paintPairs()
         paintRegime()
+        paintPulse()
+        findViewById<MaterialButton>(R.id.btnPulseBacktest).setOnClickListener { navKeep("backtest") }
     }
 
     override fun onResume() {
@@ -74,6 +78,7 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
         // (dan sinyal baru) langsung tercermin tanpa pindah tab.
         try { paintHero() } catch (e: Exception) { /* layout belum siap */ }
         try { paintSignals() } catch (e: Exception) { /* abaikan */ }
+        try { paintPulse() } catch (e: Exception) { /* abaikan */ }
         try { paintPairs() } catch (e: Exception) { /* abaikan */ }
         try { paintRegime() } catch (e: Exception) { /* abaikan */ }
     }
@@ -133,6 +138,62 @@ class DashboardActivity : BaseActivity(R.id.nav_home) {
             findViewById<android.widget.TextView>(R.id.brandLine).text =
                 "${App.provider.uppercase()} · ${App.timeframe}"
         } catch (e: Exception) { /* abaikan */ }
+    }
+
+    /** Market Pulse: pair hasil Backtest terakhir (data aktual).
+     *  Multi: App.multiRows + pairStatusOf + sparkline dari App.multiCache.
+     *  Single: App.result + sparkline dari App.candles bila aset cocok.
+     *  Tanpa data sparkline: status teks saja, tanpa grafik palsu. */
+    private fun paintPulse() {
+        val row = findViewById<android.widget.LinearLayout>(R.id.pulseRow)
+        val empty = findViewById<android.widget.TextView>(R.id.pulseEmpty)
+        val meta = findViewById<android.widget.TextView>(R.id.pulseMeta)
+        row.removeAllViews()
+        val lb = App.lastBt()
+        if (lb == null) {
+            meta.text = ""
+            empty.visibility = android.view.View.VISIBLE
+            return
+        }
+        meta.text = "Backtest ${lb.mode} · ${lb.status} · ${App.fmtDate(lb.at)}"
+        val items = ArrayList<PulseRow>()
+        if (lb.mode == "multi" && App.multiRows.isNotEmpty()) {
+            for (pr in App.multiRows) {
+                val st = try { pairStatusOf(pr) } catch (e: Exception) { "?" }
+                val ok = st == "SUCCESS"
+                val spark = try {
+                    App.multiCache[pr.sym]?.first?.takeLast(60)?.map { it.c } ?: emptyList()
+                } catch (e: Exception) { emptyList() }
+                val tr = pr.res?.totalTrades
+                items.add(PulseRow(pr.sym,
+                    if (tr != null) "$st · $tr trade" else st, spark, ok))
+            }
+        } else {
+            val res = App.result
+            if (res != null) {
+                val st = if (res.error != null) "GAGAL"
+                else if (res.totalTrades > 0) "SUCCESS" else "NO TRADES"
+                val spark = try {
+                    if (App.params?.asset == res.asset) App.candles.takeLast(60).map { it.c }
+                    else emptyList()
+                } catch (e: Exception) { emptyList() }
+                items.add(PulseRow(res.asset, "$st · ${res.totalTrades} trade", spark, st == "SUCCESS"))
+            }
+        }
+        empty.visibility = if (items.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        for (it in items) {
+            val v = layoutInflater.inflate(R.layout.item_pulse, row, false)
+            v.findViewById<android.widget.TextView>(R.id.puSym).text = it.sym
+            v.findViewById<android.widget.TextView>(R.id.puStatus).apply {
+                text = it.status
+                setTextColor((if (it.ok) 0xFF10B981 else 0xFF94A3B8).toInt())
+            }
+            val sp = v.findViewById<SparkView>(R.id.puSpark)
+            if (it.spark.size >= 2) { sp.visibility = android.view.View.VISIBLE; sp.setData(it.spark) }
+            else sp.visibility = android.view.View.GONE
+            v.setOnClickListener { navKeep("backtest") }
+            row.addView(v)
+        }
     }
 
     /** V28: daftar pair Engine yang benar-benar dipakai tick (bukan tebakan). */

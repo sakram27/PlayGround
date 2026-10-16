@@ -176,6 +176,34 @@
                 android:nestedScrollingEnabled="false" android:layout_marginTop="4dp" />
         </LinearLayout>
 
+        <!-- MARKET PULSE: pair hasil Backtest terakhir (data aktual). -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@color/graphite_800"
+            android:padding="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="Market Pulse"
+                    style="@style/TxSection" />
+                <Button android:id="@+id/btnPulseBacktest" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Backtest →"
+                    style="@style/BtnInfo" />
+            </LinearLayout>
+            <TextView android:id="@+id/pulseMeta" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/dim"
+                android:textSize="11sp" android:layout_marginTop="4dp" />
+            <HorizontalScrollView android:id="@+id/pulseScroll"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:scrollbars="none">
+                <LinearLayout android:id="@+id/pulseRow" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:orientation="horizontal" />
+            </HorizontalScrollView>
+            <TextView android:id="@+id/pulseEmpty" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textColor="@color/mut"
+                android:textSize="12sp" android:layout_marginTop="6dp"
+                android:text="Belum ada hasil Backtest — jalankan dari Lab." />
+        </LinearLayout>
+
         <!-- 6. AKTIVITAS TERAKHIR. -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:background="@color/graphite_800"
@@ -207,7 +235,7 @@
                 android:textSize="11sp" android:textStyle="bold"
                 android:layout_marginTop="10dp" />
             <GridLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:columnCount="2" android:rowCount="2" android:layout_marginTop="6dp"
+                android:columnCount="2" android:rowCount="3" android:layout_marginTop="6dp"
                 android:useDefaultMargins="false">
                 <Button android:id="@+id/hubSignals" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_columnWeight="1"
@@ -220,6 +248,10 @@
                 <Button android:id="@+id/hubNotif" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_columnWeight="1"
                     android:layout_gravity="fill_horizontal" android:text="Notifikasi"
+                    style="@style/BtnSmall" />
+                <Button android:id="@+id/hubTrades" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_columnWeight="1"
+                    android:layout_gravity="fill_horizontal" android:text="Trades"
                     style="@style/BtnSmall" />
                 <Button android:id="@+id/hubSettings" android:layout_width="0dp"
                     android:layout_height="wrap_content" android:layout_columnWeight="1"

@@ -3408,6 +3408,7 @@ id btnJAdd
 id btnJournal
 id btnLab
 id btnMain
+id btnManageWatch
 id btnMonClearLog
 id btnMonToggle
 id btnMonteCarlo
@@ -3419,6 +3420,7 @@ id btnPair
 id btnPresetAggressive
 id btnPresetBalanced
 id btnPresetConservative
+id btnPulseBacktest
 id btnQuietDays
 id btnQuietEnd
 id btnQuietPresetWeekend
@@ -3685,6 +3687,7 @@ id hubNotif
 id hubReplay
 id hubSettings
 id hubSignals
+id hubTrades
 id icon
 id icon_group
 id ifRoom
@@ -3892,6 +3895,13 @@ id progList
 id progress_circular
 id progress_horizontal
 id provStatus
+id puSpark
+id puStatus
+id puSym
+id pulseEmpty
+id pulseMeta
+id pulseRow
+id pulseScroll
 id quickMeta
 id quietPresetStatus
 id quietStatus
@@ -3959,6 +3969,10 @@ id segLimit
 id segLimit1000
 id segLimit200
 id segLimit500
+id segMFAll
+id segMFDown
+id segMFUp
+id segMktFilter
 id segMode
 id segMulti
 id segPreset
@@ -4121,6 +4135,7 @@ id view_tree_view_model_store_owner
 id visible
 id visible_removing_fragment_view_tag
 id watchHead
+id watchSummary
 id west
 id wfFolds
 id wfList
@@ -4294,6 +4309,7 @@ layout item_checkpair
 layout item_custompair
 layout item_kv
 layout item_log
+layout item_pulse
 layout item_regime
 layout item_sig
 layout item_strat
@@ -4360,6 +4376,7 @@ layout select_dialog_item_material
 layout select_dialog_multichoice_material
 layout select_dialog_singlechoice_material
 layout sheet_checklist
+layout sheet_manage_watch
 layout sheet_multi
 layout sheet_pair
 layout shell

@@ -509,11 +509,10 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="EQUITY CURVE" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="EQUITY CURVE" style="@style/TxLabel" />
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/equity" android:layout_width="match_parent"
-                    android:layout_height="220dp" android:layout_marginTop="6dp" />
+                    android:layout_height="280dp" android:layout_marginTop="6dp" />
                 <TextView android:id="@+id/equityMeta" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/mut"
                     android:textSize="11sp" android:fontFamily="monospace"
@@ -531,8 +530,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="06 · HASIL" android:textColor="@color/dim"
-                    android:textSize="10sp" android:textStyle="bold" />
+                    android:text="06 · HASIL" style="@style/TxLabel" />
                 <TextView android:id="@+id/heroNet" android:layout_width="wrap_content"
                     android:layout_height="wrap_content" android:text="—"
                     android:textColor="@color/txt" android:textSize="24sp"

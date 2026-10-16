@@ -965,6 +965,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 }
                 runOnUiThread { paintQuick(); paintChart(); paintResult() }
                 setStatus(if (res.error != null) "$st: ${res.error}" else "Selesai ${engMs.toLong()}ms · ${res.totalTrades} trade · Net ${mQ(res.netProfit, p.asset)} · cache:${meta.cacheUsed}", res.error != null)
+                if (res.error == null) scrollToResults()
                 finishRun()
             } catch (e: Exception) {
                 if (stale()) return@runBg
@@ -1264,6 +1265,7 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
             }
             MonitorBus.pairProgress(monId, done, "")
             runOnUiThread { paintQuick(); paintChart(); paintResult() }
+            if (overall != "FAILED") scrollToResults()
             // Status jujur: dipilih vs diproses vs berhasil/gagal + status run
             // + status snapshot Engine (hanya SUCCESS yang menyimpan snapshot).
             val failed = rows.filter { it.err != null || it.res?.error != null }
@@ -1923,6 +1925,21 @@ class BacktestActivity : BaseActivity(R.id.nav_lab) {
                 btnWi.visibility = View.GONE
             }
         } catch (e: Exception) { /* layout belum siap */ }
+    }
+
+    /**
+     * Gulir ke Equity Curve setelah run sukses (hasil jadi fokus).
+     * Hanya visual; tak mengubah nilai atau menjalankan ulang.
+     */
+    private fun scrollToResults() {
+        try {
+            val chart = findViewById<View>(R.id.equity)
+            val scroll = findViewById<android.widget.ScrollView>(R.id.backtestScroll)
+            val a = IntArray(2); chart.getLocationOnScreen(a)
+            val b = IntArray(2); scroll.getLocationOnScreen(b)
+            val y = (a[1] - b[1] + scroll.scrollY - 16 * resources.displayMetrics.density).toInt()
+            scroll.post { scroll.smoothScrollTo(0, y.coerceAtLeast(0)) }
+        } catch (e: Exception) { /* abaikan */ }
     }
 
     /**

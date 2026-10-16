@@ -101,6 +101,31 @@ class WatchAdapter(var items: List<WatchItem>, val onClick: (WatchItem) -> Unit)
 /** Baris strategi Lab: nama utama + kode sekunder + badge AKTIF. */
 data class StratRow(val name: String, val code: String, val active: Boolean)
 
+/** Chip Market Pulse: pair hasil backtest + status + sparkline (data aktual). */
+data class PulseRow(val sym: String, val status: String, val spark: List<Double>, val ok: Boolean)
+
+class PulseAdapter(var items: List<PulseRow>, val onClick: (PulseRow) -> Unit) : RecyclerView.Adapter<PulseAdapter.H>() {
+    class H(v: View) : RecyclerView.ViewHolder(v) {
+        val sym: TextView = v.findViewById(R.id.puSym)
+        val status: TextView = v.findViewById(R.id.puStatus)
+        val spark: SparkView = v.findViewById(R.id.puSpark)
+    }
+    override fun onCreateViewHolder(p: ViewGroup, t: Int) =
+        H(LayoutInflater.from(p.context).inflate(R.layout.item_pulse, p, false))
+    override fun getItemCount() = items.size
+    override fun onBindViewHolder(h: H, i: Int) {
+        val r = items[i]
+        h.sym.text = r.sym
+        h.status.text = r.status
+        h.status.setTextColor((if (r.ok) 0xFF10B981 else 0xFF94A3B8).toInt())
+        if (r.spark.size >= 2) {
+            h.spark.visibility = View.VISIBLE
+            h.spark.setData(r.spark)
+        } else h.spark.visibility = View.GONE
+        h.itemView.setOnClickListener { onClick(r) }
+    }
+}
+
 /** Baris sinyal generik (dipakai banyak layar; jangan ubah bentuknya). */
 data class SigItem(val dir: String, val main: String, val sub: String, val right: String, val sym: String = "")
 

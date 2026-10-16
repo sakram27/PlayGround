@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chip Market Pulse: nama pair + status + sparkline lebar. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:orientation="vertical" android:background="@drawable/bg_pill"
+    android:padding="10dp" android:layout_marginEnd="8dp"
+    android:minWidth="150dp">
+    <TextView android:id="@+id/puSym" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:textColor="@color/txt"
+        android:textSize="13sp" android:textStyle="bold"
+        android:maxLines="1" android:ellipsize="end" />
+    <TextView android:id="@+id/puStatus" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:textSize="10sp"
+        android:textStyle="bold" android:maxLines="1"
+        android:layout_marginTop="2dp" style="@style/BadgeText" />
+    <com.aether.signal.premium.ui.SparkView android:id="@+id/puSpark"
+        android:layout_width="130dp" android:layout_height="40dp"
+        android:layout_marginTop="6dp" />
+</LinearLayout>
